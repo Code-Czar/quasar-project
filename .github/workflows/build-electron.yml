@@ -24,7 +24,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '18'
+          node-version: '20'
 
       # Step 3: Install dependencies
       - name: Install dependencies
@@ -45,7 +45,7 @@ jobs:
 
       # Step 6: Archive the build artifacts for download
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: electron-app-${{ matrix.os }}
           path: dist/electron/Packaged # Adjust if your output directory differs

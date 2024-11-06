@@ -208,7 +208,10 @@ module.exports = configure(function (/* ctx */) {
           target: 'nsis',
         },
         mac: {
-          target: 'dmg',
+          target: ['dmg', 'zip'],
+          category: 'public.app-category.utilities',
+          entitlements: 'entitlements.mac.plist',
+          entitlementsInherit: 'entitlements.mac.plist',
         },
         linux: {
           target: 'AppImage',
