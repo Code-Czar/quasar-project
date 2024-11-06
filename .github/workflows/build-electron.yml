@@ -1,0 +1,45 @@
+name: Build Electron App
+
+# Trigger builds on push to main or on pull requests
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    # Define the OS matrix for cross-platform builds
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      # Step 1: Check out the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Step 2: Set up Node.js environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: |
+          yarn install
+          yarn global add @quasar/cli
+
+      # Step 4: Build the Electron app with Quasar
+      - name: Build Quasar Electron app
+        run: |
+          yarn quasar build -m electron
+
+      # Step 5: Archive the build artifacts for download
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: electron-app-${{ matrix.os }}
+          path: dist/electron # Adjust if your output directory differs
