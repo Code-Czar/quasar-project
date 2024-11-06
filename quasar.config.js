@@ -46,6 +46,10 @@ module.exports = configure(function (/* ctx */) {
         browser: ['es2019', 'edge88', 'firefox78', 'chrome87', 'safari13.1'],
         node: 'node20',
       },
+      eslint: {
+        warnings: false,
+        errors: false,
+      },
 
       vueRouterMode: 'hash', // available values: 'hash', 'history'
       // vueRouterBase,
@@ -79,11 +83,11 @@ module.exports = configure(function (/* ctx */) {
             vueTsc: {
               tsconfigPath: 'tsconfig.vue-tsc.json',
             },
-            eslint: {
-              lintCommand: 'eslint "./**/*.{js,ts,mjs,cjs,vue}"',
-            },
+            // // eslint: {
+            // //   lintCommand: 'eslint "./**/*.{js,ts,mjs,cjs,vue}"',
+            // // },
           },
-          { server: false },
+          // { server: false },
         ],
       ],
     },
@@ -194,9 +198,21 @@ module.exports = configure(function (/* ctx */) {
       },
 
       builder: {
-        // https://www.electron.build/configuration/configuration
-
-        appId: 'quasar-project',
+        appId: 'com.example.app', // Define your app ID here
+        productName: 'YourAppName', // Optional, name for the packaged app
+        directories: {
+          output: 'dist/electron', // This is where the packaged files should go
+        },
+        // Additional packaging options, such as platform-specific builds
+        win: {
+          target: 'nsis',
+        },
+        mac: {
+          target: 'dmg',
+        },
+        linux: {
+          target: 'AppImage',
+        },
       },
     },
 

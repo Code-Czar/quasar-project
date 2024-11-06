@@ -1,0 +1,19 @@
+@import '../colors.scss';
+
+
+// Sections
+.body-theme-two .pricing-section,
+.body-theme-two .roadmap-section,
+.body-theme-two .how-it-works-section {
+  background-color: $section-even-background;
+  
+  .text-h2{
+    color: $primary;
+  }
+}
+
+.body-theme-two .features-section,
+.body-theme-two .our-mission-section,
+.body-theme-two .register-beta-section {
+  background-color: $section-odd-background;
+}

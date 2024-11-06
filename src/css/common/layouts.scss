@@ -1,0 +1,41 @@
+$default-padding: 2rem;
+$default-gap:1rem;
+
+.flex {
+  display: flex;
+}
+.flex-column {
+  @extend .flex;
+  flex-direction: column;
+}
+.flex-row {
+  @extend .flex;
+  flex-direction: row;
+}
+
+.flex-column-centered {
+  @extend .flex-column;
+  justify-content: center;
+  align-items: center;
+}
+
+.flex-row-centered {
+  @extend.flex-row; 
+  justify-content: center; 
+  align-items: center;
+}
+
+.default-padding {
+  padding: $default-padding;
+}
+.default-small-y-padding {
+  padding-top: 0.5rem;
+  padding-bottom:0.5rem;
+}
+.default-margin {
+  margin: $default-padding;
+}
+
+.default-gap{
+  gap:0.5rem;
+}

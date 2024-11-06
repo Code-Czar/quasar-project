@@ -1,55 +1,88 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
+import axios from 'axios';
+import { installDependencies } from './installScripts/install';
 import os from 'os';
 
-// needed in case process is undefined under Linux
 const platform = process.platform || os.platform();
+const frontendURL = 'http://localhost:9300/#/';
+
+// ########################
+// ## 1. Electron Setup  ##
+// ########################
 
 let mainWindow: BrowserWindow | undefined;
 
-function createWindow() {
-  /**
-   * Initial window options
-   */
-  mainWindow = new BrowserWindow({
-    icon: path.resolve(__dirname, 'icons/icon.png'), // tray icon
-    width: 1000,
-    height: 600,
-    useContentSize: true,
-    webPreferences: {
-      contextIsolation: true,
-      // More info: https://v2.quasar.dev/quasar-cli-vite/developing-electron-apps/electron-preload-script
-      preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD),
-    },
-  });
+async function initElectron() {
+  // Install dependencies before creating the main window
+  // try {
+  //   console.log('Installing dependencies...');
+  //   await installDependencies();
+  //   console.log('Dependencies installed successfully');
+  // } catch (error) {
+  //   console.error(
+  //     `Dependency installation failed: ${
+  //       error instanceof Error ? error.message : 'Unknown error'
+  //     }`
+  //   );
+  // }
 
-  mainWindow.loadURL(process.env.APP_URL);
+  // const frontendReady = await waitForFrontend();
+  // if (!frontendReady) {
+  //   app.quit();
+  //   return;
+  // }
 
-  if (process.env.DEBUGGING) {
-    // if on DEV or Production with debug enabled
-    mainWindow.webContents.openDevTools();
-  } else {
-    // we're on production; no access to devtools pls
-    mainWindow.webContents.on('devtools-opened', () => {
-      mainWindow?.webContents.closeDevTools();
+  function createWindow() {
+    mainWindow = new BrowserWindow({
+      icon: path.resolve(__dirname, 'icons/icon.png'),
+      width: 1920,
+      height: 1080,
+      useContentSize: true,
+      webPreferences: {
+        contextIsolation: true,
+        preload: path.join(__dirname, 'electron-preload.js'), // Ensure this path is correct
+      },
     });
+
+    mainWindow.loadURL(process.env.APP_URL || 'http://localhost:9000');
   }
 
-  mainWindow.on('closed', () => {
-    mainWindow = undefined;
+  app.whenReady().then(createWindow);
+
+  app.on('window-all-closed', () => {
+    if (platform !== 'darwin') {
+      app.quit();
+    }
+  });
+
+  app.on('activate', () => {
+    if (!mainWindow) {
+      createWindow();
+    }
   });
 }
 
-app.whenReady().then(createWindow);
+initElectron(); // Start the Electron/Quasar setup
 
-app.on('window-all-closed', () => {
-  if (platform !== 'darwin') {
-    app.quit();
+// ########################
+// ## 2. IPC Handlers for Installation ##
+// ########################
+
+ipcMain.handle('install-dependencies', async () => {
+  try {
+    const result = await installDependencies();
+    return result;
+  } catch (error) {
+    throw new Error(
+      `Dependency installation failed: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
+    );
   }
 });
 
-app.on('activate', () => {
-  if (mainWindow === undefined) {
-    createWindow();
-  }
+// IPC listener to navigate the main window to the provided URL
+ipcMain.on('navigate-to-url', (event, url) => {
+  mainWindow?.loadURL(url);
 });

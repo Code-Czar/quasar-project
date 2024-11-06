@@ -1,0 +1,14 @@
+.body-theme-one .pricing-section,
+.body-theme-one .roadmap-section,
+.body-theme-one .how-it-works-section
+{
+  // padding: 20px;
+
+  background-color: $section-odd-background;
+}
+
+.body-theme-one .features-section,
+.body-theme-one .our-mission-section, 
+.body-theme-one .register-beta-section  {
+  background-color: $section-even-background;
+}

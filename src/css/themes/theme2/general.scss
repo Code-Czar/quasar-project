@@ -1,0 +1,12 @@
+// theme-two.scss
+$q-color-primary: #9c27b0;
+$q-color-secondary: #e91e63;
+.body-theme-two {
+  --q-color-primary: #9c27b0;
+  --q-color-secondary: #e91e63;
+  // background-color: red !important;
+  // ... other Quasar variables or custom styles
+  body{
+    background-color: black !important;
+  }
+}

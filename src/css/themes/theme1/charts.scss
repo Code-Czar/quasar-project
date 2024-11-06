@@ -1,0 +1,11 @@
+@import '../../common/charts.scss';
+
+.body-theme-one .chart-container {
+    background-color: #021730;
+}
+
+
+.body-theme-one .backtesting-chart {
+    @extend .backtesting-chart;
+    // background-color: transparent;
+}

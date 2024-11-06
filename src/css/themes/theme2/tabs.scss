@@ -1,0 +1,6 @@
+@import '../../common/tabs.scss';
+
+.body-theme-two .q-tab-panel{
+    @extend .q-tab-panel;
+    background-color: green !important;
+}

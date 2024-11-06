@@ -1,0 +1,15 @@
+// @import '../../common/tables.scss';
+
+
+.body-theme-one .q-table__container{
+    @extend .q-table__container;
+    // background-color: #F5DEB3 !important;
+    color: $pristine-white;
+    // box-shadow: 0px 0px 5px 2px $soft-grey;
+    box-shadow: unset;
+    border: 1px solid $soft-grey;
+
+    button {
+        color: $warm-beige;
+    }
+}

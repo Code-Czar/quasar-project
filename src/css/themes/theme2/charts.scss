@@ -1,0 +1,6 @@
+@import '../../common/charts.scss';
+
+.body-theme-two .backtesting-chart {
+    @extend .backtesting-chart;
+    background-color: pink;
+}

@@ -1,0 +1,19 @@
+.section{
+    display:flex; 
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    max-height:unset;
+    height: unset;
+}
+
+
+.section-with-padding{
+    @extend .section;
+
+    .text-h2-spacer{
+        margin-top:5rem;
+        margin-bottom:5rem;
+    }
+    
+}

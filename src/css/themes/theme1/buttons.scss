@@ -1,0 +1,33 @@
+@import './colors.scss';
+
+.body-theme-one .button-default {
+ background-color: $gold-mid;
+//  color:$primary;
+}
+.body-theme-one .button-charts-default {
+  background-color: $gold-mid;
+  padding-left:0.5rem;
+  padding-right:0.5rem;
+  background-color: transparent;
+  border: 1px solid $pristine-white;
+  font-size: 0.7rem;
+  display:flex; 
+  flex-grow:1;
+ //  color:$primary;
+ }
+
+.body-theme-one .button-dark{
+  background-color: $q-dark;
+}
+
+.body-theme-one .q-btn__content {
+  // color: $gold-high2;
+  // color: $warm-beige;
+  // color: $soft-grey;
+  color: $pristine-white;
+
+}
+.body-theme-one .controls input{
+  background-color: transparent;
+  border: unset;
+}

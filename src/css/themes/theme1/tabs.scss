@@ -1,0 +1,17 @@
+@import '../../common/tabs.scss';
+
+.body-theme-one .q-tab-panel{
+    @extend .q-tab-panel;
+    // background-color: orange !important;
+    color: $deep-blue;
+}
+
+.body-theme-one .q-tab{
+    background-color: transparent;
+    color: $gold-level-5;
+
+}
+.body-theme-one .q-tab-panel{
+padding: 0.3rem;
+// padding-top:3rem;
+}

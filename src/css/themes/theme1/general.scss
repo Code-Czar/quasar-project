@@ -1,0 +1,28 @@
+// theme-one.scss
+@import './buttons.scss';
+@import './charts.scss';
+@import './tabs.scss';
+@import './tables.scss';
+@import './colors.scss';
+@import './links.scss';
+
+
+.body-theme-one {
+  background-color: $blue-ia-4;
+  // ... other Quasar variables or custom styles
+}
+
+.body-theme-one, 
+.body-theme-one .main-layout {
+  background-color: $blue-ia-4;
+  color: $pristine-white;
+}
+
+
+
+.body-theme-one .q-drawer{
+  background-color: $blue-logo-1;
+}
+
+
+// .body-theme-one 

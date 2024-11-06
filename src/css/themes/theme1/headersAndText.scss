@@ -1,0 +1,26 @@
+@import './colors.scss';
+
+.body-theme-one html, 
+.body-theme-one div, 
+.body-theme-one input {
+  // color: $text-primary !important;
+  color: $text-primary !important;
+}
+.body-theme-one .q-checkbox__inner--truthy path{
+  // color: $text-primary !important;
+  color:$secondary !important;
+  // background-color:red !important;
+}
+
+.body-theme-one .q-checkbox__inner--truthy .q-checkbox__bg, .q-checkbox__inner--indet .q-checkbox__bg{
+  background: $pristine-white;
+}
+
+
+.body-theme-one .text-h6 {
+    color: $pristine-white;
+}
+
+.body-theme-one .q-slider__text{
+  color: $secondary !important;
+}

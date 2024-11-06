@@ -1,0 +1,15 @@
+@import './sharedColors.scss';
+
+ .button-default {
+  background-color: $blue-ia-4;
+  color: $gold-high;
+  margin: 0.1rem;
+  // border: 1px solid grey;
+  border-radius: 3px;
+  color: $pristine-white;
+  padding-left:2rem;
+  padding-right:2rem;
+  padding-top:0.8rem;
+  padding-bottom:0.8rem;
+}
+
