@@ -208,10 +208,20 @@ module.exports = configure(function (/* ctx */) {
           target: 'nsis',
         },
         mac: {
-          target: ['dmg', 'zip'],
+          mergeASARs: false,
+          target: [
+            {
+              target: 'dmg',
+              arch: ['universal'],
+            },
+            {
+              target: 'zip',
+              arch: ['universal'],
+            },
+          ],
+          publish: ['github'],
           category: 'public.app-category.utilities',
-          entitlements: 'entitlements.mac.plist',
-          entitlementsInherit: 'entitlements.mac.plist',
+          artifactName: 'jbrowse-desktop-v${version}-mac.${ext}',
         },
         linux: {
           target: 'AppImage',
