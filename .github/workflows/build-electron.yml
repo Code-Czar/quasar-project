@@ -37,9 +37,15 @@ jobs:
         run: |
           yarn quasar build -m electron
 
-      # Step 5: Archive the build artifacts for download
+      # Step 5: Remove the Unpacked folder (only on macOS)
+      - name: Remove Unpacked folder (macOS only)
+        if: matrix.os == 'macos-latest'
+        run: |
+          rm -rf dist/electron/Unpacked
+
+      # Step 6: Archive the build artifacts for download
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: electron-app-${{ matrix.os }}
-          path: dist/electron # Adjust if your output directory differs
+          path: dist/electron/Packaged # Adjust if your output directory differs
