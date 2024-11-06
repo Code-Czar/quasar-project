@@ -3,7 +3,7 @@
     <q-page-sticky position="top">
       <q-page-scroller  :scroll-duration="scrollDuration" :easing="scrollEasing" />
     </q-page-sticky>
-    <!-- <CarouselLoginHeader /> -->
+    <CarouselLoginHeader />
    
     
     
@@ -19,7 +19,7 @@ import { ref, onMounted, watchEffect } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { PublicFooterWide } from 'src/components';
-// import { CarouselLoginHeader } from 'shared-components'
+import { CarouselLoginHeader } from 'src/shared-components'
 
 
 
