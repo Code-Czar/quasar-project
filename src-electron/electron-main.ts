@@ -1,4 +1,6 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol } from 'electron';
+import { URL } from 'url';
+
 import path from 'path';
 import axios from 'axios';
 import { installDependencies } from './installScripts/install';
@@ -32,6 +34,18 @@ async function initElectron() {
   //   app.quit();
   //   return;
   // }
+  app.on('ready', () => {
+    protocol.handle('app', async (request) => {
+      const urlPath = request.url.replace('app://', ''); // Strip the custom protocol
+      const filePath = path.join(__dirname, urlPath);
+
+      // Convert the file path to a file:// URL
+      const fileUrl = new URL(`file://${filePath}`);
+
+      // Return a fetch-compatible Response object
+      return fetch(fileUrl.toString());
+    });
+  });
 
   function createWindow() {
     mainWindow = new BrowserWindow({
@@ -42,6 +56,8 @@ async function initElectron() {
       webPreferences: {
         contextIsolation: true,
         preload: path.join(__dirname, 'electron-preload.js'), // Ensure this path is correct
+        webSecurity: false, // disable security policies temporarily
+        autoplayPolicy: 'no-user-gesture-required', // allows autoplay
       },
     });
 

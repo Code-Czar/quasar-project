@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import {LoginComponent} from 'src/shared-components'
 
@@ -49,23 +49,22 @@ const SLIDE_DURATION = 3000;
 
 
 
-const carouselData = ref([
+const carouselData = computed(() => [
   {
-    videoSrc: "robot_header.webm",
-    headline: t("heroHeader.slide1.header"),
+    videoSrc: '/Robot_Header.webm',
+    headline: t('heroHeader.slide1.header'),
     text: {
-      line1: t("heroHeader.slide1.subtitle.line1"),
-      line2: t("heroHeader.slide1.subtitle.line2"),
+      line1: t('heroHeader.slide1.subtitle.line1'),
+      line2: t('heroHeader.slide1.subtitle.line2'),
     },
   },
   {
-    videoSrc: "client_header.webm",
-    headline: t("heroHeader.slide2.header"),
+    videoSrc: '/Client_header.webm',
+    headline: t('heroHeader.slide2.header'),
     text: {
-      line1: t("heroHeader.slide2.subtitle.line1"),
+      line1: t('heroHeader.slide2.subtitle.line1'),
     },
   },
-  // Add more slides as needed
 ]);
 
 const advanceSlide = () => {
