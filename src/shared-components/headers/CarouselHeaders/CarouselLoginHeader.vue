@@ -46,9 +46,12 @@ const slide = ref(0); // Current slide index
 const intervalRef = ref(null);
 const SLIDE_DURATION = 3000;
 
+
+
+
 const carouselData = ref([
   {
-    videoSrc: "/Robot_Header.webm",
+    videoSrc: "robot_header.webm",
     headline: t("heroHeader.slide1.header"),
     text: {
       line1: t("heroHeader.slide1.subtitle.line1"),
@@ -56,7 +59,7 @@ const carouselData = ref([
     },
   },
   {
-    videoSrc: "/Client_header.webm",
+    videoSrc: "client_header.webm",
     headline: t("heroHeader.slide2.header"),
     text: {
       line1: t("heroHeader.slide2.subtitle.line1"),
