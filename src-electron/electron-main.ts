@@ -17,6 +17,7 @@ autoUpdater.autoDownload = false; // Set to false for user confirmation before d
 
 // Set up logging for the auto-updater
 autoUpdater.logger = log;
+//@ts-expect-error transport
 autoUpdater.logger.transports.file.level = 'info';
 log.info('App starting...');
 
