@@ -1,6 +1,5 @@
 name: Build Electron App
 
-# Trigger builds on push to main or on pull requests
 on:
   push:
     branches: [main]
@@ -9,7 +8,6 @@ on:
 
 jobs:
   build:
-    # Define the OS matrix for cross-platform builds
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -43,9 +41,24 @@ jobs:
         run: |
           rm -rf dist/electron/Unpacked
 
-      # Step 6: Archive the build artifacts for download
-      - name: Upload build artifacts
+      # Step 6: Copy .asar file for later upload (on macOS only, since it's the same across platforms)
+      - name: Copy ASAR file
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir -p dist/asar_files
+          cp dist/electron/Packaged/Quasar\ App-darwin-arm64/Quasar\ App.app/Contents/Resources/app.asar dist/asar_files/app.asar
+
+      # Step 7: Upload the build artifacts for download
+      - name: Upload platform-specific build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: electron-app-${{ matrix.os }}
-          path: dist/electron/Packaged # Adjust if your output directory differs
+          path: dist/electron/Packaged
+
+      # Step 8: Upload the ASAR file
+      - name: Upload ASAR file
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-asar
+          path: dist/asar_files/app.asar

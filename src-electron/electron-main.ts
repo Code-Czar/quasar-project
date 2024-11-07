@@ -3,116 +3,112 @@ import { autoUpdater } from 'electron-updater';
 import { URL } from 'url';
 import os from 'os';
 import path from 'path';
-import { installDependencies } from './installScripts/install';
 import log from 'electron-log';
+import { installDependencies } from './installScripts/install';
 
 const platform = process.platform || os.platform();
 let mainWindow: BrowserWindow | undefined;
 
-async function initElectron() {
-  // ########################
-  // ## Auto-Updater Setup ##
-  // ########################
+// ########################
+// ## Auto-Updater Setup ##
+// ########################
 
-  autoUpdater.autoDownload = false; // Set to false for user confirmation before download
+autoUpdater.autoDownload = false; // Set to false for user confirmation before download
 
-  autoUpdater.logger = log;
-  // @ts-expect-error typing
-  autoUpdater.logger.level = 'debug'; // Set log level directly
-  autoUpdater.setFeedURL({
-    provider: 'github',
-    owner: 'Code-Czar',
-    repo: 'quasar-project',
-    private: false, // if the repo is public, otherwise provide a GitHub token
-  });
+// Set up logging for the auto-updater
+autoUpdater.logger = log;
+autoUpdater.logger.transports.file.level = 'info';
+log.info('App starting...');
 
-  autoUpdater.on('update-available', () => {
-    const dialogOpts: Electron.MessageBoxOptions = {
-      type: 'info',
-      buttons: ['Download Now', 'Later'],
-      title: 'Update Available',
-      message: 'A new version is available. Download and install now?',
-    };
+// Configure GitHub provider for auto-updater
+autoUpdater.setFeedURL({
+  provider: 'github',
+  owner: 'Code-Czar',
+  repo: 'quasar-project',
+  private: false, // If the repo is public; if private, provide a GitHub token
+});
 
-    dialog.showMessageBox(dialogOpts).then((result) => {
-      if (result.response === 0) {
-        // User chose to download
-        autoUpdater.downloadUpdate();
-      }
-    });
-  });
+autoUpdater.on('update-available', () => {
+  const dialogOpts: Electron.MessageBoxOptions = {
+    type: 'info',
+    buttons: ['Download Now', 'Later'],
+    title: 'Update Available',
+    message: 'A new version is available. Download and install now?',
+  };
 
-  autoUpdater.on('update-downloaded', () => {
-    const dialogOpts: Electron.MessageBoxOptions = {
-      type: 'info',
-      buttons: ['Restart Now', 'Later'],
-      title: 'Update Ready',
-      message: 'An update has been downloaded. Restart to apply the update?',
-    };
-
-    dialog.showMessageBox(dialogOpts).then((result) => {
-      if (result.response === 0) {
-        // User chose to restart
-        autoUpdater.quitAndInstall();
-      }
-    });
-  });
-
-  // ########################
-  // ## Electron Protocols ##
-  // ########################
-
-  app.whenReady().then(() => {
-    console.log('🚀 ~ app.whenReady ~ app:', app);
-    autoUpdater.checkForUpdates();
-    autoUpdater.checkForUpdatesAndNotify();
-
-    protocol.registerFileProtocol('app', (request, callback) => {
-      const urlPath = request.url.replace('app://', ''); // Strip the custom protocol prefix
-      const filePath = path.normalize(`${__dirname}/${urlPath}`);
-      callback({ path: filePath });
-    });
-  });
-
-  // ########################
-  // ## Browser Window Setup ##
-  // ########################
-
-  function createWindow() {
-    mainWindow = new BrowserWindow({
-      icon: path.resolve(__dirname, 'icons/icon.png'),
-      width: 1920,
-      height: 1080,
-      useContentSize: true,
-      webPreferences: {
-        contextIsolation: true,
-        preload: path.join(__dirname, 'electron-preload.js'),
-        webSecurity: false,
-        autoplayPolicy: 'no-user-gesture-required',
-      },
-    });
-
-    mainWindow.loadURL(process.env.APP_URL || 'http://localhost:9300');
-  }
-
-  app.whenReady().then(createWindow);
-
-  app.on('window-all-closed', () => {
-    if (platform !== 'darwin') {
-      app.quit();
+  dialog.showMessageBox(dialogOpts).then((result) => {
+    if (result.response === 0) {
+      // User chose to download
+      autoUpdater.downloadUpdate();
     }
   });
+});
 
-  app.on('activate', () => {
-    if (!mainWindow) {
-      createWindow();
+autoUpdater.on('update-downloaded', () => {
+  const dialogOpts: Electron.MessageBoxOptions = {
+    type: 'info',
+    buttons: ['Restart Now', 'Later'],
+    title: 'Update Ready',
+    message: 'An update has been downloaded. Restart to apply the update?',
+  };
+
+  dialog.showMessageBox(dialogOpts).then((result) => {
+    if (result.response === 0) {
+      // User chose to restart
+      autoUpdater.quitAndInstall();
     }
   });
+});
+
+// ########################
+// ## Electron Protocols ##
+// ########################
+
+app.whenReady().then(() => {
+  log.info('App is ready, initializing protocols and auto-update check.');
+  autoUpdater.checkForUpdatesAndNotify(); // Automatically check for updates and notify
+
+  protocol.registerFileProtocol('app', (request, callback) => {
+    const urlPath = request.url.replace('app://', ''); // Strip the custom protocol prefix
+    const filePath = path.normalize(`${__dirname}/${urlPath}`);
+    callback({ path: filePath });
+  });
+});
+
+// ########################
+// ## Browser Window Setup ##
+// ########################
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    icon: path.resolve(__dirname, 'icons/icon.png'),
+    width: 1920,
+    height: 1080,
+    useContentSize: true,
+    webPreferences: {
+      contextIsolation: true,
+      preload: path.join(__dirname, 'electron-preload.js'),
+      webSecurity: false,
+      autoplayPolicy: 'no-user-gesture-required',
+    },
+  });
+
+  mainWindow.loadURL(process.env.APP_URL || 'http://localhost:9300');
 }
 
-console.log('🚀 ~ checkForUpdatesAndNotify:');
-autoUpdater.checkForUpdatesAndNotify();
-initElectron(); // Start the Electron setup
+app.whenReady().then(createWindow);
+
+app.on('window-all-closed', () => {
+  if (platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+app.on('activate', () => {
+  if (!mainWindow) {
+    createWindow();
+  }
+});
 
 // ########################
 // ## IPC Handlers for Installation ##

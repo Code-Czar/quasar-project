@@ -1,0 +1,39 @@
+on:
+  # Triggers the workflow on pushing a tag with a version prefix
+  push:
+    tags:
+      - 'v*.*.*' # This triggers on version tags like v1.0.0, v2.3.4, etc.
+
+  # Optionally, you could also trigger on release events
+  release:
+    types: [published]
+
+publish:
+  needs: build
+  runs-on: ubuntu-latest
+  steps:
+    - name: Download Artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: ${{ matrix.os }}-artifacts
+        path: ./release-assets
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: |
+          - New release of the Electron app.
+          - Contains the latest installers and the .asar file.
+        draft: false
+        prerelease: false
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Assets to Release
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release-assets/*
+        asset_name: ${{ matrix.os }}-${{ github.ref }}
+        asset_content_type: application/octet-stream
