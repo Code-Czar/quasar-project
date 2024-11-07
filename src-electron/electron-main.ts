@@ -18,7 +18,13 @@ async function initElectron() {
 
   autoUpdater.logger = log;
   // @ts-expect-error typing
-  autoUpdater.logger.level = 'info'; // Set log level directly
+  autoUpdater.logger.level = 'debug'; // Set log level directly
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'Code-Czar',
+    repo: 'quasar-project',
+    private: false, // if the repo is public, otherwise provide a GitHub token
+  });
 
   autoUpdater.on('update-available', () => {
     const dialogOpts: Electron.MessageBoxOptions = {
@@ -57,6 +63,10 @@ async function initElectron() {
   // ########################
 
   app.whenReady().then(() => {
+    console.log('🚀 ~ app.whenReady ~ app:', app);
+    autoUpdater.checkForUpdates();
+    autoUpdater.checkForUpdatesAndNotify();
+
     protocol.registerFileProtocol('app', (request, callback) => {
       const urlPath = request.url.replace('app://', ''); // Strip the custom protocol prefix
       const filePath = path.normalize(`${__dirname}/${urlPath}`);
@@ -100,6 +110,7 @@ async function initElectron() {
   });
 }
 
+console.log('🚀 ~ checkForUpdatesAndNotify:');
 autoUpdater.checkForUpdatesAndNotify();
 initElectron(); // Start the Electron setup
 

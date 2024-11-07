@@ -90,13 +90,6 @@ module.exports = configure(function (/* ctx */) {
           // { server: false },
         ],
       ],
-      publish: [
-        {
-          provider: 'github',
-          owner: 'Code-Czar',
-          repo: 'quasar-project',
-        },
-      ],
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
@@ -226,13 +219,26 @@ module.exports = configure(function (/* ctx */) {
               arch: ['universal'],
             },
           ],
-          publish: ['github'],
-          category: 'public.app-category.utilities',
-          artifactName: 'jbrowse-desktop-v${version}-mac.${ext}',
         },
         linux: {
           target: 'AppImage',
         },
+        publish: [
+          {
+            provider: 'github',
+            owner: 'Code-Czar',
+            repo: 'quasar-project',
+          },
+        ],
+      },
+      builderOptions: {
+        publish: [
+          {
+            provider: 'github',
+            owner: 'Code-Czar',
+            repo: 'quasar-project',
+          },
+        ],
       },
     },
 
