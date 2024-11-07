@@ -1,51 +1,67 @@
-import { app, BrowserWindow, ipcMain, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, dialog } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import { URL } from 'url';
-
-import path from 'path';
-import axios from 'axios';
-import { installDependencies } from './installScripts/install';
 import os from 'os';
+import path from 'path';
+import { installDependencies } from './installScripts/install';
 
 const platform = process.platform || os.platform();
-const frontendURL = 'http://localhost:9300/#/';
-
-// ########################
-// ## 1. Electron Setup  ##
-// ########################
-
 let mainWindow: BrowserWindow | undefined;
 
 async function initElectron() {
-  // Install dependencies before creating the main window
-  // try {
-  //   console.log('Installing dependencies...');
-  //   await installDependencies();
-  //   console.log('Dependencies installed successfully');
-  // } catch (error) {
-  //   console.error(
-  //     `Dependency installation failed: ${
-  //       error instanceof Error ? error.message : 'Unknown error'
-  //     }`
-  //   );
-  // }
+  // ########################
+  // ## Auto-Updater Setup ##
+  // ########################
 
-  // const frontendReady = await waitForFrontend();
-  // if (!frontendReady) {
-  //   app.quit();
-  //   return;
-  // }
-  app.on('ready', () => {
-    protocol.handle('app', async (request) => {
-      const urlPath = request.url.replace('app://', ''); // Strip the custom protocol
-      const filePath = path.join(__dirname, urlPath);
+  autoUpdater.autoDownload = false; // Set to false for user confirmation before download
 
-      // Convert the file path to a file:// URL
-      const fileUrl = new URL(`file://${filePath}`);
+  autoUpdater.on('update-available', () => {
+    const dialogOpts: Electron.MessageBoxOptions = {
+      type: 'info',
+      buttons: ['Download Now', 'Later'],
+      title: 'Update Available',
+      message: 'A new version is available. Download and install now?',
+    };
 
-      // Return a fetch-compatible Response object
-      return fetch(fileUrl.toString());
+    dialog.showMessageBox(dialogOpts).then((result) => {
+      if (result.response === 0) {
+        // User chose to download
+        autoUpdater.downloadUpdate();
+      }
     });
   });
+
+  autoUpdater.on('update-downloaded', () => {
+    const dialogOpts: Electron.MessageBoxOptions = {
+      type: 'info',
+      buttons: ['Restart Now', 'Later'],
+      title: 'Update Ready',
+      message: 'An update has been downloaded. Restart to apply the update?',
+    };
+
+    dialog.showMessageBox(dialogOpts).then((result) => {
+      if (result.response === 0) {
+        // User chose to restart
+        autoUpdater.quitAndInstall();
+      }
+    });
+  });
+
+  // ########################
+  // ## Electron Protocols ##
+  // ########################
+
+  app.whenReady().then(() => {
+    protocol.registerFileProtocol('app', (request, callback) => {
+      const urlPath = request.url.replace('app://', ''); // Strip the custom protocol prefix
+      const filePath = path.normalize(`${__dirname}/${urlPath}`);
+      callback({ path: filePath });
+    });
+  });
+
+  // ########################
+  // ## Browser Window Setup ##
+  // ########################
 
   function createWindow() {
     mainWindow = new BrowserWindow({
@@ -55,13 +71,13 @@ async function initElectron() {
       useContentSize: true,
       webPreferences: {
         contextIsolation: true,
-        preload: path.join(__dirname, 'electron-preload.js'), // Ensure this path is correct
-        webSecurity: false, // disable security policies temporarily
-        autoplayPolicy: 'no-user-gesture-required', // allows autoplay
+        preload: path.join(__dirname, 'electron-preload.js'),
+        webSecurity: false,
+        autoplayPolicy: 'no-user-gesture-required',
       },
     });
 
-    mainWindow.loadURL(process.env.APP_URL || 'http://localhost:9000');
+    mainWindow.loadURL(process.env.APP_URL || 'http://localhost:9300');
   }
 
   app.whenReady().then(createWindow);
@@ -79,10 +95,10 @@ async function initElectron() {
   });
 }
 
-initElectron(); // Start the Electron/Quasar setup
+initElectron(); // Start the Electron setup
 
 // ########################
-// ## 2. IPC Handlers for Installation ##
+// ## IPC Handlers for Installation ##
 // ########################
 
 ipcMain.handle('install-dependencies', async () => {
@@ -98,7 +114,6 @@ ipcMain.handle('install-dependencies', async () => {
   }
 });
 
-// IPC listener to navigate the main window to the provided URL
 ipcMain.on('navigate-to-url', (event, url) => {
   mainWindow?.loadURL(url);
 });

@@ -38,7 +38,9 @@
             <span>{{ card.price }}</span>
             <span v-if="card.recurring"> / {{ card.recurring }}</span>
           </div>
-          <q-btn class="button-default" @click.stop="goToSubscription"> {{ $t('pricing.buyButton') }}</q-btn>
+          <q-btn class="button-default" @click.stop="goToSubscription">
+            {{ $t('pricing.buyButton') }}
+          </q-btn>
         </q-card-section>
       </q-card>
     </div>
@@ -50,27 +52,38 @@ import { ref, defineEmits } from 'vue';
 import { getCurrentInstance } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import { useUserStore } from 'src/stores/userStore'
+import { useUserStore } from 'src/stores/userStore';
 
 const router = useRouter();
 const userStore_ = useUserStore();
-const i18n = useI18n();
-const app = getCurrentInstance();
-
-const translationKeys = ref([]);
-const pricingCardsTranslations = i18n.messages.value[i18n.locale.value]['pricing']['cards'];
-const pricingCards = Object.values(pricingCardsTranslations);
+const { t, messages, locale } = useI18n({ useScope: 'global' });
 
 const emit = defineEmits(['subscriptionClicked']);
 
+interface PricingItem {
+  icon: string;
+  title: string;
+}
+
+interface Card {
+  title: string;
+  items: PricingItem[];
+  price: string;
+  recurring?: string;
+}
+
+// Get translated pricing cards and type it as an array of Card
+const pricingCards = ref<Card[]>(Object.values(messages.value[locale.value]['pricing']['cards']));
+
+// Function to handle subscription click
 const goToSubscription = async () => {
   if (userStore_.user.isSubscribing || userStore_.isSubscribed) {
     emit('subscriptionClicked');
   } else {
     userStore_.setIsSubscribing(true);
-    router.push({name: 'login'});
+    router.push({ name: 'login' });
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>
@@ -84,14 +97,14 @@ const goToSubscription = async () => {
   align-items: center;
   display: grid;
   grid-template-columns: 1fr 2fr;
-  gap: 16px; /* Adjust the gap as needed */
+  gap: 16px;
   width: 100%;
 }
 .centered-content {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%; /* Ensures the content takes up the full height of the column */
+  height: 100%;
   padding: auto;
 }
 .price {

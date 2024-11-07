@@ -90,6 +90,13 @@ module.exports = configure(function (/* ctx */) {
           // { server: false },
         ],
       ],
+      publish: [
+        {
+          provider: 'github',
+          owner: 'Code-Czar',
+          repo: 'quasar-project',
+        },
+      ],
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
