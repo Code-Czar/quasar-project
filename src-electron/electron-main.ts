@@ -4,6 +4,7 @@ import { URL } from 'url';
 import os from 'os';
 import path from 'path';
 import { installDependencies } from './installScripts/install';
+import log from 'electron-log';
 
 const platform = process.platform || os.platform();
 let mainWindow: BrowserWindow | undefined;
@@ -14,6 +15,10 @@ async function initElectron() {
   // ########################
 
   autoUpdater.autoDownload = false; // Set to false for user confirmation before download
+
+  autoUpdater.logger = log;
+  // @ts-expect-error typing
+  autoUpdater.logger.level = 'info'; // Set log level directly
 
   autoUpdater.on('update-available', () => {
     const dialogOpts: Electron.MessageBoxOptions = {
@@ -95,6 +100,7 @@ async function initElectron() {
   });
 }
 
+autoUpdater.checkForUpdatesAndNotify();
 initElectron(); // Start the Electron setup
 
 // ########################
