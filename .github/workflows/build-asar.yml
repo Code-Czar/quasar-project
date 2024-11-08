@@ -63,54 +63,35 @@ jobs:
       - name: Compress ASAR File
         run: |
           cd ./artifacts/asar
-          zip app-asar.zip app.asar  # Compress ASAR file into a .zip file
-          du -sh app-asar.zip  # Check the size of the compressed file
+          zip app-asar.zip app.asar
+          du -sh app-asar.zip
 
-      - name: Calculate Next Tag
-        id: calculate_tag
+      - name: Fetch All Tags
         run: |
-          latest_tag=$(git tag --sort=-v:refname | head -n 1)
-          if [[ -z "$latest_tag" ]]; then
-            echo "v0.1.0" > NEXT_TAG
-          else
-            major=$(echo "$latest_tag" | cut -d. -f1)
-            minor=$(echo "$latest_tag" | cut -d. -f2)
-            patch=$(echo "$latest_tag" | cut -d. -f3)
-            next_patch=$((patch + 1))
-            echo "$major.$minor.$next_patch" > NEXT_TAG
-          fi
-          echo "NEXT_TAG=$(cat NEXT_TAG)" >> $GITHUB_ENV
+          git fetch --tags
 
-      - name: Push New Tag
+      - name: Calculate Next Tag Version
+        id: tag_version
+        run: |
+          latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
+          echo "Latest tag: $latest_tag"
+          IFS='.' read -r major minor patch <<<"${latest_tag#v}"
+          new_tag="v$major.$minor.$((patch + 1))"
+          echo "Next tag: $new_tag"
+          echo "new_tag=$new_tag" >> $GITHUB_ENV
+
+      - name: Create and Push New Tag
+        env:
+          NEW_TAG: ${{ env.new_tag }}
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git tag "$NEXT_TAG"
-          git push origin "$NEXT_TAG"
+          git tag "$NEW_TAG"
+          git push origin "$NEW_TAG"
 
-      # Create a GitHub release with the compressed ASAR file
-      - name: Create GitHub Release for ASAR
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ env.NEXT_TAG }}
-          name: ASAR Release - ${{ env.NEXT_TAG }}
-          draft: false
-          prerelease: false
-          files: ./artifacts/asar/app-asar.zip # Upload the compressed file
+      # Create GitHub Release for ASAR without Source Code attachments
+      - name: Create GitHub Release without Source Code
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
-
-      - name: Delete Source Code Assets from Release
         run: |
-          release_id=$(curl -s -H "Authorization: token ${{ secrets.GH_PAT_PUSH }}" \
-          "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.NEXT_TAG }}" | jq -r '.id')
-
-          assets=$(curl -s -H "Authorization: token ${{ secrets.GH_PAT_PUSH }}" \
-          "https://api.github.com/repos/${{ github.repository }}/releases/$release_id/assets")
-
-          for asset_id in $(echo "$assets" | jq -r '.[] | select(.name | startswith("Source code")) | .id'); do
-            curl -X DELETE -H "Authorization: token ${{ secrets.GH_PAT_PUSH }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/assets/$asset_id"
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
+          gh release create ${{ env.new_tag }} ./artifacts/asar/app-asar.zip --title "ASAR Release - ${{ env.new_tag }}" --notes "Release of ASAR file only." --prerelease=false --draft=false
