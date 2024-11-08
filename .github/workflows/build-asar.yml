@@ -55,21 +55,20 @@ jobs:
           name: app-asar
           path: ./artifacts/asar
 
-      # Create a GitHub release with softprops/action-gh-release instead of actions/create-release
+      # Ensure the tag exists
+      - name: Create Tag if Not Exists
+        run: |
+          git tag -l "${{ github.ref_name }}" || git tag "${{ github.ref_name }}"
+          git push origin "${{ github.ref_name }}"
+
+      # Create a GitHub release with softprops/action-gh-release
       - name: Create GitHub Release for ASAR
-        id: create_release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
           name: ASAR Release - ${{ github.ref_name }}
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
-
-      - name: Upload ASAR File
-        uses: softprops/action-gh-release@v1
-        with:
           files: ./artifacts/asar/app.asar
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
