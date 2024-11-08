@@ -55,11 +55,11 @@ jobs:
           name: app-asar
           path: ./artifacts/asar
 
-      # Get and increment the latest tag version
+      # Ensure the tag exists and increment if necessary
       - name: Increment Version Tag
         id: tag_version
         run: |
-          latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
+          latest_tag=$(git tag --sort=-v:refname | head -n 1)
           if [[ -z "$latest_tag" ]]; then
             new_tag="v1.0.0"
           else
