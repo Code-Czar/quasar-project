@@ -99,3 +99,18 @@ jobs:
           files: ./artifacts/asar/app-asar.zip # Upload the compressed file
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
+
+      - name: Delete Source Code Assets from Release
+        run: |
+          release_id=$(curl -s -H "Authorization: token ${{ secrets.GH_PAT_PUSH }}" \
+          "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.NEXT_TAG }}" | jq -r '.id')
+
+          assets=$(curl -s -H "Authorization: token ${{ secrets.GH_PAT_PUSH }}" \
+          "https://api.github.com/repos/${{ github.repository }}/releases/$release_id/assets")
+
+          for asset_id in $(echo "$assets" | jq -r '.[] | select(.name | startswith("Source code")) | .id'); do
+            curl -X DELETE -H "Authorization: token ${{ secrets.GH_PAT_PUSH }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/assets/$asset_id"
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
