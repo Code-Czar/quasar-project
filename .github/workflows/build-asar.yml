@@ -1,0 +1,75 @@
+name: Build and Release ASAR File
+
+on:
+  push:
+    branches:
+      - 'bt/app' # Trigger this workflow only for pushes to bt/app
+      - 'release/*' # You can add other branches like release branches
+      - 'feature/asar-build' # Example of another feature branch
+
+jobs:
+  build_asar:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          yarn install
+          yarn global add @quasar/cli
+
+      - name: Build Quasar Electron app
+        run: |
+          yarn quasar build -m electron
+
+      - name: Copy ASAR File
+        run: |
+          mkdir -p dist/asar_files
+          cp dist/electron/Packaged/Quasar\ App-darwin-arm64/Quasar\ App.app/Contents/Resources/app.asar dist/asar_files/app.asar
+
+      - name: Upload ASAR File Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-asar
+          path: dist/asar_files/app.asar
+
+  release:
+    needs: build_asar
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'bt/app'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download ASAR Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-asar
+          path: ./artifacts/asar
+
+      - name: Create GitHub Release for ASAR
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: ASAR Release - ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
+
+      - name: Upload ASAR File
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/asar/app.asar
+          asset_name: app.asar
+          asset_content_type: application/octet-stream
