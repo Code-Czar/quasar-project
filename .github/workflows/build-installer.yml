@@ -25,6 +25,7 @@ jobs:
         run: |
           yarn install
           yarn global add @quasar/cli
+          export PATH="$(yarn global bin):$PATH" # Add Yarn global binaries to PATH
 
       - name: Build Quasar Electron app
         run: |
