@@ -72,7 +72,7 @@ jobs:
       - name: Create GitHub Release for Installers
         uses: marvinpinto/action-automatic-releases@latest
         with:
-          repo_token: ${{ secrets.GH_PAT_PUSH }}
+          repo_token: '${{ secrets.GH_PAT_PUSH }}'
           automatic_release_tag: ${{ github.ref_name }}
           title: 'Installer Release - ${{ github.ref_name }}'
           files: |
