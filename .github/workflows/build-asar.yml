@@ -66,18 +66,34 @@ jobs:
           zip app-asar.zip app.asar  # Compress ASAR file into a .zip file
           du -sh app-asar.zip  # Check the size of the compressed file
 
-      # Ensure the tag exists
-      - name: Create Tag if Not Exists
+      - name: Calculate Next Tag
+        id: calculate_tag
         run: |
-          git tag -l "${{ github.ref_name }}" || git tag "${{ github.ref_name }}"
-          git push origin "${{ github.ref_name }}"
+          latest_tag=$(git tag --sort=-v:refname | head -n 1)
+          if [[ -z "$latest_tag" ]]; then
+            echo "v0.1.0" > NEXT_TAG
+          else
+            major=$(echo "$latest_tag" | cut -d. -f1)
+            minor=$(echo "$latest_tag" | cut -d. -f2)
+            patch=$(echo "$latest_tag" | cut -d. -f3)
+            next_patch=$((patch + 1))
+            echo "$major.$minor.$next_patch" > NEXT_TAG
+          fi
+          echo "NEXT_TAG=$(cat NEXT_TAG)" >> $GITHUB_ENV
+
+      - name: Push New Tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag "$NEXT_TAG"
+          git push origin "$NEXT_TAG"
 
       # Create a GitHub release with the compressed ASAR file
       - name: Create GitHub Release for ASAR
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ASAR Release - ${{ github.ref_name }}
+          tag_name: ${{ env.NEXT_TAG }}
+          name: ASAR Release - ${{ env.NEXT_TAG }}
           draft: false
           prerelease: false
           files: ./artifacts/asar/app-asar.zip # Upload the compressed file
