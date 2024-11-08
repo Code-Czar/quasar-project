@@ -54,6 +54,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # (Optional) Delete existing release with the same tag
+      - name: Delete Existing Release
+        run: |
+          release_id=$(curl -s -H "Authorization: token ${{ secrets.GH_PAT_PUSH }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" | jq -r .id)
+          if [ "$release_id" != "null" ]; then
+            curl -X DELETE -H "Authorization: token ${{ secrets.GH_PAT_PUSH }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
+          fi
+        env:
+          GH_PAT_PUSH: ${{ secrets.GH_PAT_PUSH }}
+
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -68,14 +80,14 @@ jobs:
           name: electron-installer-windows-latest
           path: ./artifacts/windows
 
-      # Create a GitHub release with marvinpinto/action-automatic-releases
+      # Create a GitHub release with unique filenames
       - name: Create GitHub Release for Installers
         uses: marvinpinto/action-automatic-releases@latest
         with:
-          repo_token: '${{ secrets.GH_PAT_PUSH }}'
+          repo_token: ${{ secrets.GH_PAT_PUSH }}
           automatic_release_tag: ${{ github.ref_name }}
           title: 'Installer Release - ${{ github.ref_name }}'
           files: |
-            ./artifacts/ubuntu/**
-            ./artifacts/macos/**
-            ./artifacts/windows/**
+            ./artifacts/ubuntu/electron-installer-ubuntu-${{ github.sha }}.zip
+            ./artifacts/macos/electron-installer-macos-${{ github.sha }}.zip
+            ./artifacts/windows/electron-installer-windows-${{ github.sha }}.zip
