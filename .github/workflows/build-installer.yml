@@ -68,15 +68,14 @@ jobs:
           name: electron-installer-windows-latest
           path: ./artifacts/windows
 
-        # Create a GitHub release with marvinpinto/action-automatic-releases
+      # Create a GitHub release with marvinpinto/action-automatic-releases
       - name: Create GitHub Release for Installers
         uses: marvinpinto/action-automatic-releases@latest
         with:
-          tag: ${{ github.ref_name }}
+          repo_token: ${{ secrets.GH_PAT_PUSH }}
+          automatic_release_tag: ${{ github.ref_name }}
           title: 'Installer Release - ${{ github.ref_name }}'
           files: |
             ./artifacts/ubuntu/**
             ./artifacts/macos/**
             ./artifacts/windows/**
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
