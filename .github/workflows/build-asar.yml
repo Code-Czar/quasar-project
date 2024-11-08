@@ -55,18 +55,28 @@ jobs:
           name: app-asar
           path: ./artifacts/asar
 
-      # Ensure the tag exists
-      - name: Create Tag if Not Exists
+      # Get and increment the latest tag version
+      - name: Increment Version Tag
+        id: tag_version
         run: |
-          git tag -l "${{ github.ref_name }}" || git tag "${{ github.ref_name }}"
-          git push origin "${{ github.ref_name }}"
+          latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
+          if [[ -z "$latest_tag" ]]; then
+            new_tag="v1.0.0"
+          else
+            IFS='.' read -r major minor patch <<<"${latest_tag#v}"
+            new_tag="v$major.$minor.$((patch + 1))"
+          fi
+          echo "New tag: $new_tag"
+          echo "new_tag=$new_tag" >> $GITHUB_ENV
+          git tag $new_tag
+          git push origin $new_tag
 
-      # Create a GitHub release with softprops/action-gh-release
+      # Create a GitHub release with the new tag
       - name: Create GitHub Release for ASAR
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ASAR Release - ${{ github.ref_name }}
+          tag_name: ${{ env.new_tag }}
+          name: ASAR Release - ${{ env.new_tag }}
           draft: false
           prerelease: false
           files: ./artifacts/asar/app.asar
