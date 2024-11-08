@@ -77,8 +77,9 @@ jobs:
           draft: false
           prerelease: false
           token: ${{ secrets.GH_PAT_PUSH }} # Explicitly set token here
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }} # Ensure this matches your token name
+          GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
+        # env:
+        #   GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }} # Ensure this matches your token name
 
       - name: Upload Linux Installer
         uses: actions/upload-release-asset@v1
