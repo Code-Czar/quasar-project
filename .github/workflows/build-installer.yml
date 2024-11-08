@@ -76,6 +76,7 @@ jobs:
           release_name: Installer Release - ${{ github.ref_name }}
           draft: false
           prerelease: false
+          token: ${{ secrets.GH_PAT_PUSH }} # Explicitly set token here
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }} # Ensure this matches your token name
 
