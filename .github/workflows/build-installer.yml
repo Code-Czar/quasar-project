@@ -58,11 +58,11 @@ jobs:
           mkdir -p dist\compressed
           Compress-Archive -Path dist\electron\Packaged -DestinationPath dist\compressed\electron-installer-windows.zip
 
-      # - name: Upload Compressed Artifacts
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: electron-installer-${{ matrix.os }}
-      #     path: dist/compressed
+      - name: Upload Compressed Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-installer-${{ matrix.os }}
+          path: dist/compressed
 
   release:
     needs: build
