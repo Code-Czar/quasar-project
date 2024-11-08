@@ -34,6 +34,11 @@ jobs:
           mkdir -p dist/asar_files
           cp dist/electron/Packaged/Quasar\ App-darwin-arm64/Quasar\ App.app/Contents/Resources/app.asar dist/asar_files/app.asar
 
+      - name: Check ASAR File Size
+        run: |
+          du -sh dist/asar_files/app.asar  # Logs the ASAR file size
+          ls -lh dist/asar_files/app.asar   # Logs file details
+
       - name: Upload ASAR File Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -55,28 +60,23 @@ jobs:
           name: app-asar
           path: ./artifacts/asar
 
-      # Ensure the tag exists and increment if necessary
-      - name: Increment Version Tag
-        id: tag_version
+      - name: Verify ASAR File Size Before Release
         run: |
-          latest_tag=$(git tag --sort=-v:refname | head -n 1)
-          if [[ -z "$latest_tag" ]]; then
-            new_tag="v1.0.0"
-          else
-            IFS='.' read -r major minor patch <<<"${latest_tag#v}"
-            new_tag="v$major.$minor.$((patch + 1))"
-          fi
-          echo "New tag: $new_tag"
-          echo "new_tag=$new_tag" >> $GITHUB_ENV
-          git tag $new_tag
-          git push origin $new_tag
+          du -sh ./artifacts/asar/app.asar  # Logs the ASAR file size before release
+          ls -lh ./artifacts/asar/app.asar   # Logs file details
 
-      # Create a GitHub release with the new tag
+      # Ensure the tag exists
+      - name: Create Tag if Not Exists
+        run: |
+          git tag -l "${{ github.ref_name }}" || git tag "${{ github.ref_name }}"
+          git push origin "${{ github.ref_name }}"
+
+      # Create a GitHub release with softprops/action-gh-release
       - name: Create GitHub Release for ASAR
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ env.new_tag }}
-          name: ASAR Release - ${{ env.new_tag }}
+          tag_name: ${{ github.ref_name }}
+          name: ASAR Release - ${{ github.ref_name }}
           draft: false
           prerelease: false
           files: ./artifacts/asar/app.asar
