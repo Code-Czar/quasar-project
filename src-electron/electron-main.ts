@@ -1,27 +1,29 @@
 import { app, BrowserWindow, ipcMain, protocol, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
-import os from 'os'; // Add this import
-
+import os from 'os';
 import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
 import log from 'electron-log';
 import AdmZip from 'adm-zip';
+import yaml from 'js-yaml';
 import { installDependencies } from './installScripts/install';
 
 const platform = process.platform || os.platform();
 const REPO_OWNER = 'Code-Czar';
 const REPO_NAME = 'quasar-project';
 const ASAR_DOWNLOAD_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/app-asar.zip`;
+const LATEST_YML_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/latest.yml`;
+
 const CURRENT_VERSION = app.getVersion();
+const resourcesPath = process.resourcesPath;
+const asarPath = path.join(resourcesPath, 'app.asar');
+const zipPath = path.join(resourcesPath, 'app-asar.zip');
+const latestYmlPath = path.join(resourcesPath, 'latest.yml');
 
 app.enableSandbox();
 
 let mainWindow: BrowserWindow | undefined;
-
-async function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 autoUpdater.autoDownload = false;
 autoUpdater.logger = log;
@@ -38,38 +40,68 @@ async function setPermissions(filePath: string, permissions: number) {
   }
 }
 
-async function checkForAppUpdate() {
+async function getLocalVersion(): Promise<string> {
+  log.info(
+    `Checking for local version from latest.yml at path: ${latestYmlPath}`
+  );
   try {
+    if (fs.existsSync(latestYmlPath)) {
+      const ymlContent = fs.readFileSync(latestYmlPath, 'utf-8');
+      const parsedYml = yaml.load(ymlContent);
+      log.info(`Parsed latest.yml content: ${JSON.stringify(parsedYml)}`);
+      // @ts-expect-error ignoring
+      if (parsedYml && parsedYml.version) {
+        return (parsedYml as any).version.replace(/^v/, ''); // assuming the version is in the file
+      }
+    }
+  } catch (error) {
+    log.error('Error reading local latest.yml:', error);
+  }
+  return CURRENT_VERSION;
+}
+
+async function checkForAppUpdate() {
+  log.info('Starting update check...');
+  try {
+    const localVersion = await getLocalVersion();
+    log.info(`Local version detected: ${localVersion}`);
+
+    // Fetch the latest version metadata from GitHub
     const response = await axios.get(
       `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`
     );
-    const latestVersion = response.data.tag_name;
+    const latestVersion = response.data.tag_name.replace(/^v/, '');
 
-    if (latestVersion !== `v${CURRENT_VERSION}`) {
-      const dialogOpts: Electron.MessageBoxOptions = {
-        type: 'info',
-        buttons: ['Download and Install', 'Later'],
-        title: 'Update Available',
-        message: `A new version (${latestVersion}) is available. Would you like to download and install it?`,
-      };
+    log.info(
+      `Comparing versions - Local: ${localVersion}, Latest: ${latestVersion}`
+    );
 
-      const { response } = await dialog.showMessageBox(dialogOpts);
-      if (response === 0) {
-        await downloadAndInstallAsar();
-      }
-    } else {
-      log.info('No new updates available.');
+    if (latestVersion === localVersion) {
+      log.info('Versions match. No update needed.');
+      return; // Exit if versions match
     }
+
+    log.info(
+      `New version (${latestVersion}) available. Prompting user for update.`
+    );
+    await downloadAndInstallAsar(latestVersion); // Pass latestVersion to ensure it logs correctly
+
+    // const dialogOpts: Electron.MessageBoxOptions = {
+    //   type: 'info',
+    //   buttons: ['Download and Install', 'Later'],
+    //   title: 'Update Available',
+    //   message: `A new version (${latestVersion}) is available. Would you like to download and install it?`,
+    // };
+
+    // const { response: userResponse } = await dialog.showMessageBox(dialogOpts);
+    // if (userResponse === 0) {
+    // }
   } catch (error) {
-    log.error('Error fetching latest release:', error);
+    log.error('Error checking for updates:', error);
   }
 }
 
-async function downloadAndInstallAsar() {
-  const resourcesPath = process.resourcesPath;
-  const asarPath = path.join(resourcesPath, 'app.asar');
-  const zipPath = path.join(resourcesPath, 'app-asar.zip');
-
+async function downloadAndInstallAsar(latestVersion: string) {
   try {
     log.info(`Starting download of app-asar.zip to "${zipPath}"`);
     const response = await axios({
@@ -77,7 +109,6 @@ async function downloadAndInstallAsar() {
       method: 'GET',
       responseType: 'stream',
     });
-
     const writer = fs.createWriteStream(zipPath);
     response.data.pipe(writer);
 
@@ -87,15 +118,27 @@ async function downloadAndInstallAsar() {
     });
     log.info(`Downloaded app-asar.zip to "${zipPath}"`);
 
+    // Download latest.yml file
+    log.info(`Starting download of latest.yml to "${latestYmlPath}"`);
+    const ymlResponse = await axios({
+      url: LATEST_YML_URL,
+      method: 'GET',
+      responseType: 'stream',
+    });
+    const ymlWriter = fs.createWriteStream(latestYmlPath);
+    ymlResponse.data.pipe(ymlWriter);
+
+    await new Promise<void>((resolve, reject) => {
+      ymlWriter.on('finish', resolve);
+      ymlWriter.on('error', reject);
+    });
+    log.info(`Downloaded latest.yml to "${latestYmlPath}"`);
+
     await setPermissions(zipPath, 0o777);
+    await setPermissions(latestYmlPath, 0o644);
 
-    await delay(2000); // Ensure the file is ready for extraction
-
-    // Set process.noAsar to true to avoid asar file handling issues
-    process.noAsar = true;
-
-    // Extract directly into resourcesPath
     log.info(`Starting extraction of "${zipPath}" to "${resourcesPath}"`);
+    process.noAsar = true;
     const zip = new AdmZip(zipPath);
     zip.extractAllTo(resourcesPath, true);
 
@@ -104,17 +147,16 @@ async function downloadAndInstallAsar() {
       `Extracted files in resources folder: ${extractedFiles.join(', ')}`
     );
 
-    const extractedAsarPath = path.join(resourcesPath, 'app.asar');
-    if (!fs.existsSync(extractedAsarPath)) {
+    if (!fs.existsSync(asarPath)) {
       throw new Error(
-        `Extracted file "app.asar" not found in "${resourcesPath}". Files found: ${extractedFiles.join(
-          ', '
-        )}`
+        `Extracted file "app.asar" not found in "${resourcesPath}".`
       );
     }
-    log.info(`Found extracted app.asar at "${extractedAsarPath}"`);
+    log.info(`Found extracted app.asar at "${asarPath}"`);
 
-    await setPermissions(extractedAsarPath, 0o755);
+    await setPermissions(asarPath, 0o755);
+
+    log.info(`Update to version ${latestVersion} completed.`);
 
     await dialog.showMessageBox({
       type: 'info',
@@ -130,9 +172,9 @@ async function downloadAndInstallAsar() {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   log.info('App is ready, initializing protocols and auto-update check.');
-  checkForAppUpdate();
+  await checkForAppUpdate(); // Ensure update check is called here
 
   protocol.registerFileProtocol('app', (request, callback) => {
     const urlPath = request.url.replace('app://', '');
