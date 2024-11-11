@@ -60,31 +60,36 @@ const definePostLoginRedirection = (enableAppRedirect = false) => {
     } else {
         redirectUri = window.location.origin + 'auth';
     }
+    return redirectUri
 };
 
 const login = async (provider: 'google' | 'github') => {
-    // Determine the redirect URI based on the platform
-    let redirectUri = definePostLoginRedirection();
+    const redirectUri = definePostLoginRedirection();
+    console.log("🚀 ~ LOGIN ~ redirectUri:", redirectUri, window.location);
 
-    // @ts-expect-error typing
-    const { user, session, error } = await supabase.auth.signInWithOAuth(
-        {
+    try {
+        const { data, error } = await supabase.auth.signInWithOAuth({
             provider,
-            // @ts-expect-error typing
-            options: { redirectTo: redirectUri },
-        }
-    );
+            // options: { redirectTo: redirectUri },
+            // options: { redirectTo: 'http://localhost:9300/auth' },
+            options: { redirectTo: `${window.location.href}auth` },
+        });
 
-    if (user) {
-        // Redirect to index page after successful login
-        // @ts-expect-error typing
-        await useUserStore.setUserCredentials(user, session);
-        // Optionally, navigate to a different route
-        // router.push("/index");
-    } else {
-        console.error('Login error:', error?.message);
+        // if (error) {
+        //     console.error('Login error:', error.message);
+        //     return;
+        // }
+
+        // if (data) {
+        //     console.log('Login successful:', data);
+        //     // Set user credentials if needed
+        //     await useUserStore.setUserCredentials(data.user, data.session);
+        // }
+    } catch (err) {
+        console.error('Unexpected error during login:', err);
     }
 };
+
 </script>
 
 <style lang="scss" scoped>

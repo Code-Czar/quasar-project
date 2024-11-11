@@ -39,5 +39,6 @@ const goToLogin = () => {
   flex-grow: 1;
   justify-content: right;
   align-items: right;
+  gap:1rem;
 }
 </style>

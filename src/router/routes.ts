@@ -14,6 +14,28 @@ const routes: RouteRecordRaw[] = [
     ],
     meta: { requiresAuth: false, roles: [] },
   },
+  {
+    path: '/auth',
+    component: () => import('components/login/CallbackComponent.vue'),
+    meta: { requiresAuth: false, roles: [] },
+  },
+  {
+    name: 'app_root',
+    path: '/app',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      {
+        name: 'app',
+        path: '',
+        component: () => import('pages/Private/MainApp.vue'),
+      },
+    ],
+    meta: {
+      requiresAuth: true,
+      permissionLevel: [],
+      roles: ['Admin', 'Dev', 'BetaTester'],
+    },
+  },
 
   // Always leave this as last one,
   // but you can also remove it

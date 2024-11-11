@@ -23,10 +23,10 @@
                                 {{ $t('login') }}
                             </h1>
 
-                            <q-btn id="login-google-button" :label="$t('loginPage.loginWithGoogle')" @click="login('google')"
-                                icon="mdi-google" color="primary" class="full-width q-mb-sm" />
-                            <q-btn :label="$t('loginPage.loginWithGithub')" @click="login('github')" color="secondary"
-                                class="full-width q-mb-sm" icon="mdi-github" />
+                            <!-- <q-btn id="login-google-button" :label="$t('loginPage.loginWithGoogle')" @click="login('google')"
+                                icon="mdi-google" color="primary" class="full-width q-mb-sm" /> -->
+                            <!-- <q-btn :label="$t('loginPage.loginWithGithub')" @click="login('github')" color="secondary"
+                                class="full-width q-mb-sm" icon="mdi-github" /> -->
                             <!-- Add more buttons for other providers as needed -->
                         </div>
                     </q-card-section>
@@ -84,26 +84,26 @@ const definePostLoginRedirection = (enableAppRedirect = false) => {
 
 const login = async (provider: 'google' | 'github') => {
     // Determine the redirect URI based on the platform
-    let redirectUri = definePostLoginRedirection();
+    // let redirectUri = definePostLoginRedirection();
 
-    //@ts-expect-error typing
-    const { user, session, error } = await supabase.auth.signInWithOAuth(
-        {
-            provider,
-            options:{
-                redirectTo: redirectUri ,
-            }
-        }
-    );
+    // //@ts-expect-error typing
+    // const { user, session, error } = await supabase.auth.signInWithOAuth(
+    //     {
+    //         provider,
+    //         options:{
+    //             redirectTo: redirectUri ,
+    //         }
+    //     }
+    // );
 
-    if (user) {
-        // Redirect to index page after successful login
-        await userStore.setUserCredentials(user, session);
-        // Optionally, navigate to a different route
-        // router.push("/index");
-    } else {
-        console.error('Login error:', error?.message);
-    }
+    // if (user) {
+    //     // Redirect to index page after successful login
+    //     await userStore.setUserCredentials(user, session);
+    //     // Optionally, navigate to a different route
+    //     // router.push("/index");
+    // } else {
+    //     console.error('Login error:', error?.message);
+    // }
 };
 </script>
 
