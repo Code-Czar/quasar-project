@@ -64,10 +64,42 @@ jobs:
           name: electron-installer-${{ matrix.os }}
           path: dist/compressed
 
-  release:
+  tag_release:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref_name == 'bt/installer'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate a new version tag
+        id: tag_version
+        run: |
+          # Get the latest tag
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          # Increment the tag version (assuming semantic versioning)
+          if [ -z "$latest_tag" ]; then
+            new_tag="v0.1.0"
+          else
+            new_tag=$(echo $latest_tag | awk -F. -v OFS=. '{$NF++;print}')
+          fi
+          echo "New tag: $new_tag"
+          echo "tag=$new_tag" >> $GITHUB_ENV
+
+      - name: Push the new tag to the repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag ${{ env.tag }}
+          git push origin ${{ env.tag }}
+
+  release:
+    needs: [build, tag_release]
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag' # Run only if triggered by a new tag push
 
     steps:
       - name: Checkout repository
@@ -91,7 +123,8 @@ jobs:
       - name: Create GitHub Release for Installers
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ env.tag }}
+          name: 'Release ${{ env.tag }}'
           files: |
             ./artifacts/ubuntu/**
             ./artifacts/macos/**

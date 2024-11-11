@@ -209,8 +209,26 @@ module.exports = configure(function (/* ctx */) {
         },
         mac: {
           mergeASARs: false,
-          target: ['dmg', 'zip'],
-          category: 'public.app-category.utilities',
+
+          category: 'public.app-category.utility',
+          target: [
+            {
+              target: 'dmg',
+              arch: 'x64',
+            },
+            {
+              target: 'zip',
+              arch: 'x64',
+            },
+            {
+              target: 'dmg',
+              arch: 'arm64',
+            },
+            {
+              target: 'zip',
+              arch: 'arm64',
+            },
+          ],
         },
         linux: {
           target: 'AppImage',
