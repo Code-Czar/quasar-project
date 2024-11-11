@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - 'bt/app'
+      - 'pre-release/'
+      - 'testing/'
       - 'release/*'
       - 'feature/asar-build'
 

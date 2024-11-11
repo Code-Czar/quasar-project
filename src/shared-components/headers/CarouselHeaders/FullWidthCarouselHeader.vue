@@ -54,7 +54,7 @@ const SLIDE_DURATION= 3000
 
 const carouselData = ref([
   {
-    videoSrc: '/Robot_Header.webm',
+    videoSrc: 'robot_header.webm',
     headline: t('heroHeader.slide1.header'),
     text: {
       line1:t('heroHeader.slide1.subtitle.line1'),

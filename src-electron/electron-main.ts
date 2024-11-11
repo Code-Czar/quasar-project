@@ -25,6 +25,10 @@ app.enableSandbox();
 
 let mainWindow: BrowserWindow | undefined;
 
+async function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 autoUpdater.autoDownload = false;
 autoUpdater.logger = log;
 //@ts-expect-error transport
@@ -40,62 +44,66 @@ async function setPermissions(filePath: string, permissions: number) {
   }
 }
 
-async function getLocalVersion(): Promise<string> {
-  log.info(
-    `Checking for local version from latest.yml at path: ${latestYmlPath}`
-  );
+async function getLocalVersion(): Promise<string | undefined> {
   try {
+    log.info(`Local path: ${latestYmlPath}`);
     if (fs.existsSync(latestYmlPath)) {
       const ymlContent = fs.readFileSync(latestYmlPath, 'utf-8');
       const parsedYml = yaml.load(ymlContent);
-      log.info(`Parsed latest.yml content: ${JSON.stringify(parsedYml)}`);
+      log.info(`parsed yml: ${parsedYml}`);
       // @ts-expect-error ignoring
       if (parsedYml && parsedYml.version) {
-        return (parsedYml as any).version.replace(/^v/, ''); // assuming the version is in the file
+        // @ts-expect-error ignoring
+        log.info(`local version: ${parsedYml.version.replace(/^v/, '')}`);
+        // @ts-expect-error ignoring
+        return parsedYml.version.replace(/^v/, '');
       }
     }
   } catch (error) {
     log.error('Error reading local latest.yml:', error);
+    return '';
   }
+  log.info(`local version: ${CURRENT_VERSION}`);
   return CURRENT_VERSION;
 }
 
 async function checkForAppUpdate() {
-  log.info('Starting update check...');
   try {
+    if (!app.isPackaged) {
+      log.info('Development mode detected, skipping update check.');
+      return;
+    }
     const localVersion = await getLocalVersion();
-    log.info(`Local version detected: ${localVersion}`);
+    log.info(`Local version 1: ${localVersion}`);
+    await delay(5000);
 
-    // Fetch the latest version metadata from GitHub
     const response = await axios.get(
       `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`
     );
     const latestVersion = response.data.tag_name.replace(/^v/, '');
 
     log.info(
-      `Comparing versions - Local: ${localVersion}, Latest: ${latestVersion}`
+      `Local version: ${localVersion}, Latest version: ${latestVersion}`
     );
+    await delay(5000);
 
     if (latestVersion === localVersion) {
-      log.info('Versions match. No update needed.');
-      return; // Exit if versions match
+      log.info('Local version matches the latest version. No update needed.');
+      return;
     }
 
-    log.info(
-      `New version (${latestVersion}) available. Prompting user for update.`
-    );
-    await downloadAndInstallAsar(latestVersion); // Pass latestVersion to ensure it logs correctly
+    log.info(`New version detected. Prompting user for update...`);
+    const dialogOpts: Electron.MessageBoxOptions = {
+      type: 'info',
+      buttons: ['Download and Install', 'Later'],
+      title: 'Update Available',
+      message: `A new version (${latestVersion}) is available. Would you like to download and install it?`,
+    };
 
-    // const dialogOpts: Electron.MessageBoxOptions = {
-    //   type: 'info',
-    //   buttons: ['Download and Install', 'Later'],
-    //   title: 'Update Available',
-    //   message: `A new version (${latestVersion}) is available. Would you like to download and install it?`,
-    // };
-
-    // const { response: userResponse } = await dialog.showMessageBox(dialogOpts);
-    // if (userResponse === 0) {
-    // }
+    const { response: userResponse } = await dialog.showMessageBox(dialogOpts);
+    if (userResponse === 0) {
+      await downloadAndInstallAsar(latestVersion);
+    }
   } catch (error) {
     log.error('Error checking for updates:', error);
   }
@@ -118,7 +126,6 @@ async function downloadAndInstallAsar(latestVersion: string) {
     });
     log.info(`Downloaded app-asar.zip to "${zipPath}"`);
 
-    // Download latest.yml file
     log.info(`Starting download of latest.yml to "${latestYmlPath}"`);
     const ymlResponse = await axios({
       url: LATEST_YML_URL,
@@ -137,8 +144,11 @@ async function downloadAndInstallAsar(latestVersion: string) {
     await setPermissions(zipPath, 0o777);
     await setPermissions(latestYmlPath, 0o644);
 
-    log.info(`Starting extraction of "${zipPath}" to "${resourcesPath}"`);
+    await delay(2000);
+
     process.noAsar = true;
+
+    log.info(`Starting extraction of "${zipPath}" to "${resourcesPath}"`);
     const zip = new AdmZip(zipPath);
     zip.extractAllTo(resourcesPath, true);
 
@@ -174,7 +184,7 @@ async function downloadAndInstallAsar(latestVersion: string) {
 
 app.whenReady().then(async () => {
   log.info('App is ready, initializing protocols and auto-update check.');
-  await checkForAppUpdate(); // Ensure update check is called here
+  await checkForAppUpdate();
 
   protocol.registerFileProtocol('app', (request, callback) => {
     const urlPath = request.url.replace('app://', '');
@@ -188,6 +198,8 @@ function createWindow() {
     icon: path.resolve(__dirname, 'icons/icon.png'),
     width: 1920,
     height: 1080,
+    fullscreen: true, // Start in fullscreen mode
+    frame: false, // Remove window frame for a frameless app
     useContentSize: true,
     webPreferences: {
       sandbox: true,
