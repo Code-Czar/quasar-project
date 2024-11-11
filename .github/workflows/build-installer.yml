@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history and tags
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -72,18 +74,29 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history and tags
 
       - name: Generate a new version tag
         id: tag_version
+        shell: bash
         run: |
+          # Fetch all tags
+          git fetch --tags
+
           # Get the latest tag
-          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
-          # Increment the tag version (assuming semantic versioning)
+          latest_tag=$(git tag --list 'v*' | sort -V | tail -n1)
+
+          # Handle case with no tags
           if [ -z "$latest_tag" ]; then
             new_tag="v0.1.0"
           else
-            new_tag=$(echo $latest_tag | awk -F. -v OFS=. '{$NF++;print}')
+            # Increment the tag version (assuming semantic versioning)
+            IFS='.' read -r -a parts <<< "${latest_tag#v}"
+            parts[-1]=$((parts[-1]+1))
+            new_tag="v${parts[0]}.${parts[1]}.${parts[2]}"
           fi
+
           echo "New tag: $new_tag"
           echo "tag=$new_tag" >> $GITHUB_ENV
 
@@ -99,22 +112,26 @@ jobs:
   release:
     needs: [build, tag_release]
     runs-on: ubuntu-latest
-    if: github.ref_type == 'tag' # Run only if triggered by a new tag push
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Artifacts
+      - name: Download Artifacts (Ubuntu)
         uses: actions/download-artifact@v4
         with:
           name: electron-installer-ubuntu-latest
           path: ./artifacts/ubuntu
-      - uses: actions/download-artifact@v4
+
+      - name: Download Artifacts (macOS)
+        uses: actions/download-artifact@v4
         with:
           name: electron-installer-macos-latest
           path: ./artifacts/macos
-      - uses: actions/download-artifact@v4
+
+      - name: Download Artifacts (Windows)
+        uses: actions/download-artifact@v4
         with:
           name: electron-installer-windows-latest
           path: ./artifacts/windows
