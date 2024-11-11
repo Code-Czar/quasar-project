@@ -3,6 +3,7 @@ name: Build, Tag, and Release Electron Installers
 on:
   push:
     branches:
+      - 'main' # Trigger this workflow only for pushes to bt/installer
       - 'bt/installer' # Trigger this workflow only for pushes to bt/installer
 
 jobs:

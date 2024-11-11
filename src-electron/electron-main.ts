@@ -1,4 +1,11 @@
-import { app, BrowserWindow, ipcMain, protocol, dialog } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  protocol,
+  dialog,
+  session,
+} from 'electron';
 import { autoUpdater } from 'electron-updater';
 import os from 'os';
 import axios from 'axios';
@@ -7,6 +14,10 @@ import fs from 'fs';
 import log from 'electron-log';
 import AdmZip from 'adm-zip';
 import yaml from 'js-yaml';
+import WebSocket from 'ws'; // Import the WebSocket library
+
+import { exec } from 'child_process';
+
 import { installDependencies } from './installScripts/install';
 
 const platform = process.platform || os.platform();
@@ -14,12 +25,17 @@ const REPO_OWNER = 'Code-Czar';
 const REPO_NAME = 'quasar-project';
 const ASAR_DOWNLOAD_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/app-asar.zip`;
 const LATEST_YML_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/latest.yml`;
+const appUrl = 'http://localhost:9000';
 
 const CURRENT_VERSION = app.getVersion();
 const resourcesPath = process.resourcesPath;
 const asarPath = path.join(resourcesPath, 'app.asar');
 const zipPath = path.join(resourcesPath, 'app-asar.zip');
 const latestYmlPath = path.join(resourcesPath, 'latest.yml');
+
+const wss = new WebSocket.Server({ port: 8766, host: '0.0.0.0' });
+
+const containersDefault = ['crm-1', 'frontend-1', 'redis-serv-1', 'backend-1'];
 
 app.enableSandbox();
 
@@ -34,6 +50,51 @@ autoUpdater.logger = log;
 //@ts-expect-error transport
 autoUpdater.logger.transports.file.level = 'info';
 log.info('App starting...');
+
+const openWindow = (windowTitle: string, url: string | null = null) => {
+  console.log('Action triggered from Quasar frontend!');
+  const newWindow = new BrowserWindow({
+    width: 1920,
+    height: 1080,
+    webPreferences: {
+      contextIsolation: true,
+      preload: path.join(__dirname, 'electron-preload.js'),
+      sandbox: true,
+    },
+  });
+  newWindow.setTitle(windowTitle);
+  newWindow.loadURL(url ?? 'http://tiktok.com');
+};
+
+const initWebSocket = () => {
+  wss.on('connection', (ws) => {
+    console.log('Client connected');
+
+    ws.on('message', (message) => {
+      const messageString =
+        message instanceof Buffer ? message.toString() : message;
+
+      try {
+        // Parse the string as JSON
+        // @ts-expect-error ignore
+        const data = JSON.parse(messageString);
+        console.log('Received:', data);
+
+        // Perform actions based on the received message
+        if (data.message === 'open-window') {
+          openWindow(data.windowTitle);
+          console.log('Triggering action in Electron app!');
+        }
+      } catch (error) {
+        console.error('Error parsing message:', error);
+      }
+    });
+
+    ws.on('close', () => {
+      console.log('Client disconnected');
+    });
+  });
+};
 
 async function setPermissions(filePath: string, permissions: number) {
   try {
@@ -195,21 +256,52 @@ app.whenReady().then(async () => {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    icon: path.resolve(__dirname, 'icons/icon.png'),
     width: 1920,
     height: 1080,
     fullscreen: true, // Start in fullscreen mode
-    frame: false, // Remove window frame for a frameless app
-    useContentSize: true,
+    frame: false, // Remove the window frame for a borderless look
+    resizable: false, // Optional: Prevent resizing if you want a fixed size
     webPreferences: {
-      sandbox: true,
       preload: path.join(__dirname, 'electron-preload.js'),
-      webSecurity: false,
-      autoplayPolicy: 'no-user-gesture-required',
+      contextIsolation: true,
     },
   });
 
-  mainWindow.loadURL(process.env.APP_URL || 'http://localhost:9300');
+  const mainFileURL = `file://${path.join(__dirname, 'index.html')}`;
+  mainWindow.loadURL(mainFileURL);
+
+  // Define the Supabase redirect URI
+  const redirectUri = 'http://localhost/auth/callback';
+  const filter = { urls: [`${redirectUri}*`] };
+
+  session.defaultSession.webRequest.onBeforeRequest(
+    filter,
+    (details, callback) => {
+      const url = details.url;
+      log.info('Intercepted URL:', url); // Log the full URL to inspect
+
+      // Parse the fragment (hash) part to extract tokens
+      const urlFragment = new URL(url).hash.substring(1); // Remove the `#` symbol
+      const fragmentParams = new URLSearchParams(urlFragment);
+
+      const accessToken = fragmentParams.get('access_token');
+      const refreshToken = fragmentParams.get('refresh_token');
+
+      // Log tokens to confirm they are parsed correctly
+      log.info('Access Token:', accessToken);
+      log.info('Refresh Token:', refreshToken);
+
+      if (accessToken) {
+        // Redirect to index.html#/auth with tokens as query parameters
+        mainWindow!.loadURL(
+          `${mainFileURL}#/auth?access_token=${accessToken}&refresh_token=${refreshToken}`
+        );
+      }
+
+      // Cancel the original request to prevent navigation
+      callback({ cancel: true });
+    }
+  );
 }
 
 app.whenReady().then(createWindow);
@@ -242,3 +334,89 @@ ipcMain.handle('install-dependencies', async () => {
 ipcMain.on('navigate-to-url', (event, url) => {
   mainWindow?.loadURL(url);
 });
+
+// IPC Handler to check Docker containers and run each found container
+ipcMain.handle(
+  'check-docker-containers',
+  async (event, containerNames = containersDefault) => {
+    return new Promise((resolve, reject) => {
+      // Command to list all containers (running and stopped)
+      exec('docker ps -a --format "{{.Names}}"', (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Error executing command: ${stderr}`);
+          return reject(`Error checking Docker containers: ${error.message}`);
+        }
+
+        const allContainers = stdout.split('\n').filter(Boolean);
+        const foundContainers = [];
+
+        // Check each specified container
+        containerNames.forEach((name) => {
+          allContainers.forEach((container) => {
+            if (container.includes(name)) {
+              foundContainers.push(container); // Add the full container name if it exists
+            }
+          });
+        });
+
+        // console.log(
+        //   '🚀 ~ allContainers.forEach ~ foundContainers:',
+        //   foundContainers
+        // );
+        if (foundContainers.length >= containerNames.length) {
+          console.log(
+            'All specified containers exist. Starting each container...'
+          );
+
+          // Variable to track if all containers started successfully
+          let allLaunchedSuccessfully = true;
+
+          // Start each container found
+          foundContainers.forEach((container) => {
+            exec(
+              `docker start ${container}`,
+              (startError, startStdout, startStderr) => {
+                if (startError) {
+                  console.error(
+                    `Error starting container ${container}: ${startStderr}`
+                  );
+                  allLaunchedSuccessfully = false; // Set to false if any container fails to start
+                } else {
+                  console.log(
+                    `Container ${container} started successfully:`,
+                    startStdout
+                  );
+                }
+
+                // Check if all containers have been processed
+                if (
+                  foundContainers.indexOf(container) ===
+                  foundContainers.length - 1
+                ) {
+                  if (allLaunchedSuccessfully) {
+                    mainWindow!.loadURL(appUrl);
+                    initWebSocket();
+
+                    resolve({
+                      result: true,
+                      details:
+                        'All specified containers have been started successfully.',
+                    });
+                  } else {
+                    reject({
+                      result: false,
+                      details: 'Some containers failed to start.',
+                    });
+                  }
+                }
+              }
+            );
+          });
+        } else {
+          console.log('Not all specified containers are found.');
+          resolve('Not all specified containers are found.');
+        }
+      });
+    });
+  }
+);

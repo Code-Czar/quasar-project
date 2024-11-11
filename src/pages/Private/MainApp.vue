@@ -24,11 +24,11 @@ import { Platform } from 'quasar';
 const isElectron = Platform.is.electron;
 
 // Check if running in Electron environment
-// let ipcRenderer;
-// if (window && window.require) {
-//   // const electron = window.require('electron');
-//   // ipcRenderer = electron?.ipcRenderer;
-// }
+let ipcRenderer;
+if (window && window.require) {
+  // const electron = window.require('electron');
+  // ipcRenderer = electron?.ipcRenderer;
+}
 
 const message = ref('');
 

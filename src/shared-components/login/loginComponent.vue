@@ -40,6 +40,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+console.log("🚀 ~ window:", window)
 
 const mobileURLScheme = 'opportunities://auth';
 const definePostLoginRedirection = (enableAppRedirect = false) => {
@@ -57,7 +58,16 @@ const definePostLoginRedirection = (enableAppRedirect = false) => {
             window.location.origin,
             redirectUri
         );
-    } else {
+    } 
+    else if (
+        window.location.href.startsWith('file')
+    ){
+        redirectUri = `http://localhost/auth/callback`
+    }   
+    // else if(window.location.href.startsWith('file')){
+
+    // }
+    else {
         redirectUri = window.location.origin + 'auth';
     }
     return redirectUri
@@ -70,21 +80,22 @@ const login = async (provider: 'google' | 'github') => {
     try {
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider,
-            // options: { redirectTo: redirectUri },
+            options: { redirectTo: redirectUri },
             // options: { redirectTo: 'http://localhost:9300/auth' },
-            options: { redirectTo: `${window.location.href}auth` },
+            // options: { redirectTo: `${window.location.href}auth` },
         });
 
-        // if (error) {
-        //     console.error('Login error:', error.message);
-        //     return;
-        // }
+        if (error) {
+            console.error('Login error:', error.message);
+            return;
+        }
 
-        // if (data) {
-        //     console.log('Login successful:', data);
-        //     // Set user credentials if needed
-        //     await useUserStore.setUserCredentials(data.user, data.session);
-        // }
+        if (data) {
+            console.log('Login successful:', data);
+            // Set user credentials if needed
+            // @ts-expect-error ignore
+            await useUserStore().setUserCredentials(data.user, data.session);
+        }
     } catch (err) {
         console.error('Unexpected error during login:', err);
     }
