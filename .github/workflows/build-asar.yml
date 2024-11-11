@@ -4,8 +4,9 @@ on:
   push:
     branches:
       - 'bt/app'
-      - 'pre-release/'
-      - 'testing/'
+      - 'pre-release/*'
+      - 'testing'
+      - 'testing/*'
       - 'release/*'
       - 'feature/asar-build'
 
@@ -50,7 +51,6 @@ jobs:
   release:
     needs: build_asar
     runs-on: ubuntu-latest
-    if: github.ref_name == 'bt/app'
 
     steps:
       - name: Checkout repository
