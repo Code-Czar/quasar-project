@@ -1,4 +1,4 @@
-name: Build and Release Electron Installers
+name: Build, Tag, and Release Electron Installers
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - 'bt/installer' # Trigger this workflow only for pushes to bt/installer
 
 jobs:
-  build:
+  build_and_tag:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history and tags to ensure access to previous tags
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -64,67 +66,70 @@ jobs:
           name: electron-installer-${{ matrix.os }}
           path: dist/compressed
 
-  tag_release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref_name == 'bt/installer'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Generate a new version tag
+      - name: Generate and Push New Tag
+        if: matrix.os == 'ubuntu-latest' # Only execute tag creation once
         id: tag_version
-        run: |
-          # Get the latest tag
-          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
-          # Increment the tag version (assuming semantic versioning)
-          if [ -z "$latest_tag" ]; then
-            new_tag="v0.1.0"
-          else
-            new_tag=$(echo $latest_tag | awk -F. -v OFS=. '{$NF++;print}')
-          fi
-          echo "New tag: $new_tag"
-          echo "tag=$new_tag" >> $GITHUB_ENV
-
-      - name: Push the new tag to the repository
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
         run: |
+          # Fetch all tags
+          git fetch --tags
+
+          # Get the latest tag
+          latest_tag=$(git tag --list 'v*' | sort -V | tail -n1)
+
+          # Handle case with no tags
+          if [ -z "$latest_tag" ]; then
+            new_tag="v0.1.0"
+          else
+            # Increment the tag version (assuming semantic versioning)
+            IFS='.' read -r -a parts <<< "${latest_tag#v}"
+            parts[-1]=$((parts[-1]+1))
+            new_tag="v${parts[0]}.${parts[1]}.${parts[2]}"
+          fi
+
+          echo "New tag: $new_tag"
+          echo "tag=$new_tag" >> $GITHUB_ENV
+
+          # Push the new tag
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git tag ${{ env.tag }}
-          git push origin ${{ env.tag }}
+          git tag $new_tag
+          git push origin $new_tag
 
   release:
-    needs: [build, tag_release]
+    needs: [build_and_tag]
     runs-on: ubuntu-latest
-    if: github.ref_type == 'tag' # Run only if triggered by a new tag push
+    if: github.ref == 'refs/heads/bt/installer' # Ensures it runs only on this branch
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Artifacts
+      - name: Download Artifacts (Ubuntu)
         uses: actions/download-artifact@v4
         with:
           name: electron-installer-ubuntu-latest
           path: ./artifacts/ubuntu
-      - uses: actions/download-artifact@v4
+
+      - name: Download Artifacts (macOS)
+        uses: actions/download-artifact@v4
         with:
           name: electron-installer-macos-latest
           path: ./artifacts/macos
-      - uses: actions/download-artifact@v4
+
+      - name: Download Artifacts (Windows)
+        uses: actions/download-artifact@v4
         with:
           name: electron-installer-windows-latest
           path: ./artifacts/windows
 
-      # Create a GitHub release with softprops/action-gh-release
+      # Use the tag created in the previous job
       - name: Create GitHub Release for Installers
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ env.tag }}
-          name: 'Release ${{ env.tag }}'
+          tag_name: ${{ needs.build_and_tag.outputs.tag_version.tag }}
+          name: 'Release ${{ needs.build_and_tag.outputs.tag_version.tag }}'
           files: |
             ./artifacts/ubuntu/**
             ./artifacts/macos/**
