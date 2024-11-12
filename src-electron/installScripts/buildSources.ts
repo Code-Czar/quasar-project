@@ -1,13 +1,13 @@
 const simpleGit = require('simple-git');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
-const axios = require('axios');
+const path_ = require('path');
+const fs_ = require('fs');
+const os_ = require('os');
+const axios_ = require('axios');
 const { execSync } = require('child_process');
 
 async function getGithubToken(productId) {
   try {
-    const response = await axios.get(
+    const response = await axios_.get(
       `http://localhost:8000/get-github-token/${productId}`
     );
     return response.data.github_token;
@@ -24,9 +24,9 @@ async function setupSSH(productId) {
     return null;
   }
 
-  const tempKeyPath = path.join(os.tmpdir(), 'github-deploy-key');
+  const tempKeyPath = path_.join(os_.tmpdir(), 'github-deploy-key');
 
-  fs.writeFileSync(tempKeyPath, `${privateKey}`, {
+  fs_.writeFileSync(tempKeyPath, `${privateKey}`, {
     encoding: 'utf8',
     mode: 0o600,
   });
@@ -38,14 +38,14 @@ async function setupSSH(productId) {
 
 async function cloneRepository(productId) {
   const repoUrl = 'git@github.com-Code-Czar:Code-Czar/clients-auto.git';
-  const destinationPath = path.resolve(__dirname, '.quasar', 'resources');
+  const destinationPath = path_.resolve(__dirname, '.quasar', 'resources');
 
-  if (fs.existsSync(destinationPath)) {
-    fs.rmSync(destinationPath, { recursive: true, force: true });
+  if (fs_.existsSync(destinationPath)) {
+    fs_.rmSync(destinationPath, { recursive: true, force: true });
     console.log(`🧹 Removed existing folder at ${destinationPath}`);
   }
 
-  fs.mkdirSync(destinationPath, { recursive: true });
+  fs_.mkdirSync(destinationPath, { recursive: true });
 
   const gitSSHCommand = await setupSSH(productId);
   console.log('🚀 ~ cloneRepository ~ gitSSHCommand:', gitSSHCommand);
@@ -70,10 +70,10 @@ async function cloneRepository(productId) {
 }
 
 async function buildAndRunDocker() {
-  const destinationPath = path.resolve(__dirname, '.quasar', 'resources');
-  const dockerComposeFile = path.join(destinationPath, 'docker-compose.yml');
+  const destinationPath = path_.resolve(__dirname, '.quasar', 'resources');
+  const dockerComposeFile = path_.join(destinationPath, 'docker-compose.yml');
 
-  if (!fs.existsSync(dockerComposeFile)) {
+  if (!fs_.existsSync(dockerComposeFile)) {
     console.error(`Docker Compose file not found at ${dockerComposeFile}`);
     return;
   }

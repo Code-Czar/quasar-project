@@ -1,15 +1,18 @@
-const { installDocker } = require('./installDocker');
-const { cloneRepository, buildAndRunDocker } = require('./buildSources');
+const { installDocker: installDocker_ } = require('./installDocker');
+const {
+  cloneRepository: cloneRepository_,
+  buildAndRunDocker: buildAndRunDocker_,
+} = require('./buildSources');
 async function installDependencies(productId: string): Promise<string> {
   try {
     console.log('Checking and installing Docker if necessary...');
-    const dockerStatus = await installDocker();
+    const dockerStatus = await installDocker_();
     console.log(dockerStatus);
 
     console.log('Cloning the repository...');
-    await cloneRepository(productId);
+    await cloneRepository_(productId);
     console.log('Repository cloned successfully.');
-    await buildAndRunDocker();
+    await buildAndRunDocker_();
     console.log('Docker containers built successfully.');
 
     return 'All dependencies installed successfully.';

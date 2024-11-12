@@ -18,7 +18,7 @@ import WebSocket from 'ws'; // Import the WebSocket library
 
 import { exec, fork } from 'child_process';
 
-import { installDependencies } from './installScripts/install';
+// import { installDependencies } from './installScripts/install';
 
 const platform = process.platform || os.platform();
 const REPO_OWNER = 'Code-Czar';
