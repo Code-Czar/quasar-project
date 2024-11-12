@@ -24,6 +24,7 @@
         description: string;
         stripe_product_ids: string;
         github_repo_url: string;
+        page_name: string;
       },
       required: true,
     },

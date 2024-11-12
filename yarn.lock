@@ -7677,8 +7677,7 @@ shallow-clone@^3.0.0:
   dependencies:
     kind-of "^6.0.2"
 
-shared-consts@../packages/shared-consts:
-  version "1.0.0"
+
 
 shebang-command@^2.0.0:
   version "2.0.0"

@@ -6,18 +6,19 @@
   </template>
   
   <script lang="ts" setup>
-  import { ref } from 'vue';
-  import { apiConnector, CENTRALIZATION_API_URLS } from 'shared-consts';
+  import { apiConnector, CENTRALIZATION_API_URLS } from 'src/shared-consts';
   import { useUserStore } from 'src/stores/userStore';
   import { useRouter } from 'vue-router';
   
   const userStore_ = useUserStore();
   const router = useRouter();
   const userEmail = userStore_.user?.details?.email || '';
+
+  interface StripeConfig {publishableKey:string, prices:Array<{id:string}>}
   
-  const getStripeConfig = async () => {
+  const getStripeConfig = async ():Promise<StripeConfig> => {
     const config = await apiConnector.get(CENTRALIZATION_API_URLS.STRIPE_CONFIG);
-    return config.data;
+    return config.data as unknown as StripeConfig;
   };
   
   const loadStripe = async () => {
@@ -29,7 +30,7 @@
       await new Promise((resolve) => (script.onload = resolve));
     }
     const config = await getStripeConfig();
-    return window.Stripe(config.publishableKey);
+    return window.Stripe!(config.publishableKey);
   };
   
   const redirectToCheckout = async (priceId: string) => {
@@ -51,7 +52,8 @@
       );
   
       if (response.status !== 200) throw new Error(`HTTP error: ${response.status}`);
-      const sessionId = response.data.sessionId;
+      // @ts-expect-error object
+      const sessionId = response.data?.sessionId;
       const stripe = await loadStripe();
       await stripe.redirectToCheckout({ sessionId });
     } catch (error) {

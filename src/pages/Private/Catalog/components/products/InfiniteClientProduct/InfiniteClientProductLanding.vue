@@ -39,16 +39,34 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from 'src/stores/userStore';
 import { BaseStripeProduct } from 'src/components';
+interface PricingItem {
+  title: string;
+  icon: string;
+}
 
+interface PricingCard {
+  title: string;
+  items: PricingItem[];
+  price: string;
+  recurring: string;
+}
+
+interface Pricing {
+  title: string;
+  cards: Record<string, PricingCard>;
+  buyButton: string;
+}
 const userStore_ = useUserStore();
 const emit = defineEmits(['subscriptionClicked']);
 
 const { t, locale, messages } = useI18n();
-const pricingCardsTranslations = messages.value[locale.value]?.pricing?.cards;
-console.log("🚀 ~ messages:", messages, locale.value, messages.value[locale.value])
-const pricingCards = computed(() => {
+// Cast pricingCardsTranslations to Pricing["cards"] type
+// @ts-expect-error translation structure
+const pricingCardsTranslations = messages.value[locale.value]?.pricing?.cards as Pricing["cards"] | undefined;
+
+const pricingCards = computed<PricingCard[]>(() => {
   return pricingCardsTranslations ? Object.values(pricingCardsTranslations) : [];
-});console.log("🚀 ~ pricingCards:", pricingCards, pricingCardsTranslations)
+});
 
 const emitSubscriptionClick = () => {
   if (userStore_.isSubscribed) {

@@ -12,7 +12,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useUserStore } from 'src/stores/userStore';
-import { apiConnector, CENTRALIZATION_API_URLS } from 'shared-consts';
+import { apiConnector, CENTRALIZATION_API_URLS } from 'src/shared-consts';
 import { useRoute } from 'vue-router';
 
 // Import the components that will render conditionally
@@ -27,6 +27,7 @@ const loading = ref(true);
 const hasActiveSubscription = ref(false);
 const error = ref(false);
 
+// @ts-expect-error ignore
 const productIds = JSON.parse(route.query.productIds); // Assumes `productId` is passed as a query parameter
 
 console.log("🚀 ~ productId:", productIds)
@@ -45,6 +46,7 @@ const checkSubscriptionStatus = async () => {
     );
 
     if (response.status === 200) {
+      // @ts-expect-error ignore
       const subscriptions = response.data?.subscribed_products;
       console.log("🚀 ~ checkSubscriptionStatus ~ subscriptions:", subscriptions, productIds)
       hasActiveSubscription.value = subscriptions.includes(
