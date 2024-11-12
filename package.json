@@ -36,6 +36,7 @@
     "quasar": "^2.16.0",
     "sass": "1.33.0",
     "sass-loader": "^13.3.2",
+    "shared-consts": "../packages/shared-consts",
     "simple-git": "^3.27.0",
     "unzipper": "^0.12.3",
     "uuid": "^9.0.1",

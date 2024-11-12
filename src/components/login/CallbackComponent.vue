@@ -50,17 +50,20 @@ onMounted(() => {
 
                 console.log("🚀 ~ file: CallbackComponent.vue:58 ~ store:", user, store.user);
 
-                if (store.user.isSubscribing && !store.user.isSubscribed) {
-                    router.push({name: 'checkout'})
-                }
-                else if (store.user.isRegisteringBeta) {
-                    router.push({name: 'beta'})
-                }
-                else if (store.user.role !== "Dev" && store.user.role !== "Admin") {
-                    router.push({name: 'beta'})
+                // if (store.user.isSubscribing && !store.user.isSubscribed) {
+                //     router.push({name: 'checkout'})
+                // }
+                // else if (store.user.isRegisteringBeta) {
+                //     router.push({name: 'beta'})
+                // }
+                // else 
+                if (store.user.role !== "Dev" && store.user.role !== "Admin") {
+                    // router.push({name: 'beta'})
+                    router.push({name: 'catalog'});
                 }
                 else {
-                    router.push({name: 'app'});
+                    // router.push({name: 'app'});
+                    router.push({name: 'catalog'});
                 }
             }
         })

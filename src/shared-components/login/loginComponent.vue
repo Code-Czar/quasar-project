@@ -52,7 +52,7 @@ const definePostLoginRedirection = (enableAppRedirect = false) => {
         window.location.origin.includes('localhost') ||
         window.location.origin.includes('127.0.0.1')
     ) {
-        redirectUri = '/auth';
+        redirectUri = 'http://localhost:9300/#/auth';
         console.log(
             '🚀 ~ file: LoginPage.vue:62 ~ redirectUri:',
             window.location.origin,

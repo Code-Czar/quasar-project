@@ -267,41 +267,45 @@ function createWindow() {
     },
   });
 
-  const mainFileURL = `file://${path.join(__dirname, 'index.html')}`;
-  mainWindow.loadURL(mainFileURL);
+  const mainURL = app.isPackaged
+    ? `file://${path.join(__dirname, 'index.html')}`
+    : 'http://localhost:9300';
+  mainWindow.loadURL(mainURL);
 
-  // Define the Supabase redirect URI
-  const redirectUri = 'http://localhost/auth/callback';
-  const filter = { urls: [`${redirectUri}*`] };
+  if (app.isPackaged) {
+    // Define the Supabase redirect URI
+    const redirectUri = 'http://localhost/auth/callback';
+    const filter = { urls: [`${redirectUri}*`] };
 
-  session.defaultSession.webRequest.onBeforeRequest(
-    filter,
-    (details, callback) => {
-      const url = details.url;
-      log.info('Intercepted URL:', url); // Log the full URL to inspect
+    session.defaultSession.webRequest.onBeforeRequest(
+      filter,
+      (details, callback) => {
+        const url = details.url;
+        log.info('Intercepted URL:', url); // Log the full URL to inspect
 
-      // Parse the fragment (hash) part to extract tokens
-      const urlFragment = new URL(url).hash.substring(1); // Remove the `#` symbol
-      const fragmentParams = new URLSearchParams(urlFragment);
+        // Parse the fragment (hash) part to extract tokens
+        const urlFragment = new URL(url).hash.substring(1); // Remove the `#` symbol
+        const fragmentParams = new URLSearchParams(urlFragment);
 
-      const accessToken = fragmentParams.get('access_token');
-      const refreshToken = fragmentParams.get('refresh_token');
+        const accessToken = fragmentParams.get('access_token');
+        const refreshToken = fragmentParams.get('refresh_token');
 
-      // Log tokens to confirm they are parsed correctly
-      log.info('Access Token:', accessToken);
-      log.info('Refresh Token:', refreshToken);
+        // Log tokens to confirm they are parsed correctly
+        log.info('Access Token:', accessToken);
+        log.info('Refresh Token:', refreshToken);
 
-      if (accessToken) {
-        // Redirect to index.html#/auth with tokens as query parameters
-        mainWindow!.loadURL(
-          `${mainFileURL}#/auth?access_token=${accessToken}&refresh_token=${refreshToken}`
-        );
+        if (accessToken) {
+          // Redirect to index.html#/auth with tokens as query parameters
+          mainWindow!.loadURL(
+            `${mainURL}#/auth?access_token=${accessToken}&refresh_token=${refreshToken}`
+          );
+        }
+
+        // Cancel the original request to prevent navigation
+        callback({ cancel: true });
       }
-
-      // Cancel the original request to prevent navigation
-      callback({ cancel: true });
-    }
-  );
+    );
+  }
 }
 
 app.whenReady().then(createWindow);
