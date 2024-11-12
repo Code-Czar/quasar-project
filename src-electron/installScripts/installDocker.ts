@@ -2,13 +2,13 @@
 // ## 2. Docker Installer ##
 // ########################
 
-import path from 'path';
-import os from 'os';
-import fs from 'fs';
-import axios from 'axios';
-import { exec } from 'child_process';
+const path = require('path');
+const os = require('os');
+const fs = require('fs');
+const axios = require('axios');
+const { exec } = require('child_process');
 
-export async function isDockerInstalled(): Promise<boolean> {
+async function isDockerInstalled(): Promise<boolean> {
   return new Promise((resolve) => {
     exec('docker --version', (error, stdout) => {
       if (error) {
@@ -22,7 +22,7 @@ export async function isDockerInstalled(): Promise<boolean> {
   });
 }
 
-export async function downloadDockerInstaller(
+async function downloadDockerInstaller(
   url: string,
   filePath: string
 ): Promise<void> {
@@ -41,7 +41,7 @@ export async function downloadDockerInstaller(
   });
 }
 
-export async function installDocker(): Promise<string> {
+async function installDocker(): Promise<string> {
   const isInstalled = await isDockerInstalled();
   if (isInstalled) {
     return 'Docker is already installed.';
@@ -136,3 +136,9 @@ export async function installDocker(): Promise<string> {
     });
   }
 }
+
+module.exports = {
+  isDockerInstalled,
+  downloadDockerInstaller,
+  installDocker,
+};

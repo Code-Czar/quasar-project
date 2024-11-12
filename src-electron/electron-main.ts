@@ -16,7 +16,7 @@ import AdmZip from 'adm-zip';
 import yaml from 'js-yaml';
 import WebSocket from 'ws'; // Import the WebSocket library
 
-import { exec } from 'child_process';
+import { exec, fork } from 'child_process';
 
 import { installDependencies } from './installScripts/install';
 
@@ -82,7 +82,7 @@ const initWebSocket = () => {
 
         // Perform actions based on the received message
         if (data.message === 'open-window') {
-          openWindow(data.windowTitle);
+          openWindow(data.windowTitle, data.url);
           console.log('Triggering action in Electron app!');
         }
       } catch (error) {
@@ -322,15 +322,35 @@ app.on('activate', () => {
   }
 });
 
-ipcMain.handle('install-dependencies', async (event, productId) => {
-  try {
-    const result = await installDependencies(productId);
-    return result;
-  } catch (error) {
-    console.error(`Error installing dependencies: ${error.message}`);
-    throw error;
+// Define the handler for 'install-dependencies'
+ipcMain.handle(
+  'install-dependencies',
+  async (event, productId: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const installerProcess = fork(
+        'src-electron/installScripts/installWorker.ts',
+        [],
+        {
+          execArgv: ['-r', 'ts-node/register/transpile-only'], // Use ts-node with transpile-only to ignore TypeScript errors
+        }
+      );
+
+      installerProcess.send({ productId });
+
+      installerProcess.on('message', (result: string) => {
+        resolve(result);
+      });
+      installerProcess.on('error', (error) => {
+        reject(error);
+      });
+      installerProcess.on('exit', (code) => {
+        if (code !== 0) {
+          reject(new Error(`Installer process exited with code ${code}`));
+        }
+      });
+    });
   }
-});
+);
 
 ipcMain.on('navigate-to-url', (event, url) => {
   mainWindow?.loadURL(url);

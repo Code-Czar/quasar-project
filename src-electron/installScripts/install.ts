@@ -1,8 +1,6 @@
-// ./installScripts/install.ts
-import { installDocker } from './installDocker';
-import { cloneRepository, buildAndRunDocker } from './buildSources';
-
-export async function installDependencies(productId: string): Promise<string> {
+const { installDocker } = require('./installDocker');
+const { cloneRepository, buildAndRunDocker } = require('./buildSources');
+async function installDependencies(productId: string): Promise<string> {
   try {
     console.log('Checking and installing Docker if necessary...');
     const dockerStatus = await installDocker();
@@ -23,3 +21,5 @@ export async function installDependencies(productId: string): Promise<string> {
     );
   }
 }
+
+module.exports = { installDependencies };

@@ -1,11 +1,11 @@
-import simpleGit from 'simple-git';
-import path from 'path';
-import fs from 'fs';
-import os from 'os';
-import axios from 'axios';
-import { execSync } from 'child_process';
+const simpleGit = require('simple-git');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const axios = require('axios');
+const { execSync } = require('child_process');
 
-async function getGithubToken(productId: string): Promise<string | null> {
+async function getGithubToken(productId) {
   try {
     const response = await axios.get(
       `http://localhost:8000/get-github-token/${productId}`
@@ -17,8 +17,7 @@ async function getGithubToken(productId: string): Promise<string | null> {
   }
 }
 
-async function setupSSH(productId: string): Promise<string | null> {
-  // Get the GitHub deploy key for the specific product
+async function setupSSH(productId) {
   const privateKey = await getGithubToken(productId);
   if (!privateKey) {
     console.error('Private key is missing');
@@ -27,19 +26,17 @@ async function setupSSH(productId: string): Promise<string | null> {
 
   const tempKeyPath = path.join(os.tmpdir(), 'github-deploy-key');
 
-  // Write the private key securely
   fs.writeFileSync(tempKeyPath, `${privateKey}`, {
     encoding: 'utf8',
-    mode: 0o777, // Only the owner can read/write
+    mode: 0o600,
   });
 
   console.log(`✅ Private key securely written to: ${tempKeyPath}`);
 
-  // Set the `GIT_SSH_COMMAND` to use this specific key
   return `ssh -i ${tempKeyPath} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no`;
 }
 
-export async function cloneRepository(productId: string): Promise<void> {
+async function cloneRepository(productId) {
   const repoUrl = 'git@github.com-Code-Czar:Code-Czar/clients-auto.git';
   const destinationPath = path.resolve(__dirname, '.quasar', 'resources');
 
@@ -50,7 +47,6 @@ export async function cloneRepository(productId: string): Promise<void> {
 
   fs.mkdirSync(destinationPath, { recursive: true });
 
-  // Set up SSH with the fetched private key
   const gitSSHCommand = await setupSSH(productId);
   console.log('🚀 ~ cloneRepository ~ gitSSHCommand:', gitSSHCommand);
   if (!gitSSHCommand) {
@@ -58,7 +54,6 @@ export async function cloneRepository(productId: string): Promise<void> {
     return;
   }
 
-  // Configure environment variable for SSH key usage
   process.env.GIT_SSH_COMMAND = gitSSHCommand;
 
   const git = simpleGit({ baseDir: destinationPath });
@@ -69,13 +64,12 @@ export async function cloneRepository(productId: string): Promise<void> {
   } catch (error) {
     console.error(`Failed to clone repository: ${error.message}`);
   } finally {
-    delete process.env.GIT_SSH_COMMAND; // Clean up the environment variable
+    delete process.env.GIT_SSH_COMMAND;
     console.log(`🧹 Temporary files cleaned up.`);
   }
 }
 
-// Function to build and run Docker containers
-export async function buildAndRunDocker(): Promise<void> {
+async function buildAndRunDocker() {
   const destinationPath = path.resolve(__dirname, '.quasar', 'resources');
   const dockerComposeFile = path.join(destinationPath, 'docker-compose.yml');
 
@@ -97,3 +91,10 @@ export async function buildAndRunDocker(): Promise<void> {
     );
   }
 }
+
+module.exports = {
+  getGithubToken,
+  setupSSH,
+  cloneRepository,
+  buildAndRunDocker,
+};
