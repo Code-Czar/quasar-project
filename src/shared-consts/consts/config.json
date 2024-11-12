@@ -1,0 +1,11 @@
+{
+    "REMOTE_URL": "127.0.0.1",
+    "REMOTE_WSS": "ws://127.0.0.1",
+    "INFLUXDB_URL": "http://localhost:8086",
+    "INFLUXDB_ORG": "Opportunities",
+    "INFLUXDB_BUCKET": "Opportunities",
+    "TELEGRAF_CLIENT": "127.0.0.1",
+    "POSITION_MANAGER_API": "http://localhost:3003",
+    "SUPABASE_URL": "https://yhotbknfiebbflhovpws.supabase.co",
+    "SUPABASE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlob3Ria25maWViYmZsaG92cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTQ4NzE5MTEsImV4cCI6MjAxMDQ0NzkxMX0.LmJKiQhg09gO0YHKcHeRLU-T3mcbIaNbebYSrmsCXmM"
+}

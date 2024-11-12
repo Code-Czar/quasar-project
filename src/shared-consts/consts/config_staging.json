@@ -1,0 +1,10 @@
+{
+    "REMOTE_URL": "https://5.250.176.212",
+    "REMOTE_WSS": "wss://5.250.176.212",
+    "INFLUXDB_URL": "http://5.250.176.212:8086",
+    "INFLUXDB_ORG": "Opportunities",
+    "INFLUXDB_BUCKET": "Opportunities",
+    "TELEGRAF_CLIENT": "5.250.176.212",
+    "POSITION_MANAGER_API": "http://5.250.176.212:3003",
+    "SUPABASE_URL": "https://yhotbknfiebbflhovpws.supabase.co"
+}

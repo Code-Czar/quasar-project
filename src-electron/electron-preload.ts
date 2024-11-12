@@ -3,9 +3,10 @@ const { contextBridge, ipcRenderer } = require('electron');
 // const { remote } = require('@electron/remote');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  installDocker: () => ipcRenderer.invoke('install-dependencies'),
+  installDocker: (productId: string) =>
+    ipcRenderer.invoke('install-dependencies', productId),
   checkContainers: () => ipcRenderer.invoke('check-docker-containers'),
-  navigateTo: (url) => ipcRenderer.send('navigate-to-url', url), // Add navigate function
+  navigateTo: (url: string) => ipcRenderer.send('navigate-to-url', url), // Add navigate function
   // remoteMethod: (methodName: string, ...args: any[]) =>
   //   remote[methodName](...args),
 });

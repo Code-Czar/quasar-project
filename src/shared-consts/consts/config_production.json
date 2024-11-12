@@ -1,0 +1,10 @@
+{
+    "REMOTE_URL": "infinite-opportunities.pro",
+    "REMOTE_WSS": "wss://infinite-opportunities.pro",
+    "INFLUXDB_URL": "http://infinite-opportunities.pro:8086",
+    "INFLUXDB_ORG": "Opportunities",
+    "INFLUXDB_BUCKET": "Opportunities",
+    "TELEGRAF_CLIENT": "infinite-opportunities.pro",
+    "POSITION_MANAGER_API": "http://infinite-opportunities.pro:3003",
+    "SUPABASE_URL": "https://yhotbknfiebbflhovpws.supabase.co"
+}

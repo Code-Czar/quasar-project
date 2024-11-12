@@ -322,16 +322,13 @@ app.on('activate', () => {
   }
 });
 
-ipcMain.handle('install-dependencies', async () => {
+ipcMain.handle('install-dependencies', async (event, productId) => {
   try {
-    const result = await installDependencies();
+    const result = await installDependencies(productId);
     return result;
   } catch (error) {
-    throw new Error(
-      `Dependency installation failed: ${
-        error instanceof Error ? error.message : 'Unknown error'
-      }`
-    );
+    console.error(`Error installing dependencies: ${error.message}`);
+    throw error;
   }
 });
 

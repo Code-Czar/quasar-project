@@ -2,67 +2,74 @@ import simpleGit from 'simple-git';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import axios from 'axios';
 import { execSync } from 'child_process';
 
-// Private key definition as a continuous string
-const privateKey = `-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACDDK/DaSCO1HU7AHkw/5FVuKmm6VewMKvXiWCPDe40Q9wAAAKjFG3+/xRt/
-vwAAAAtzc2gtZWQyNTUxOQAAACDDK/DaSCO1HU7AHkw/5FVuKmm6VewMKvXiWCPDe40Q9w
-AAAECGCg3sTUr3A/834AwKw1DhBGM+ZjKKWRxAeTrGSXEjNMMr8NpII7UdTsAeTD/kVW4q
-abpV7Awq9eJYI8N7jRD3AAAAHmJlbmphbWludG91cnJldHRlcHJvQGdtYWlsLmNvbQECAw
-QFBgc=
------END OPENSSH PRIVATE KEY-----`;
-
-async function setupSSH(): Promise<{
-  tempKeyPath: string;
-  sshScriptPath: string;
-}> {
-  const tempKeyPath = path.join(os.tmpdir(), 'github-deploy-key');
-  const sshScriptPath = path.join(os.tmpdir(), 'tempSSHClone.sh');
-
-  // Write the private key securely using Buffer.from to ensure accurate UTF-8 encoding
-  fs.writeFileSync(tempKeyPath, `${privateKey}\n`, {
-    encoding: 'utf8',
-  });
-  fs.chmodSync(tempKeyPath, 0o600);
-  console.log(`✅ Private key securely written to: ${tempKeyPath}`);
-
-  // Write the SSH script to use the private key file
-  const sshScriptContent = `#!/bin/sh\nexec ssh -i ${tempKeyPath} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no "$@"\n`;
-  fs.writeFileSync(sshScriptPath, sshScriptContent, { mode: 0o700 });
-  console.log(`✅ SSH script written to: ${sshScriptPath}`);
-
-  return { tempKeyPath, sshScriptPath };
+async function getGithubToken(productId: string): Promise<string | null> {
+  try {
+    const response = await axios.get(
+      `http://localhost:8000/get-github-token/${productId}`
+    );
+    return response.data.github_token;
+  } catch (error) {
+    console.error('Failed to fetch GitHub token:', error);
+    return null;
+  }
 }
 
-export async function cloneRepository(): Promise<void> {
-  const repoUrl = 'git@github.com:Code-Czar/clients-auto.git';
+async function setupSSH(productId: string): Promise<string | null> {
+  // Get the GitHub deploy key for the specific product
+  const privateKey = await getGithubToken(productId);
+  if (!privateKey) {
+    console.error('Private key is missing');
+    return null;
+  }
+
+  const tempKeyPath = path.join(os.tmpdir(), 'github-deploy-key');
+
+  // Write the private key securely
+  fs.writeFileSync(tempKeyPath, `${privateKey}`, {
+    encoding: 'utf8',
+    mode: 0o777, // Only the owner can read/write
+  });
+
+  console.log(`✅ Private key securely written to: ${tempKeyPath}`);
+
+  // Set the `GIT_SSH_COMMAND` to use this specific key
+  return `ssh -i ${tempKeyPath} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no`;
+}
+
+export async function cloneRepository(productId: string): Promise<void> {
+  const repoUrl = 'git@github.com-Code-Czar:Code-Czar/clients-auto.git';
   const destinationPath = path.resolve(__dirname, '.quasar', 'resources');
 
-  // Remove the destination folder if it exists
   if (fs.existsSync(destinationPath)) {
     fs.rmSync(destinationPath, { recursive: true, force: true });
     console.log(`🧹 Removed existing folder at ${destinationPath}`);
   }
 
   fs.mkdirSync(destinationPath, { recursive: true });
-  const { tempKeyPath, sshScriptPath } = await setupSSH();
-  process.env.GIT_SSH = sshScriptPath;
+
+  // Set up SSH with the fetched private key
+  const gitSSHCommand = await setupSSH(productId);
+  console.log('🚀 ~ cloneRepository ~ gitSSHCommand:', gitSSHCommand);
+  if (!gitSSHCommand) {
+    console.error('Failed to set up SSH');
+    return;
+  }
+
+  // Configure environment variable for SSH key usage
+  process.env.GIT_SSH_COMMAND = gitSSHCommand;
 
   const git = simpleGit({ baseDir: destinationPath });
 
   try {
-    await git.clone(repoUrl, destinationPath, [
-      '--depth=1',
-      '--branch=bt/payments',
-    ]);
+    await git.clone(repoUrl, destinationPath, ['--depth=1']);
     console.log(`Repository cloned successfully to ${destinationPath}`);
   } catch (error) {
     console.error(`Failed to clone repository: ${error.message}`);
-    console.error(`Full error details: ${JSON.stringify(error, null, 2)}`);
   } finally {
-    delete process.env.GIT_SSH;
+    delete process.env.GIT_SSH_COMMAND; // Clean up the environment variable
     console.log(`🧹 Temporary files cleaned up.`);
   }
 }

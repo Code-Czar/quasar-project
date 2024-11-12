@@ -4,13 +4,16 @@
 
     <!-- Render the appropriate component based on the subscription status -->
     <LandingPage v-if="!loading && !hasActiveSubscription " />
-    <AppLaunch v-if="!loading && hasActiveSubscription && !error" />
+    <AppLaunch 
+      v-if="!loading && hasActiveSubscription && !error" 
+      :product-id="selectedProductId" 
+    />
     <!-- <ErrorPage v-if="error" /> Replace with an actual error component if needed -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useUserStore } from 'src/stores/userStore';
 import { apiConnector, CENTRALIZATION_API_URLS } from 'src/shared-consts';
 import { useRoute } from 'vue-router';
@@ -27,10 +30,20 @@ const loading = ref(true);
 const hasActiveSubscription = ref(false);
 const error = ref(false);
 
-// @ts-expect-error ignore
-const productIds = JSON.parse(route.query.productIds); // Assumes `productId` is passed as a query parameter
+// Parse product IDs from the query parameter
+const productIds = computed(() => {
+  try {
+    // @ts-expect-error ignore
+    return JSON.parse(route.query.productIds);
+  } catch (e) {
+    console.error('Error parsing productIds:', e);
+    return null;
+  }
+});
 
-console.log("🚀 ~ productId:", productIds)
+const selectedProductId = ref<string | null>(null);
+
+console.log("🚀 ~ productIds:", productIds);
 const checkSubscriptionStatus = async () => {
   try {
     const userId = userStore.user?.id;
@@ -46,15 +59,23 @@ const checkSubscriptionStatus = async () => {
     );
 
     if (response.status === 200) {
+      // Get the list of subscribed products from the response
       // @ts-expect-error ignore
-      const subscriptions = response.data?.subscribed_products;
-      console.log("🚀 ~ checkSubscriptionStatus ~ subscriptions:", subscriptions, productIds)
-      hasActiveSubscription.value = subscriptions.includes(
-        productIds.testing
-      ) || subscriptions.includes(
-        productIds.production
-      );;
-      console.log("🚀 ~ checkSubscriptionStatus ~ hasActiveSubscription.value:", hasActiveSubscription.value)
+      const subscriptions = response.data?.subscribed_products || [];
+      console.log("🚀 ~ checkSubscriptionStatus ~ subscriptions:", subscriptions, productIds.value);
+
+      // Determine if the user is subscribed to either product ID and set the selected product ID
+      if (subscriptions.includes(productIds.value?.testing)) {
+        hasActiveSubscription.value = true;
+        selectedProductId.value = productIds.value?.testing;
+      } else if (subscriptions.includes(productIds.value?.production)) {
+        hasActiveSubscription.value = true;
+        selectedProductId.value = productIds.value?.production;
+      } else {
+        hasActiveSubscription.value = false;
+      }
+
+      console.log("🚀 ~ checkSubscriptionStatus ~ hasActiveSubscription.value:", hasActiveSubscription.value);
     } else {
       error.value = true;
     }
