@@ -92,9 +92,75 @@ async function buildAndRunDocker() {
   }
 }
 
+async function checkForUpdates(productId) {
+  const repoOwner = 'Code-Czar';
+  const repoName = 'clients-auto';
+  const destinationPath = path_.resolve(__dirname, '.quasar', 'resources');
+  const localLatestFilePath = path_.join(destinationPath, 'latest.yml');
+
+  try {
+    // Fetch latest release data from GitHub
+    const response = await axios_.get(
+      `https://api.github.com/repos/${repoOwner}/${repoName}/releases/latest`,
+      {
+        headers: {
+          Authorization: `token ${await getGithubToken(productId)}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      }
+    );
+
+    const latestRelease = response.data;
+    const latestAsset = latestRelease.assets.find(
+      (asset) => asset.name === 'latest.yml'
+    );
+
+    if (!latestAsset) {
+      console.error('No latest.yml found in the latest release');
+      return { shouldUpdate: false };
+    }
+
+    // Download the latest latest.yml content
+    const latestYmlResponse = await axios_.get(
+      latestAsset.browser_download_url,
+      {
+        headers: {
+          Authorization: `token ${await getGithubToken(productId)}`,
+        },
+      }
+    );
+    const latestYmlContent = latestYmlResponse.data;
+
+    // Read local latest.yml if it exists
+    let localYmlContent = null;
+    if (fs_.existsSync(localLatestFilePath)) {
+      localYmlContent = fs_.readFileSync(localLatestFilePath, 'utf8');
+    }
+
+    // Parse the version from both latest and local latest.yml files
+    const latestVersion = /version:\s*(.*)/.exec(latestYmlContent)?.[1];
+    const localVersion = localYmlContent
+      ? /version:\s*(.*)/.exec(localYmlContent)?.[1]
+      : null;
+
+    // Compare versions
+    if (!localVersion || latestVersion !== localVersion) {
+      console.log('Update available:', latestVersion);
+      return { shouldUpdate: true, latestVersion };
+    }
+
+    console.log('No update needed. You have the latest version:', localVersion);
+    return { shouldUpdate: false };
+  } catch (error) {
+    console.error('Failed to check for updates:', error);
+    return { shouldUpdate: false };
+  }
+}
+
 module.exports = {
   getGithubToken,
   setupSSH,
   cloneRepository,
   buildAndRunDocker,
+  checkForUpdates,
 };

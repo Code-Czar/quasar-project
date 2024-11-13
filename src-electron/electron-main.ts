@@ -322,6 +322,44 @@ app.on('activate', () => {
   }
 });
 
+ipcMain.handle(
+  'check-for-updates',
+  async (
+    event,
+    productId: string
+  ): Promise<{
+    shouldUpdate: boolean;
+    latestVersion?: string;
+    error?: string;
+  }> => {
+    return new Promise((resolve, reject) => {
+      const updateProcess = fork(
+        'src-electron/installScripts/checkUpdatesWorker.ts',
+        [],
+        {
+          execArgv: ['-r', 'ts-node/register/transpile-only'], // Use ts-node with transpile-only
+        }
+      );
+
+      updateProcess.send({ productId });
+
+      updateProcess.on('message', (result) => {
+        resolve(result); // Resolve with the update check result
+      });
+
+      updateProcess.on('error', (error) => {
+        reject(error);
+      });
+
+      updateProcess.on('exit', (code) => {
+        if (code !== 0) {
+          reject(new Error(`Update check process exited with code ${code}`));
+        }
+      });
+    });
+  }
+);
+
 // Define the handler for 'install-dependencies'
 ipcMain.handle(
   'install-dependencies',
