@@ -5,6 +5,7 @@ import {
   protocol,
   dialog,
   session,
+  screen,
 } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import os from 'os';
@@ -43,6 +44,9 @@ app.enableSandbox();
 
 let mainWindow: BrowserWindow | undefined;
 
+let screenWidth;
+let screenHeight;
+
 console.log = function (message) {
   logFile.write(`${new Date().toISOString()} - ${message}\n`);
 };
@@ -60,8 +64,8 @@ console.log('App starting...');
 const openWindow = (windowTitle: string, url: string | null = null) => {
   console.log('Action triggered from Quasar frontend!');
   const newWindow = new BrowserWindow({
-    width: 1920,
-    height: 1080,
+    width: screenWidth,
+    height: screenHeight,
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'electron-preload.js'),
@@ -266,11 +270,14 @@ app.whenReady().then(async () => {
 });
 
 function createWindow() {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  screenWidth = width;
+  screenHeight = height;
   mainWindow = new BrowserWindow({
-    width: 1920,
-    height: 1080,
-    fullscreen: true, // Start in fullscreen mode
-    frame: false, // Remove the window frame for a borderless look
+    width: screenWidth,
+    height: screenHeight,
+    fullscreen: false, // Start in fullscreen mode
+    frame: true, // Remove the window frame for a borderless look
     resizable: false, // Optional: Prevent resizing if you want a fixed size
     webPreferences: {
       preload: path.join(__dirname, 'electron-preload.js'),
@@ -281,6 +288,7 @@ function createWindow() {
   const mainURL = app.isPackaged
     ? `file://${path.join(__dirname, 'index.html')}`
     : 'http://localhost:9300';
+  mainWindow.maximize();
   mainWindow.loadURL(mainURL);
 
   if (app.isPackaged) {
