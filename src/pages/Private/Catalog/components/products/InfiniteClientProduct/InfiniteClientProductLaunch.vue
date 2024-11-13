@@ -42,9 +42,10 @@ const checkContainers = async () => {
 // Function to check for updates
 const checkForUpdates = async () => {
   try {
-    const result = await window.electronAPI.checkForUpdates();
+    const result = await window.electronAPI.checkForUpdates(props.productId);
     if (result.shouldUpdate) {
       message.value = `Update available: ${result.latestVersion}. Please update to continue.`;
+      installDependencies()
     } else {
       message.value = 'You are using the latest version.';
       // Automatically check containers after a short delay if no update is needed
