@@ -4,14 +4,16 @@ const fs_ = require('fs');
 const os_ = require('os');
 const axios_ = require('axios');
 const { execSync } = require('child_process');
-const { CENTRALIZATION_API_URLS } = require('src/shared-consts');
+// const { CENTRALIZATION_API_URLS } = require('src/shared-consts');
 
 let isUpdating = false;
+
+const LICENSE_SERVER_URL = 'https://beniben.hopto.org/user';
+const GITHUB_TOKEN = `${LICENSE_SERVER_URL}/get-github-token`;
+
 async function getGithubToken(productId) {
   try {
-    const response = await axios_.get(
-      `${CENTRALIZATION_API_URLS}/${productId}`
-    );
+    const response = await axios_.get(`${GITHUB_TOKEN}/${productId}`);
     return response.data.github_token;
   } catch (error) {
     console.error('Failed to fetch GitHub token:', error);

@@ -43,6 +43,7 @@
     error.value = null;
   
     try {
+      console.log("🚀 ~ fetchProducts ~ CENTRALIZATION_API_URLS:", CENTRALIZATION_API_URLS)
       const response = await axios.get(CENTRALIZATION_API_URLS.PRODUCTS_CATALOG); // Replace with your Django backend URL
       products.value = response.data;
     } catch (err) {

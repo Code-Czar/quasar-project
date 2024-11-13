@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { CENTRALIZATION_API_URLS } from 'src/consts/consts';
+import { CENTRALIZATION_API_URLS } from 'src/shared-consts';
 import { apiConnector } from 'src/api';
 import { LocalStorage } from 'quasar';
 
