@@ -21,6 +21,8 @@ import { exec, fork } from 'child_process';
 // import { installDependencies } from './installScripts/install';
 
 const platform = process.platform || os.platform();
+const logFile = fs.createWriteStream('app.log', { flags: 'a' });
+
 const REPO_OWNER = 'Code-Czar';
 const REPO_NAME = 'quasar-project';
 const ASAR_DOWNLOAD_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/app-asar.zip`;
@@ -41,6 +43,10 @@ app.enableSandbox();
 
 let mainWindow: BrowserWindow | undefined;
 
+console.log = function (message) {
+  logFile.write(`${new Date().toISOString()} - ${message}\n`);
+};
+
 async function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -49,7 +55,7 @@ autoUpdater.autoDownload = false;
 autoUpdater.logger = log;
 //@ts-expect-error transport
 autoUpdater.logger.transports.file.level = 'info';
-log.info('App starting...');
+console.log('App starting...');
 
 const openWindow = (windowTitle: string, url: string | null = null) => {
   console.log('Action triggered from Quasar frontend!');
@@ -60,6 +66,7 @@ const openWindow = (windowTitle: string, url: string | null = null) => {
       contextIsolation: true,
       preload: path.join(__dirname, 'electron-preload.js'),
       sandbox: true,
+      devTools: true, // Enable DevTools in production
     },
   });
   newWindow.setTitle(windowTitle);
@@ -99,7 +106,9 @@ const initWebSocket = () => {
 async function setPermissions(filePath: string, permissions: number) {
   try {
     await fs.promises.chmod(filePath, permissions);
-    log.info(`Set permissions for "${filePath}" to ${permissions.toString(8)}`);
+    console.log(
+      `Set permissions for "${filePath}" to ${permissions.toString(8)}`
+    );
   } catch (error) {
     log.error(`Error setting permissions for "${filePath}":`, error);
   }
@@ -107,15 +116,15 @@ async function setPermissions(filePath: string, permissions: number) {
 
 async function getLocalVersion(): Promise<string | undefined> {
   try {
-    log.info(`Local path: ${latestYmlPath}`);
+    console.log(`Local path: ${latestYmlPath}`);
     if (fs.existsSync(latestYmlPath)) {
       const ymlContent = fs.readFileSync(latestYmlPath, 'utf-8');
       const parsedYml = yaml.load(ymlContent);
-      log.info(`parsed yml: ${parsedYml}`);
+      console.log(`parsed yml: ${parsedYml}`);
       // @ts-expect-error ignoring
       if (parsedYml && parsedYml.version) {
         // @ts-expect-error ignoring
-        log.info(`local version: ${parsedYml.version.replace(/^v/, '')}`);
+        console.log(`local version: ${parsedYml.version.replace(/^v/, '')}`);
         // @ts-expect-error ignoring
         return parsedYml.version.replace(/^v/, '');
       }
@@ -124,18 +133,18 @@ async function getLocalVersion(): Promise<string | undefined> {
     log.error('Error reading local latest.yml:', error);
     return '';
   }
-  log.info(`local version: ${CURRENT_VERSION}`);
+  console.log(`local version: ${CURRENT_VERSION}`);
   return CURRENT_VERSION;
 }
 
 async function checkForAppUpdate() {
   try {
     if (!app.isPackaged) {
-      log.info('Development mode detected, skipping update check.');
+      console.log('Development mode detected, skipping update check.');
       return;
     }
     const localVersion = await getLocalVersion();
-    log.info(`Local version 1: ${localVersion}`);
+    console.log(`Local version 1: ${localVersion}`);
     await delay(5000);
 
     const response = await axios.get(
@@ -143,17 +152,19 @@ async function checkForAppUpdate() {
     );
     const latestVersion = response.data.tag_name.replace(/^v/, '');
 
-    log.info(
+    console.log(
       `Local version: ${localVersion}, Latest version: ${latestVersion}`
     );
     await delay(5000);
 
     if (latestVersion === localVersion) {
-      log.info('Local version matches the latest version. No update needed.');
+      console.log(
+        'Local version matches the latest version. No update needed.'
+      );
       return;
     }
 
-    log.info(`New version detected. Prompting user for update...`);
+    console.log(`New version detected. Prompting user for update...`);
     const dialogOpts: Electron.MessageBoxOptions = {
       type: 'info',
       buttons: ['Download and Install', 'Later'],
@@ -172,7 +183,7 @@ async function checkForAppUpdate() {
 
 async function downloadAndInstallAsar(latestVersion: string) {
   try {
-    log.info(`Starting download of app-asar.zip to "${zipPath}"`);
+    console.log(`Starting download of app-asar.zip to "${zipPath}"`);
     const response = await axios({
       url: ASAR_DOWNLOAD_URL,
       method: 'GET',
@@ -185,9 +196,9 @@ async function downloadAndInstallAsar(latestVersion: string) {
       writer.on('finish', resolve);
       writer.on('error', reject);
     });
-    log.info(`Downloaded app-asar.zip to "${zipPath}"`);
+    console.log(`Downloaded app-asar.zip to "${zipPath}"`);
 
-    log.info(`Starting download of latest.yml to "${latestYmlPath}"`);
+    console.log(`Starting download of latest.yml to "${latestYmlPath}"`);
     const ymlResponse = await axios({
       url: LATEST_YML_URL,
       method: 'GET',
@@ -200,7 +211,7 @@ async function downloadAndInstallAsar(latestVersion: string) {
       ymlWriter.on('finish', resolve);
       ymlWriter.on('error', reject);
     });
-    log.info(`Downloaded latest.yml to "${latestYmlPath}"`);
+    console.log(`Downloaded latest.yml to "${latestYmlPath}"`);
 
     await setPermissions(zipPath, 0o777);
     await setPermissions(latestYmlPath, 0o644);
@@ -209,12 +220,12 @@ async function downloadAndInstallAsar(latestVersion: string) {
 
     process.noAsar = true;
 
-    log.info(`Starting extraction of "${zipPath}" to "${resourcesPath}"`);
+    console.log(`Starting extraction of "${zipPath}" to "${resourcesPath}"`);
     const zip = new AdmZip(zipPath);
     zip.extractAllTo(resourcesPath, true);
 
     const extractedFiles = fs.readdirSync(resourcesPath);
-    log.info(
+    console.log(
       `Extracted files in resources folder: ${extractedFiles.join(', ')}`
     );
 
@@ -223,11 +234,11 @@ async function downloadAndInstallAsar(latestVersion: string) {
         `Extracted file "app.asar" not found in "${resourcesPath}".`
       );
     }
-    log.info(`Found extracted app.asar at "${asarPath}"`);
+    console.log(`Found extracted app.asar at "${asarPath}"`);
 
     await setPermissions(asarPath, 0o755);
 
-    log.info(`Update to version ${latestVersion} completed.`);
+    console.log(`Update to version ${latestVersion} completed.`);
 
     await dialog.showMessageBox({
       type: 'info',
@@ -244,7 +255,7 @@ async function downloadAndInstallAsar(latestVersion: string) {
 }
 
 app.whenReady().then(async () => {
-  log.info('App is ready, initializing protocols and auto-update check.');
+  console.log('App is ready, initializing protocols and auto-update check.');
   await checkForAppUpdate();
 
   protocol.registerFileProtocol('app', (request, callback) => {
@@ -281,7 +292,7 @@ function createWindow() {
       filter,
       (details, callback) => {
         const url = details.url;
-        log.info('Intercepted URL:', url); // Log the full URL to inspect
+        console.log('Intercepted URL:', url); // Log the full URL to inspect
 
         // Parse the fragment (hash) part to extract tokens
         const urlFragment = new URL(url).hash.substring(1); // Remove the `#` symbol
@@ -291,8 +302,8 @@ function createWindow() {
         const refreshToken = fragmentParams.get('refresh_token');
 
         // Log tokens to confirm they are parsed correctly
-        log.info('Access Token:', accessToken);
-        log.info('Refresh Token:', refreshToken);
+        console.log('Access Token:', accessToken);
+        console.log('Refresh Token:', refreshToken);
 
         if (accessToken) {
           // Redirect to index.html#/auth with tokens as query parameters
