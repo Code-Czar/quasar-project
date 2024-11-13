@@ -3,6 +3,7 @@ name: Build and Release ASAR File
 on:
   push:
     branches:
+      - 'main'
       - 'bt/app'
       - 'pre-release/*'
       - 'testing'
