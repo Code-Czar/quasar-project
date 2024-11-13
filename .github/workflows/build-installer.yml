@@ -99,7 +99,6 @@ jobs:
   release:
     needs: [build_and_tag]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/bt/installer'
 
     steps:
       - name: Checkout repository
