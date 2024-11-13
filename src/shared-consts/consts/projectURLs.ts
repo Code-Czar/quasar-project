@@ -1,4 +1,4 @@
-import { REMOTE_URL, REMOTE_WSS_URL } from "./loadConfig";
+import { LICENSE_SERVER_URL, REMOTE_URL, REMOTE_WSS_URL } from './loadConfig';
 
 export const SERVER_PORTS = {
   BACKEND_PORT: 3000,
@@ -12,25 +12,22 @@ export const SERVER_PORTS = {
 };
 
 export const PROJECT_URLS = {
-  BACKEND_URL: REMOTE_URL + ":" + SERVER_PORTS.BACKEND_PORT,
-  BACKEND_WEBSOCKET: REMOTE_WSS_URL + ":" + SERVER_PORTS.BACKEND_PORT + "/ws",
-  STRATEGY_ANALYZER_URL: REMOTE_URL + ":" + SERVER_PORTS.STRATEGY_ANALYZER_PORT,
-  POSITION_MANAGER_URL: REMOTE_URL + ":" + SERVER_PORTS.POSITION_MANAGER_PORT,
-  CENTRALIZATION_URL: "centralization." + REMOTE_URL,
-  DATA_FILLERS_URL: REMOTE_URL + ":" + SERVER_PORTS.DATA_FILLERS_PORT,
-  MARKETS_MONITOR_URL: REMOTE_URL + ":" + SERVER_PORTS.MARKETS_MONITOR_PORT,
-  LIVE_BOT_URL: REMOTE_URL + ":" + SERVER_PORTS.LIVE_BOT_PORT,
-  NOTIFICATIONS_URL: REMOTE_URL + ":" + SERVER_PORTS.NOTIFICATIONS_SYSTEM_PORT,
+  BACKEND_URL: REMOTE_URL + ':' + SERVER_PORTS.BACKEND_PORT,
+  BACKEND_WEBSOCKET: REMOTE_WSS_URL + ':' + SERVER_PORTS.BACKEND_PORT + '/ws',
+  STRATEGY_ANALYZER_URL: REMOTE_URL + ':' + SERVER_PORTS.STRATEGY_ANALYZER_PORT,
+  POSITION_MANAGER_URL: REMOTE_URL + ':' + SERVER_PORTS.POSITION_MANAGER_PORT,
+  CENTRALIZATION_URL: 'centralization.' + REMOTE_URL,
+  DATA_FILLERS_URL: REMOTE_URL + ':' + SERVER_PORTS.DATA_FILLERS_PORT,
+  MARKETS_MONITOR_URL: REMOTE_URL + ':' + SERVER_PORTS.MARKETS_MONITOR_PORT,
+  LIVE_BOT_URL: REMOTE_URL + ':' + SERVER_PORTS.LIVE_BOT_PORT,
+  NOTIFICATIONS_URL: REMOTE_URL + ':' + SERVER_PORTS.NOTIFICATIONS_SYSTEM_PORT,
 };
 
-if (REMOTE_URL.includes("127.0.0.1") || REMOTE_URL.includes("localhost")) {
-  PROJECT_URLS.CENTRALIZATION_URL =
-    REMOTE_URL + ":" + SERVER_PORTS.CENTRALIZATION_PORT;
-}
+PROJECT_URLS.CENTRALIZATION_URL = LICENSE_SERVER_URL;
 
 export const NOTIFICATIONS_ENDPOINTS = {
-  HEALTH: "/health",
-  SEND_NOTIFICATION: "/notify",
+  HEALTH: '/health',
+  SEND_NOTIFICATION: '/notify',
 };
 
 export const NOTIFICATIONS_URLS = {
@@ -41,12 +38,12 @@ export const NOTIFICATIONS_URLS = {
 };
 
 export const DATA_FILLERS_ENDPOINTS = {
-  HEALTH: "/health",
-  CLEAR_DATABASE: "/clearDB",
-  FILL_ALL_HISTORICAL_DATA: "/api/fillAllHistoricalData",
-  STOP_FILL: "/api/stopFill",
-  FILL_HISTORICAL_DATA: "/api/fillHistoricalData",
-  FILL_WEBSOCKET: "/api/fillWs",
+  HEALTH: '/health',
+  CLEAR_DATABASE: '/clearDB',
+  FILL_ALL_HISTORICAL_DATA: '/api/fillAllHistoricalData',
+  STOP_FILL: '/api/stopFill',
+  FILL_HISTORICAL_DATA: '/api/fillHistoricalData',
+  FILL_WEBSOCKET: '/api/fillWs',
 };
 
 export const DATA_FILLER_URLS = {
@@ -64,17 +61,17 @@ export const DATA_FILLER_URLS = {
 };
 
 export const MARKETS_MONITOR_ENDPOINTS = {
-  HEALTH: "/health",
-  START: "/startMonitoring",
-  STOP: "/stopMonitoring",
-  RECONNECT_BROKER: "/reconnect",
+  HEALTH: '/health',
+  START: '/startMonitoring',
+  STOP: '/stopMonitoring',
+  RECONNECT_BROKER: '/reconnect',
 };
 
 export const MARKETS_MONITOR_URLS = {
   ROOT: PROJECT_URLS.MARKETS_MONITOR_URL,
   HEALTH: PROJECT_URLS.MARKETS_MONITOR_URL + MARKETS_MONITOR_ENDPOINTS.HEALTH,
   CONNECTION_WEBSOCKET:
-    REMOTE_WSS_URL + ":" + SERVER_PORTS.MARKETS_MONITOR_PORT + "/ws",
+    REMOTE_WSS_URL + ':' + SERVER_PORTS.MARKETS_MONITOR_PORT + '/ws',
   START_MONITORING:
     PROJECT_URLS.MARKETS_MONITOR_URL + MARKETS_MONITOR_ENDPOINTS.START,
   STOP_MONITORING:
@@ -85,18 +82,18 @@ export const MARKETS_MONITOR_URLS = {
 };
 
 export const BACKEND_ENDPOINTS = {
-  HEALTH: "/health",
-  GET_PAIR_DATA: "/api/getPairCandleData",
+  HEALTH: '/health',
+  GET_PAIR_DATA: '/api/getPairCandleData',
   LEVERAGE_ENDPOINTS: {
-    getLeverageSymbols: "/api/symbols/leverage",
-    getHistoricalDataForPair: "/api/fetchHistoricalDataForPair",
+    getLeverageSymbols: '/api/symbols/leverage',
+    getHistoricalDataForPair: '/api/fetchHistoricalDataForPair',
   },
   RSI_ENDPOINTS: {
-    getAllRSIValues: "/api/rsi/getValues",
-    getLastRSIValues: "/api/rsi/getLastValues",
+    getAllRSIValues: '/api/rsi/getValues',
+    getLastRSIValues: '/api/rsi/getLastValues',
   },
   DATA_STORE: {
-    getDataStore: "/api/getDataStore",
+    getDataStore: '/api/getDataStore',
   },
 };
 
@@ -129,15 +126,22 @@ export const BACKEND_URLS = {
 };
 
 export const CENTRALIZATION_ENDPOINTS = {
-  USERS: "/users",
-  STRIPE_CONFIG: "/config",
-  STRIPE_CHECKOUT_SESSION: "/create_checkout_session",
-  STRIPE_CHECK_SUBSCRIPTION: "/check-subscription-status",
-  STRIPE_CANCEL_SUBSCRIPTION: "/cancel-subscription",
+  USERS: '/users',
+  PRODUCT_CATALOG_ENDPOINT: '/products',
+  GITHUB_TOKEN: '/get-github-token',
+  STRIPE_CONFIG: '/config',
+  STRIPE_CHECKOUT_SESSION: '/create_checkout_session',
+  STRIPE_CHECK_SUBSCRIPTION: '/check-subscription-status',
+  STRIPE_CANCEL_SUBSCRIPTION: '/cancel-subscription',
 };
 
 export const CENTRALIZATION_API_URLS = {
   USERS: PROJECT_URLS.CENTRALIZATION_URL + CENTRALIZATION_ENDPOINTS.USERS,
+  PRODUCTS_CATALOG:
+    PROJECT_URLS.CENTRALIZATION_URL +
+    CENTRALIZATION_ENDPOINTS.PRODUCT_CATALOG_ENDPOINT,
+  GITHUB_TOKEN:
+    PROJECT_URLS.CENTRALIZATION_URL + CENTRALIZATION_ENDPOINTS.GITHUB_TOKEN,
   STRIPE_CONFIG:
     PROJECT_URLS.CENTRALIZATION_URL + CENTRALIZATION_ENDPOINTS.STRIPE_CONFIG,
   STRIPE_CHECKOUT_SESSION:
@@ -152,41 +156,41 @@ export const CENTRALIZATION_API_URLS = {
 };
 
 export const LIVE_BOT_ENDPOINTS = {
-  HEALTH: "/health",
-  startBot: "/api/startBot",
-  stopBot: "/api/stopBot",
+  HEALTH: '/health',
+  startBot: '/api/startBot',
+  stopBot: '/api/stopBot',
 };
 export const LIVE_BOT_URLS = {
-  HEALTH: PROJECT_URLS.LIVE_BOT_URL + "/health",
-  startBot: PROJECT_URLS.LIVE_BOT_URL + "/api/startBot",
-  stopBot: PROJECT_URLS.LIVE_BOT_URL + "/api/stopBot",
+  HEALTH: PROJECT_URLS.LIVE_BOT_URL + '/health',
+  startBot: PROJECT_URLS.LIVE_BOT_URL + '/api/startBot',
+  stopBot: PROJECT_URLS.LIVE_BOT_URL + '/api/stopBot',
   CONNECTION_WEBSOCKET:
-    REMOTE_WSS_URL + ":" + SERVER_PORTS.LIVE_BOT_PORT + "/ws",
+    REMOTE_WSS_URL + ':' + SERVER_PORTS.LIVE_BOT_PORT + '/ws',
 };
 
 export const STRATEGY_ANALYZER_ENDPOINTS = {
-  HEALTH: "/health",
+  HEALTH: '/health',
   SIGNALS: {
-    EMA28_SIGNALS: "/api/getEMA28Signals",
-    RSI_SIGNALS: "/api/getRSISignals",
+    EMA28_SIGNALS: '/api/getEMA28Signals',
+    RSI_SIGNALS: '/api/getRSISignals',
   },
   USERS_NOTIFICATIONS: {
-    getUsersNotifications: "/api/getUsersNotifications",
-    loadUserNotifications: "/api/loadUserNotifications",
-    saveUserNotifications: "/api/saveUserNotifications",
-    addNotification: "/api/addNotification",
-    removeNotification: "/api/removeNotification", // Removed URL parameters
-    updateNotification: "/api/updateNotification", // Removed URL parameters
-    getNotification: "/api/getNotification", // Removed URL parameters
+    getUsersNotifications: '/api/getUsersNotifications',
+    loadUserNotifications: '/api/loadUserNotifications',
+    saveUserNotifications: '/api/saveUserNotifications',
+    addNotification: '/api/addNotification',
+    removeNotification: '/api/removeNotification', // Removed URL parameters
+    updateNotification: '/api/updateNotification', // Removed URL parameters
+    getNotification: '/api/getNotification', // Removed URL parameters
     getNotificationForPairAndTimeframe:
-      "/api/getNotificationForPairAndTimeframe",
-    markNotificationAsSent: "/api/markNotificationAsSent", // Removed URL parameters
-    resetNotificationSentStatus: "/api/resetNotificationSentStatus", // Removed URL parameters
+      '/api/getNotificationForPairAndTimeframe',
+    markNotificationAsSent: '/api/markNotificationAsSent', // Removed URL parameters
+    resetNotificationSentStatus: '/api/resetNotificationSentStatus', // Removed URL parameters
   },
   BACKTESTING: {
-    startBacktest: "/api/startBacktest",
-    getBacktestResults: "/api/getBacktestResults",
-    backtestStreaming: "/backtestWS",
+    startBacktest: '/api/startBacktest',
+    getBacktestResults: '/api/getBacktestResults',
+    backtestStreaming: '/backtestWS',
   },
 };
 

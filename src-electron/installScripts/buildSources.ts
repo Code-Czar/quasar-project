@@ -4,37 +4,19 @@ const fs_ = require('fs');
 const os_ = require('os');
 const axios_ = require('axios');
 const { execSync } = require('child_process');
+const { CENTRALIZATION_API_URLS } = require('src/shared-consts');
 
 let isUpdating = false;
 async function getGithubToken(productId) {
   try {
     const response = await axios_.get(
-      `http://localhost:8000/get-github-token/${productId}`
+      `${CENTRALIZATION_API_URLS}/${productId}`
     );
     return response.data.github_token;
   } catch (error) {
     console.error('Failed to fetch GitHub token:', error);
     return null;
   }
-}
-
-async function setupSSH(productId) {
-  const privateKey = await getGithubToken(productId);
-  if (!privateKey) {
-    console.error('Private key is missing');
-    return null;
-  }
-
-  const tempKeyPath = path_.join(os_.tmpdir(), 'github-deploy-key');
-
-  fs_.writeFileSync(tempKeyPath, `${privateKey}\n`, {
-    encoding: 'utf8',
-    mode: 0o600,
-  });
-
-  console.log(`✅ Private key securely written to: ${tempKeyPath}`);
-
-  return `ssh -i ${tempKeyPath} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no`;
 }
 
 async function checkForUpdates(productId) {
@@ -198,7 +180,6 @@ async function buildAndRunDocker() {
 }
 module.exports = {
   getGithubToken,
-  setupSSH,
   cloneRepository,
   buildAndRunDocker,
   checkForUpdates,

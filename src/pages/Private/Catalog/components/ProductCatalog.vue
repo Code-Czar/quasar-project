@@ -25,6 +25,8 @@
   
   <script lang="ts" setup>
   import { ref, onMounted } from 'vue';
+  import { CENTRALIZATION_API_URLS } from 'src/shared-consts';
+
   import axios from 'axios';
   import Product from './Product.vue';
   
@@ -41,7 +43,7 @@
     error.value = null;
   
     try {
-      const response = await axios.get('http://localhost:8000/products/'); // Replace with your Django backend URL
+      const response = await axios.get(CENTRALIZATION_API_URLS.PRODUCTS_CATALOG); // Replace with your Django backend URL
       products.value = response.data;
     } catch (err) {
       error.value = 'Failed to load products.';

@@ -1,6 +1,7 @@
 import * as loadedConfig from './config.json';
 
 export const REMOTE_URL = loadedConfig.REMOTE_URL;
+export const LICENSE_SERVER_URL = loadedConfig.LICENSE_SERVER_URL;
 export const REMOTE_WSS_URL = loadedConfig.REMOTE_WSS;
 export const INFLUXDB_URL = loadedConfig.INFLUXDB_URL;
 export const INFLUXDB_ORG = loadedConfig.INFLUXDB_ORG;
