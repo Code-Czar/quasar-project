@@ -344,6 +344,7 @@ ipcMain.handle(
       updateProcess.send({ productId });
 
       updateProcess.on('message', (result) => {
+        // @ts-expect-error electronAPI
         resolve(result); // Resolve with the update check result
       });
 

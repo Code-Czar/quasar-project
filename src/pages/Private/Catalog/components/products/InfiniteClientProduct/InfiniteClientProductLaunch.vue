@@ -20,6 +20,7 @@ const message = ref('Initializing...');
 // Function to install dependencies with productId
 const installDependencies = async () => {
   try {
+    // @ts-expect-error electronAPI
     const result = await window.electronAPI.installDocker(props.productId);
     console.log(result); // Log or display success message
   } catch (error) {
@@ -30,6 +31,7 @@ const installDependencies = async () => {
 // Function to check Docker containers with productId
 const checkContainers = async () => {
   try {
+    // @ts-expect-error electronAPI
     const result = await window.electronAPI.checkContainers(props.productId);
     console.log(result); // Log or display success message
     message.value = result;
@@ -42,6 +44,7 @@ const checkContainers = async () => {
 // Function to check for updates
 const checkForUpdates = async () => {
   try {
+    // @ts-expect-error electronAPI
     const result = await window.electronAPI.checkForUpdates(props.productId);
     if (result.shouldUpdate) {
       message.value = `Update available: ${result.latestVersion}. Please update to continue.`;
