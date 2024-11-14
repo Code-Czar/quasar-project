@@ -9,12 +9,9 @@ import {
 } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import os from 'os';
-import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
 import log from 'electron-log';
-import AdmZip from 'adm-zip';
-import yaml from 'js-yaml';
 import WebSocket from 'ws'; // Import the WebSocket library
 
 import { exec, spawn } from 'child_process';
@@ -31,7 +28,7 @@ const logFile = fs.createWriteStream(`${resourcesPath}/app.log`, {
   flags: 'a',
 });
 
-const wss = new WebSocket.Server({ port: 8766, host: '0.0.0.0' });
+const wss = new WebSocket.Server({ port: 8777, host: '0.0.0.0' });
 
 const containersDefault = ['crm-1', 'frontend-1', 'redis-serv-1', 'backend-1'];
 
