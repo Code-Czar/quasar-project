@@ -37,6 +37,8 @@ jobs:
           npx quasar --version
 
       - name: Build Quasar Electron app
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_PUSH }}
         run: |
           npx quasar build -m electron # Use npx to ensure the locally installed CLI is used
 
