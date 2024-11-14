@@ -238,9 +238,10 @@ module.exports = configure(function (/* ctx */) {
           target: [{ target: 'nsis' }, { target: 'zip' }],
         },
         mac: {
-          mergeASARs: false,
-
           category: 'public.app-category.utility',
+          mergeASARs: false,
+          identity: null,
+
           target: [
             {
               target: 'dmg',
