@@ -17,6 +17,10 @@ import WebSocket from 'ws'; // Import the WebSocket library
 
 import { exec, spawn } from 'child_process';
 import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
+import fixPath from 'fix-path';
+// const fixPath = await import('fix-path').then((module) => module.default);
+
+fixPath();
 
 // import { installDependencies } from './installScripts/install';
 
@@ -46,9 +50,9 @@ let screenHeight;
 // };
 const logger = function (message) {
   logFile.write(`${new Date().toISOString()} - ${message}\n`);
-  if (!isProduction) {
-    console.log(message);
-  }
+  // if (!isProduction) {
+  console.log(message);
+  // }
 };
 
 async function delay(ms: number) {
@@ -121,11 +125,13 @@ function createWindow() {
   }
   if (!wss) {
     try {
-      wss = new WebSocket.Server({ port: 8777, host: '0.0.0.0' });
+      wss = new WebSocket.Server({ port: 8766, host: '0.0.0.0' });
+      console.log('🚀 ~ createWindow ~ wss:', wss);
     } catch (error) {
       logger('ERROR ', error);
     }
   }
+  console.log('🚀 ~ resourcesPath:', resourcesPath);
 }
 
 const openWindow = (windowTitle: string, url: string | null = null) => {
@@ -333,10 +339,25 @@ ipcMain.handle(
   async (event, containerNames = containersDefault) => {
     return new Promise((resolve, reject) => {
       // Command to list all containers (running and stopped)
-      exec('docker ps -a --format "{{.Names}}"', (error, stdout, stderr) => {
-        if (error) {
-          console.error(`Error executing command: ${stderr}`);
-          return reject(`Error checking Docker containers: ${error.message}`);
+      console.log('🚀 ~ returnnewPromise ~ process.env:', process.env);
+      const dockerPs = spawn('docker', ['ps', '-a', '--format', '{{.Names}}'], {
+        env: process.env, // Use system environment variables (including PATH)
+      });
+
+      let stdout = '';
+      dockerPs.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      dockerPs.stderr.on('data', (data) => {
+        console.error(`Error executing command: ${data}`);
+      });
+
+      dockerPs.on('close', (code) => {
+        if (code !== 0) {
+          return reject(
+            `Error checking Docker containers: docker ps exited with code ${code}`,
+          );
         }
 
         const allContainers = stdout.split('\n').filter(Boolean);
@@ -351,61 +372,66 @@ ipcMain.handle(
           });
         });
 
-        // logger(
-        //   '🚀 ~ allContainers.forEach ~ foundContainers:',
-        //   foundContainers
-        // );
         if (foundContainers.length >= containerNames.length) {
-          logger('All specified containers exist. Starting each container...');
+          console.log(
+            'All specified containers exist. Starting each container...',
+          );
 
-          // Variable to track if all containers started successfully
           let allLaunchedSuccessfully = true;
+          let processedContainers = 0; // Track processed containers
+          console.log(
+            '🚀 ~ foundContainers.forEach ~ process.env:',
+            process.env,
+          );
 
           // Start each container found
           foundContainers.forEach((container) => {
-            exec(
-              `docker start ${container}`,
-              (startError, startStdout, startStderr) => {
-                if (startError) {
-                  console.error(
-                    `Error starting container ${container}: ${startStderr}`,
-                  );
-                  allLaunchedSuccessfully = false; // Set to false if any container fails to start
-                } else {
-                  logger(
-                    `Container ${container} started successfully:`,
-                    startStdout,
-                  );
-                }
+            const dockerStart = spawn('docker', ['start', container], {
+              env: process.env, // Use system environment variables
+            });
 
-                // Check if all containers have been processed
-                if (
-                  foundContainers.indexOf(container) ===
-                  foundContainers.length - 1
-                ) {
-                  if (allLaunchedSuccessfully) {
-                    setTimeout(() => {
-                      mainWindow!.loadURL(appUrl);
-                      initWebSocket();
+            dockerStart.stdout.on('data', (data) => {
+              console.log(
+                `Container ${container} started successfully: ${data}`,
+              );
+            });
 
-                      resolve({
-                        result: true,
-                        details:
-                          'All specified containers have been started successfully.',
-                      });
-                    }, 2000);
-                  } else {
-                    reject({
-                      result: false,
-                      details: 'Some containers failed to start.',
+            dockerStart.stderr.on('data', (data) => {
+              console.error(`Error starting container ${container}: ${data}`);
+              allLaunchedSuccessfully = false;
+            });
+
+            dockerStart.on('close', (code) => {
+              processedContainers += 1; // Increment processed container count
+
+              if (code !== 0) {
+                allLaunchedSuccessfully = false;
+              }
+
+              // Check if all containers have been processed
+              if (processedContainers === foundContainers.length) {
+                if (allLaunchedSuccessfully) {
+                  setTimeout(() => {
+                    mainWindow!.loadURL(appUrl);
+                    initWebSocket();
+
+                    resolve({
+                      result: true,
+                      details:
+                        'All specified containers have been started successfully.',
                     });
-                  }
+                  }, 2000);
+                } else {
+                  reject({
+                    result: false,
+                    details: 'Some containers failed to start.',
+                  });
                 }
-              },
-            );
+              }
+            });
           });
         } else {
-          logger('Not all specified containers are found.');
+          console.log('Not all specified containers are found.');
           resolve('Not all specified containers are found.');
         }
       });
