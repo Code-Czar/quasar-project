@@ -17,11 +17,13 @@ import AdmZip from 'adm-zip';
 import yaml from 'js-yaml';
 import WebSocket from 'ws'; // Import the WebSocket library
 
-import { exec, fork } from 'child_process';
+import { exec, spawn } from 'child_process';
 
 // import { installDependencies } from './installScripts/install';
 
 const platform = process.platform || os.platform();
+const isProduction = process.env.NODE_ENV === 'production';
+
 const logFile = fs.createWriteStream('app.log', { flags: 'a' });
 
 const REPO_OWNER = 'Code-Czar';
@@ -31,7 +33,7 @@ const LATEST_YML_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/l
 const appUrl = 'http://localhost:9000';
 
 const CURRENT_VERSION = app.getVersion();
-const resourcesPath = process.resourcesPath;
+const resourcesPath = path.join(app.getPath('userData'), 'app.log');
 const asarPath = path.join(resourcesPath, 'app.asar');
 const zipPath = path.join(resourcesPath, 'app-asar.zip');
 const latestYmlPath = path.join(resourcesPath, 'latest.yml');
@@ -111,7 +113,7 @@ async function setPermissions(filePath: string, permissions: number) {
   try {
     await fs.promises.chmod(filePath, permissions);
     console.log(
-      `Set permissions for "${filePath}" to ${permissions.toString(8)}`
+      `Set permissions for "${filePath}" to ${permissions.toString(8)}`,
     );
   } catch (error) {
     log.error(`Error setting permissions for "${filePath}":`, error);
@@ -141,6 +143,46 @@ async function getLocalVersion(): Promise<string | undefined> {
   return CURRENT_VERSION;
 }
 
+// Helper function to handle worker spawning
+function spawnWorker(scriptPath: string, args: any = {}): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const child = isProduction
+      ? // Production: run the precompiled JS file directly
+        spawn(process.execPath, [scriptPath])
+      : // Development: run TypeScript file with ts-node
+        spawn(process.execPath, [
+          '-r',
+          'ts-node/register/transpile-only',
+          scriptPath,
+        ]);
+
+    child.stdin.write(JSON.stringify(args));
+    child.stdin.end();
+
+    let result = '';
+
+    child.stdout.on('data', (data) => {
+      result += data.toString();
+    });
+
+    child.stderr.on('data', (data) => {
+      console.error(`Worker error: ${data}`);
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        try {
+          resolve(JSON.parse(result));
+        } catch (err) {
+          reject(new Error(`Failed to parse worker result: ${err}`));
+        }
+      } else {
+        reject(new Error(`Worker exited with code ${code}`));
+      }
+    });
+  });
+}
+
 async function checkForAppUpdate() {
   try {
     if (!app.isPackaged) {
@@ -152,18 +194,18 @@ async function checkForAppUpdate() {
     await delay(5000);
 
     const response = await axios.get(
-      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`
+      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`,
     );
     const latestVersion = response.data.tag_name.replace(/^v/, '');
 
     console.log(
-      `Local version: ${localVersion}, Latest version: ${latestVersion}`
+      `Local version: ${localVersion}, Latest version: ${latestVersion}`,
     );
     await delay(5000);
 
     if (latestVersion === localVersion) {
       console.log(
-        'Local version matches the latest version. No update needed.'
+        'Local version matches the latest version. No update needed.',
       );
       return;
     }
@@ -230,12 +272,12 @@ async function downloadAndInstallAsar(latestVersion: string) {
 
     const extractedFiles = fs.readdirSync(resourcesPath);
     console.log(
-      `Extracted files in resources folder: ${extractedFiles.join(', ')}`
+      `Extracted files in resources folder: ${extractedFiles.join(', ')}`,
     );
 
     if (!fs.existsSync(asarPath)) {
       throw new Error(
-        `Extracted file "app.asar" not found in "${resourcesPath}".`
+        `Extracted file "app.asar" not found in "${resourcesPath}".`,
       );
     }
     console.log(`Found extracted app.asar at "${asarPath}"`);
@@ -316,13 +358,13 @@ function createWindow() {
         if (accessToken) {
           // Redirect to index.html#/auth with tokens as query parameters
           mainWindow!.loadURL(
-            `${mainURL}#/auth?access_token=${accessToken}&refresh_token=${refreshToken}`
+            `${mainURL}#/auth?access_token=${accessToken}&refresh_token=${refreshToken}`,
           );
         }
 
         // Cancel the original request to prevent navigation
         callback({ cancel: true });
-      }
+      },
     );
   }
 }
@@ -341,75 +383,57 @@ app.on('activate', () => {
   }
 });
 
+// IPC handler for checking updates
 ipcMain.handle(
   'check-for-updates',
   async (
     event,
-    productId: string
+    productId: string,
   ): Promise<{
     shouldUpdate: boolean;
     latestVersion?: string;
     error?: string;
   }> => {
-    return new Promise((resolve, reject) => {
-      const updateProcess = fork(
-        'src-electron/installScripts/checkUpdatesWorker.ts',
-        [],
-        {
-          execArgv: ['-r', 'ts-node/register/transpile-only'], // Use ts-node with transpile-only
-        }
-      );
+    const scriptPath = isProduction
+      ? path.join(
+          process.resourcesPath,
+          'dist-electron/installScripts/checkUpdatesWorker.js',
+        )
+      : path.join(
+          __dirname,
+          'src-electron/installScripts/checkUpdatesWorker.ts',
+        );
 
-      updateProcess.send({ productId });
-
-      updateProcess.on('message', (result) => {
-        // @ts-expect-error electronAPI
-        resolve(result); // Resolve with the update check result
-      });
-
-      updateProcess.on('error', (error) => {
-        reject(error);
-      });
-
-      updateProcess.on('exit', (code) => {
-        if (code !== 0) {
-          reject(new Error(`Update check process exited with code ${code}`));
-        }
-      });
-    });
-  }
+    try {
+      const result = await spawnWorker(scriptPath, { productId });
+      return result;
+    } catch (error) {
+      console.error('Error in check-for-updates worker:', error);
+      throw error;
+    }
+  },
 );
 
-// Define the handler for 'install-dependencies'
+// IPC handler for installing dependencies
 ipcMain.handle(
   'install-dependencies',
   async (event, productId: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const installerProcess = fork(
-        'src-electron/installScripts/installWorker.ts',
-        [],
-        {
-          execArgv: ['-r', 'ts-node/register/transpile-only'], // Use ts-node with transpile-only to ignore TypeScript errors
-        }
-      );
+    const scriptPath = isProduction
+      ? path.join(
+          process.resourcesPath,
+          'dist-electron/installScripts/installWorker.js',
+        )
+      : path.join(__dirname, 'src-electron/installScripts/installWorker.ts');
 
-      installerProcess.send({ productId });
-
-      installerProcess.on('message', (result: string) => {
-        resolve(result);
-      });
-      installerProcess.on('error', (error) => {
-        reject(error);
-      });
-      installerProcess.on('exit', (code) => {
-        if (code !== 0) {
-          reject(new Error(`Installer process exited with code ${code}`));
-        }
-      });
-    });
-  }
+    try {
+      const result = await spawnWorker(scriptPath, { productId });
+      return result;
+    } catch (error) {
+      console.error('Error in install-dependencies worker:', error);
+      throw error;
+    }
+  },
 );
-
 ipcMain.on('navigate-to-url', (event, url) => {
   mainWindow?.loadURL(url);
 });
@@ -444,7 +468,7 @@ ipcMain.handle(
         // );
         if (foundContainers.length >= containerNames.length) {
           console.log(
-            'All specified containers exist. Starting each container...'
+            'All specified containers exist. Starting each container...',
           );
 
           // Variable to track if all containers started successfully
@@ -457,13 +481,13 @@ ipcMain.handle(
               (startError, startStdout, startStderr) => {
                 if (startError) {
                   console.error(
-                    `Error starting container ${container}: ${startStderr}`
+                    `Error starting container ${container}: ${startStderr}`,
                   );
                   allLaunchedSuccessfully = false; // Set to false if any container fails to start
                 } else {
                   console.log(
                     `Container ${container} started successfully:`,
-                    startStdout
+                    startStdout,
                   );
                 }
 
@@ -488,7 +512,7 @@ ipcMain.handle(
                     });
                   }
                 }
-              }
+              },
             );
           });
         } else {
@@ -497,5 +521,5 @@ ipcMain.handle(
         }
       });
     });
-  }
+  },
 );

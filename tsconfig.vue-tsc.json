@@ -5,4 +5,8 @@
     "noEmitOnError": false,
     "strict": false, // Temporarily turn off strict mode
   },
+  "include": [
+    "src-electron/installScripts/**/*.ts"  // Use "include" instead of "files" for glob patterns
+  ],
+
 }
