@@ -235,7 +235,7 @@ module.exports = configure(function (/* ctx */) {
         },
         // Additional packaging options, such as platform-specific builds
         win: {
-          target: 'nsis',
+          target: [{ target: 'nsis' }, { target: 'zip' }],
         },
         mac: {
           mergeASARs: false,
@@ -261,7 +261,7 @@ module.exports = configure(function (/* ctx */) {
           ],
         },
         linux: {
-          target: 'AppImage',
+          target: [{ target: 'AppImage' }, { target: 'zip' }],
         },
         publish: [
           {

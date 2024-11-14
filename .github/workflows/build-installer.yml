@@ -11,7 +11,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            arch: x64
+          - os: macos-latest
+            arch: x64
+          - os: macos-latest
+            arch: arm64
+          - os: windows-latest
+            arch: x64
 
     outputs:
       tag: ${{ steps.set_tag_non_windows.outputs.new_tag || steps.set_tag_windows.outputs.new_tag }}
@@ -20,7 +28,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch all history and tags
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -30,7 +38,7 @@ jobs:
       - name: Install dependencies
         run: |
           yarn install
-          yarn add -D @quasar/cli # Install Quasar CLI locally
+          yarn add -D @quasar/cli
 
       - name: Confirm Quasar CLI Installation
         run: |
@@ -53,10 +61,6 @@ jobs:
           $VERSION = (node -p "require('./package.json').version")
           echo "::set-output name=new_tag::v$VERSION"
           echo "NEW_TAG=v$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      # Use the New Tag
-      - name: Use the New Tag
-        run: echo "New Tag=$NEW_TAG"
 
       - name: Create and Push Tag (Non-Windows)
         if: runner.os != 'Windows'
@@ -94,35 +98,37 @@ jobs:
         run: |
           npx quasar build -m electron
 
-      - name: Remove Unpacked folder (macOS only)
-        if: matrix.os == 'macos-latest'
-        run: |
-          rm -rf dist/electron/Unpacked
+      # Rename output files for each platform without extra zipping
+      # - name: Rename Artifacts (Linux)
+      #   if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
+      #   run: |
+      #     mv dist/electron/Packaged/*.AppImage dist/electron/Packaged/
+      #     mv dist/electron/Packaged/*.zip dist/electron/Packaged/
 
-      # Compress the artifacts for each platform
-      - name: Compress Artifacts (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          mkdir -p dist/compressed
-          zip -r dist/compressed/electron-installer-ubuntu.zip dist/electron/Packaged
+      # - name: Rename Artifacts (macOS x64)
+      #   if: matrix.os == 'macos-latest' && matrix.arch == 'x64'
+      #   run: |
+      #     mv dist/electron/Packaged/*.dmg dist/electron/Packaged/
+      #     mv dist/electron/Packaged/*.zip dist/electron/Packaged/
 
-      - name: Compress Artifacts (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          mkdir -p dist/compressed
-          zip -r dist/compressed/electron-installer-macos.zip dist/electron/Packaged
+      # - name: Rename Artifacts (macOS arm64)
+      #   if: matrix.os == 'macos-latest' && matrix.arch == 'arm64'
+      #   run: |
+      #     mv dist/electron/Packaged/*.dmg dist/electron/Packaged/
+      #     mv dist/electron/Packaged/*.zip dist/electron/Packaged/
 
-      - name: Compress Artifacts (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          mkdir -p dist\compressed
-          Compress-Archive -Path dist\electron\Packaged -DestinationPath dist\compressed\electron-installer-windows.zip
+      # - name: Rename Artifacts (Windows)
+      #   if: matrix.os == 'windows-latest' && matrix.arch == 'x64'
+      #   run: |
+      #     mv dist\electron\Packaged\*.exe dist\electron\Packaged\
+      #     mv dist\electron\Packaged\*.zip dist\electron\Packaged\
 
-      - name: Upload Compressed Artifacts
+      # Upload build artifacts directly without further compression
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: electron-installer-${{ matrix.os }}
-          path: dist/compressed
+          name: electron-installer-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/electron/Packaged
 
   release:
     needs: [build_and_tag]
@@ -134,22 +140,28 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download Artifacts (Ubuntu)
+      - name: Download Artifacts (Linux)
         uses: actions/download-artifact@v4
         with:
-          name: electron-installer-ubuntu-latest
-          path: ./artifacts/ubuntu
+          name: electron-installer-ubuntu-latest-x64
+          path: ./artifacts/linux
 
-      - name: Download Artifacts (macOS)
+      - name: Download Artifacts (macOS x64)
         uses: actions/download-artifact@v4
         with:
-          name: electron-installer-macos-latest
-          path: ./artifacts/macos
+          name: electron-installer-macos-latest-x64
+          path: ./artifacts/macos/x64
+
+      - name: Download Artifacts (macOS arm64)
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-installer-macos-latest-arm64
+          path: ./artifacts/macos/arm64
 
       - name: Download Artifacts (Windows)
         uses: actions/download-artifact@v4
         with:
-          name: electron-installer-windows-latest
+          name: electron-installer-windows-latest-x64
           path: ./artifacts/windows
 
       - name: Create GitHub Release for Installers
@@ -158,8 +170,13 @@ jobs:
           tag_name: ${{ needs.build_and_tag.outputs.tag }}
           name: 'Release ${{ needs.build_and_tag.outputs.tag }}'
           files: |
-            ./artifacts/ubuntu/**
-            ./artifacts/macos/**
-            ./artifacts/windows/**
+            ./artifacts/linux/electron-installer-linux.AppImage
+            ./artifacts/linux/electron-installer-linux.zip
+            ./artifacts/macos/x64/electron-installer-macos-x64.dmg
+            ./artifacts/macos/x64/electron-installer-macos.zip
+            ./artifacts/macos/arm64/electron-installer-macos-arm64.dmg
+            ./artifacts/macos/arm64/electron-installer-macos.zip
+            ./artifacts/windows/electron-installer-windows.exe
+            ./artifacts/windows/electron-installer-windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
