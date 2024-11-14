@@ -7,22 +7,19 @@ on:
       - 'bt/installer'
 
 jobs:
-  build_and_tag:
+  build_and_release:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
             arch: x64
-          - os: macos-latest
-            arch: x64
+          # - os: macos-latest
+          #   arch: x64
           - os: macos-latest
             arch: arm64
           - os: windows-latest
             arch: x64
-
-    outputs:
-      tag: ${{ steps.set_tag_non_windows.outputs.new_tag || steps.set_tag_windows.outputs.new_tag }}
 
     steps:
       - name: Checkout repository
@@ -44,26 +41,16 @@ jobs:
         run: |
           npx quasar --version
 
-      - name: Set Tag Version (Non-Windows)
-        if: runner.os != 'Windows'
+      - name: Set Tag Version
+        id: set_tag
         shell: bash
-        id: set_tag_non_windows
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "::set-output name=new_tag::v$VERSION"
           echo "NEW_TAG=v$VERSION" >> $GITHUB_ENV
 
-      - name: Set Tag Version (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        id: set_tag_windows
-        run: |
-          $VERSION = (node -p "require('./package.json').version")
-          echo "::set-output name=new_tag::v$VERSION"
-          echo "NEW_TAG=v$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: Create and Push Tag (Non-Windows)
-        if: runner.os != 'Windows'
+      - name: Create and Push Tag
+        if: ${{ github.ref == 'refs/heads/main' }} # Only tag on the main branch
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GH_PAT_PUSH }}
@@ -76,94 +63,31 @@ jobs:
             git push origin $TAG
           fi
 
-      - name: Create and Push Tag (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT_PUSH }}
-        run: |
-          $TAG = "$env:NEW_TAG"
-          try {
-            git rev-parse "$TAG" | Out-Null
-            Write-Output "Tag $TAG already exists. Skipping tag creation."
-          }
-          catch {
-            git tag -a $TAG -m "Release $TAG"
-            git push origin $TAG
-          }
-
       - name: Build Quasar Electron app
         env:
           GH_TOKEN: ${{ secrets.GH_PAT_PUSH }}
         run: |
           npx quasar build -m electron
 
-      # Upload build artifacts directly without further compression
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: electron-installer-${{ matrix.os }}-${{ matrix.arch }}
-          path: dist/electron/Packaged
+      - name: List Generated Files
+        run: |
+          echo "Files generated in dist/electron/Packaged:"
+          ls -R dist/electron/Packaged
 
-  release:
-    needs: [build_and_tag]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download Artifacts (Linux)
-        uses: actions/download-artifact@v4
-        with:
-          name: electron-installer-ubuntu-latest-x64.AppImage
-          path: ./artifacts/linux/dist/electron/Packaged/electron-installer-linux.AppImage
-
-      - name: Download Artifacts (Linux - Zip)
-        uses: actions/download-artifact@v4
-        with:
-          name: electron-installer-ubuntu-latest-x64.zip
-          path: ./artifacts/linux/dist/electron/Packaged/electron-installer-linux.zip
-
-      - name: Download Artifacts (macOS x64)
-        uses: actions/download-artifact@v4
-        with:
-          name: electron-installer-macos-latest-x64.dmg
-          path: ./artifacts/macos/x64/dist/electron/Packaged/electron-installer-macos-x64.dmg
-
-      - name: Download Artifacts (macOS arm64)
-        uses: actions/download-artifact@v4
-        with:
-          name: electron-installer-macos-latest-arm64.dmg
-          path: ./artifacts/macos/arm64/dist/electron/Packaged/electron-installer-macos-arm64.dmg
-
-      - name: Download Artifacts (Windows - Installer)
-        uses: actions/download-artifact@v4
-        with:
-          name: electron-installer-windows-latest-x64
-          path: ./artifacts/windows/dist/electron/Packaged/electron-installer-windows.exe
-
-      - name: Download Artifacts (Windows - Zip)
-        uses: actions/download-artifact@v4
-        with:
-          name: electron-installer-windows-latest-zip
-          path: ./artifacts/windows/dist/electron/Packaged/electron-installer-windows.zip
-
-      - name: Create GitHub Release for Installers
+      - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ needs.build_and_tag.outputs.tag }}
-          name: 'Release ${{ needs.build_and_tag.outputs.tag }}'
+          tag_name: ${{ steps.set_tag.outputs.new_tag }}
+          name: 'Release ${{ steps.set_tag.outputs.new_tag }}'
           files: |
-            ./artifacts/linux/electron-installer-linux.AppImage
-            ./artifacts/linux/electron-installer-linux.zip
-            ./artifacts/macos/x64/electron-installer-macos-x64.dmg
-            ./artifacts/macos/x64/electron-installer-macos.zip
-            ./artifacts/macos/arm64/electron-installer-macos-arm64.dmg
-            ./artifacts/macos/arm64/electron-installer-macos.zip
-            ./artifacts/windows/electron-installer-windows.exe
-            ./artifacts/windows/electron-installer-windows.zip
+            dist/electron/Packaged/*.AppImage
+            dist/electron/Packaged/*.zip
+            dist/electron/Packaged/*.dmg
+            dist/electron/Packaged/*.exe
+            dist/electron/Packaged/*.yml
+            dist/electron/Packaged/*.blockmap
+            dist/electron/Packaged/*.app
+            dist/electrong/Packaged/mac/*.app
+            dist/electrong/Packaged/mac-arm64/*.app
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}

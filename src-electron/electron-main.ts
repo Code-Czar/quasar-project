@@ -31,11 +31,13 @@ const LATEST_YML_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/l
 const appUrl = 'http://localhost:9000';
 
 const CURRENT_VERSION = app.getVersion();
-const resourcesPath = path.join(app.getPath('userData'), 'app.log');
+const resourcesPath = app.getPath('userData');
 const asarPath = path.join(resourcesPath, 'app.asar');
 const zipPath = path.join(resourcesPath, 'app-asar.zip');
 const latestYmlPath = path.join(resourcesPath, 'latest.yml');
-const logFile = fs.createWriteStream('app.log', { flags: 'a' });
+const logFile = fs.createWriteStream(`${resourcesPath}/app.log`, {
+  flags: 'a',
+});
 
 const wss = new WebSocket.Server({ port: 8766, host: '0.0.0.0' });
 
@@ -56,7 +58,7 @@ async function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-autoUpdater.autoDownload = false;
+autoUpdater.autoDownload = true;
 autoUpdater.logger = log;
 //@ts-expect-error transport
 autoUpdater.logger.transports.file.level = 'info';
