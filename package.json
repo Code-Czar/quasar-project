@@ -12,7 +12,10 @@
     "test": "echo \"No test specified\" && exit 0",
     "dev": "quasar dev",
     "prebuild": "tsc -p tsconfig.json",
-    "build": "quasar build"
+    "build": "quasar build",
+    "release:patch": "yarn version --patch && git push && git push --tags",
+    "release:minor": "yarn version --minor && git push && git push --tags",
+    "release:major": "yarn version --major && git push && git push --tags"
   },
   "dependencies": {
     "@electron/remote": "^2.1.2",

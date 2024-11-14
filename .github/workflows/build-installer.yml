@@ -70,32 +70,6 @@ jobs:
           name: electron-installer-${{ matrix.os }}
           path: dist/compressed
 
-      - name: Generate and Push New Tag
-        if: matrix.os == 'ubuntu-latest' # Only execute tag creation once
-        id: set_tag
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
-        run: |
-          git fetch --tags
-          latest_tag=$(git tag --list 'v*' | sort -V | tail -n1)
-
-          if [ -z "$latest_tag" ]; then
-            new_tag="v0.1.0"
-          else
-            IFS='.' read -r -a parts <<< "${latest_tag#v}"
-            parts[-1]=$((parts[-1]+1))
-            new_tag="v${parts[0]}.${parts[1]}.${parts[2]}"
-          fi
-
-          echo "New tag: $new_tag"
-          echo "::set-output name=new_tag::$new_tag"
-
-          # Push the new tag
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git tag $new_tag
-          git push origin $new_tag
-
   release:
     needs: [build_and_tag]
     runs-on: ubuntu-latest
