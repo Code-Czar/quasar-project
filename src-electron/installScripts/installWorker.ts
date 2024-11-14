@@ -1,7 +1,7 @@
 const { installDependencies: installDependencies_ } = require('./install');
 const { parentPort, workerData } = require('worker_threads');
 
-const install = async (productId) => {
+const install = async (productId: string) => {
   try {
     console.log('🚀 ~ process.on ~ installer:', installDependencies_);
     const result = await installDependencies_(productId, resourcesPath);

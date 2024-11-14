@@ -65,7 +65,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT_PUSH }}
         run: |
-          npx quasar build -m electron
+          yarn build
 
       - name: List Generated Files
         run: |

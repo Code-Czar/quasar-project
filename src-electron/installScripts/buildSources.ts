@@ -21,7 +21,7 @@ async function getGithubToken(productId: string) {
   }
 }
 
-async function checkForUpdates(productId: string, resourcesPath) {
+async function checkForUpdates(productId: string, resourcesPath: string) {
   const repoOwner = 'Code-Czar';
   const repoName = 'clients-auto';
 
@@ -89,6 +89,7 @@ async function checkForUpdates(productId: string, resourcesPath) {
     //   await fs_.mkdir(destinationPath, { recursive: true });
     // }
     if (!fs_.existsSync(destinationPath)) {
+      // @ts-ignore
       fs_.mkdirSync(destinationPath, { recursive: true }, (err) => {
         if (err) {
           console.error('Failed to create directory:', err);
@@ -133,7 +134,7 @@ async function checkForUpdates(productId: string, resourcesPath) {
   }
 }
 
-async function cloneRepository(productId: string, resourcesPath) {
+async function cloneRepository(productId: string, resourcesPath: string) {
   const destinationPath = resourcesPath; //path_.resolve(__dirname, '.quasar', 'resources');
   const tempFolderPath = path_.join(destinationPath, 'tempFolder');
 
@@ -191,7 +192,7 @@ async function cloneRepository(productId: string, resourcesPath) {
   }
 }
 
-async function buildAndRunDocker(resourcesPath) {
+async function buildAndRunDocker(resourcesPath: string) {
   const destinationPath = resourcesPath; //path_.resolve(__dirname, '.quasar', 'resources');
   const dockerComposeFile = path_.normalize(
     path_.join(destinationPath, 'docker-compose.yml'),

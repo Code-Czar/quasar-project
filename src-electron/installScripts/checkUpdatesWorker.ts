@@ -7,7 +7,7 @@ const {
 const { checkForUpdates: checkForUpdates_ } = require('./buildSources'); // Adjust the path to your module
 // const { ipcRenderer } = require('electron');
 
-async function runUpdateCheck(productId: string, resourcesPath) {
+async function runUpdateCheck(productId: string, resourcesPath: string) {
   // console.log('🚀 ~ runUpdateCheck ~ productId:', productId);
   // parentPort.postMessage(`${resourcesPath}`);
   // parentPort.postMessage(`Worker initialized ${productId}`);
