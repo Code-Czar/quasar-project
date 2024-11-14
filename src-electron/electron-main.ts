@@ -28,7 +28,12 @@ const logFile = fs.createWriteStream(`${resourcesPath}/app.log`, {
   flags: 'a',
 });
 
-const wss = new WebSocket.Server({ port: 8777, host: '0.0.0.0' });
+let wss = null;
+try {
+  wss = new WebSocket.Server({ port: 8777, host: '0.0.0.0' });
+} catch (error) {
+  console.log('ERROR ', error);
+}
 
 const containersDefault = ['crm-1', 'frontend-1', 'redis-serv-1', 'backend-1'];
 
@@ -70,7 +75,8 @@ const openWindow = (windowTitle: string, url: string | null = null) => {
 };
 
 const initWebSocket = () => {
-  wss.on('connection', (ws) => {
+  // @ts-ignore
+  wss?.on('connection', (ws) => {
     console.log('Client connected');
 
     ws.on('message', (message) => {
