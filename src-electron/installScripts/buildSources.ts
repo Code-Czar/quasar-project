@@ -1,4 +1,4 @@
-const simpleGit = require('simple-git');
+// const simpleGit = require('simple-git');
 const path_ = require('path');
 const fs_ = require('fs');
 const os_ = require('os');
@@ -135,14 +135,8 @@ async function checkForUpdates(productId: string, resourcesPath: string) {
 }
 
 async function cloneRepository(productId: string, resourcesPath: string) {
-  const destinationPath = resourcesPath; //path_.resolve(__dirname, '.quasar', 'resources');
+  const destinationPath = resourcesPath;
   const tempFolderPath = path_.join(destinationPath, 'tempFolder');
-
-  // Abort if tempFolder already exists (to prevent infinite loop)
-  // if (fs_.existsSync(tempFolderPath)) {
-  //   console.warn('Update process aborted: tempFolder already exists.');
-  //   return;
-  // }
 
   // Get GitHub Token
   const githubToken = await getGithubToken(productId);
@@ -156,11 +150,13 @@ async function cloneRepository(productId: string, resourcesPath: string) {
 
   // Construct the HTTPS URL with the GitHub token
   const repoUrl = `https://${githubToken}@github.com/Code-Czar/clients-auto.git`;
-  const git = simpleGit({ baseDir: tempFolderPath });
 
   try {
-    // Clone into the temporary directory
-    await git.clone(repoUrl, tempFolderPath, ['--depth=1']);
+    // Clone into the temporary directory using execSync
+    console.log(`Cloning repository to ${tempFolderPath}...`);
+    execSync(`git clone --depth=1 "${repoUrl}" "${tempFolderPath}"`, {
+      stdio: 'inherit',
+    });
     console.log(`Repository cloned successfully to ${tempFolderPath}`);
 
     // Build Docker containers from within tempFolder
@@ -170,7 +166,7 @@ async function cloneRepository(productId: string, resourcesPath: string) {
       console.log(`🚀 Building Docker containers in ${tempFolderPath}`);
       execSync(`docker-compose -f "${dockerComposeFile}" up --build -d`, {
         stdio: 'inherit',
-        cwd: `${tempFolderPath}`,
+        cwd: tempFolderPath,
       });
       console.log(`✅ Docker containers built and running.`);
     } else {
@@ -185,9 +181,6 @@ async function cloneRepository(productId: string, resourcesPath: string) {
     );
   } finally {
     // Clean up temporary folder
-    // if (fs_.existsSync(tempFolderPath)) {
-    //   // fs_.rmSync(tempFolderPath, { recursive: true, force: true });
-    // }
     console.log(`🧹 Temporary folder cleaned up.`);
   }
 }

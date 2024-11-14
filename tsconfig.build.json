@@ -2,7 +2,7 @@
     "compilerOptions": {
       "module": "commonjs",
       "target": "es2020",
-      "outDir": "./dist-electron/installScripts",
+      "outDir": "./public/installScripts",
       "strict": true,
       "esModuleInterop": true,
       "skipLibCheck": true

@@ -205,10 +205,12 @@ const initWebSocket = () => {
 function spawnWorker(scriptName: string, args: any = {}): Promise<any> {
   console.log('🚀 ~ spawnWorker ~ scriptName:', scriptName);
   return new Promise((resolve, reject) => {
-    const scriptPath = path.resolve(
-      isProduction
-        ? path.join(process.resourcesPath, 'installScripts')
-        : './src-electron/installScripts',
+    const basePath = isProduction
+      ? app.getAppPath()
+      : path.resolve(__dirname, './src-electron');
+    const scriptPath = path.join(
+      basePath,
+      'installScripts',
       `${scriptName}.${isProduction ? 'js' : 'ts'}`,
     );
 
