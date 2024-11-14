@@ -18,6 +18,7 @@ async function installDependencies(
     await buildAndRunDocker_(resourcesPath);
     console.log('Docker containers built successfully.');
 
+    // @ts-ignore
     return {
       success: true,
       message: 'All dependencies installed successfully.',

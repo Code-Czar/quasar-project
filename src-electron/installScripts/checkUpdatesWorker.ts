@@ -1,5 +1,8 @@
 // src-electron/installScripts/checkUpdatesWorker.ts
-const { parentPort, workerData } = require('worker_threads');
+const {
+  parentPort: parentPort_,
+  workerData: workerData_,
+} = require('worker_threads');
 
 const { checkForUpdates: checkForUpdates_ } = require('./buildSources'); // Adjust the path to your module
 // const { ipcRenderer } = require('electron');
@@ -10,14 +13,14 @@ async function runUpdateCheck(productId: string, resourcesPath) {
   // parentPort.postMessage(`Worker initialized ${productId}`);
   try {
     const result = await checkForUpdates_(productId, resourcesPath);
-    parentPort.postMessage(result);
+    parentPort_.postMessage(result);
   } catch (error) {
     console.error('Failed to check for updates:', error);
   }
 }
 
 // Extract `productId` from workerData
-const { productId, resourcesPath } = workerData;
+const { productId: productId_, resourcesPath: resourcesPath_ } = workerData_;
 
 // Call the function with the passed `productId`
-runUpdateCheck(productId, resourcesPath);
+runUpdateCheck(productId_, resourcesPath_);
