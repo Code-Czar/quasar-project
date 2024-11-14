@@ -1,8 +1,8 @@
 {
-  "name": "quasar-project",
-  "version": "0.4.0",
-  "description": "A Quasar Project",
-  "productName": "Quasar App",
+  "name": "infinity-installer",
+  "version": "1.0.28",
+  "description": "InfinityInstaller",
+  "productName": "InfinityInstaller",
   "author": "",
   "private": true,
   "main": "dist/electron/electron-main.js",
@@ -11,7 +11,11 @@
     "format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
     "test": "echo \"No test specified\" && exit 0",
     "dev": "quasar dev",
-    "build": "quasar build"
+    "prebuild": "tsc -p tsconfig.json",
+    "build": "quasar build",
+    "release:patch": "yarn version --patch && git push && git push --tags",
+    "release:minor": "yarn version --minor && git push && git push --tags",
+    "release:major": "yarn version --major && git push && git push --tags"
   },
   "dependencies": {
     "@electron/remote": "^2.1.2",
@@ -40,6 +44,7 @@
     "ts-node": "^10.9.2",
     "unzipper": "^0.12.3",
     "uuid": "^11.0.3",
+    "vite-plugin-static-copy": "^2.1.0",
     "vue": "^3.4.18",
     "vue-i18n": "^10.0.0",
     "vue-router": "^4.0.12",
@@ -60,6 +65,7 @@
     "@typescript-eslint/parser": "^8.14.0",
     "autoprefixer": "^10.4.2",
     "electron": "^33.1.0",
+    "electron-builder": "^24.3.0",
     "eslint": "^9.14.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-vue": "^9.0.0",

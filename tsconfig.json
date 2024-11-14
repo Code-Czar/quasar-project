@@ -3,6 +3,10 @@
   "compilerOptions": {
     "baseUrl": "."
   },
+  "include": [
+    "src-electron/installScripts/**/*.ts"  // Use "include" instead of "files" for glob patterns
+  ],
+  // "files": ["./src-electron/installScripts/*.ts"],
   "exclude": [
     "./dist",
     "./.quasar",

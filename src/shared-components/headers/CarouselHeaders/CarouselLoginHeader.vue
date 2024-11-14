@@ -131,7 +131,7 @@ onUnmounted(() => {
 
 .login-card {
   margin-left: 2rem !important;
-  margin-Right: 2rem !important;
+  margin-right: 2rem !important;
   border-radius: 8px;
   justify-content: center;
   align-items: center;

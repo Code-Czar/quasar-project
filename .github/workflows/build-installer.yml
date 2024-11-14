@@ -3,8 +3,8 @@ name: Build, Tag, and Release Electron Installers
 on:
   push:
     branches:
-      - 'main' # Trigger this workflow only for pushes to bt/installer
-      - 'bt/installer' # Trigger this workflow only for pushes to bt/installer
+      - 'main'
+      - 'bt/installer'
 
 jobs:
   build_and_tag:
@@ -14,7 +14,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     outputs:
-      tag: ${{ steps.set_tag.outputs.new_tag }}
+      tag: ${{ steps.set_tag_non_windows.outputs.new_tag || steps.set_tag_windows.outputs.new_tag }}
 
     steps:
       - name: Checkout repository
@@ -36,9 +36,63 @@ jobs:
         run: |
           npx quasar --version
 
-      - name: Build Quasar Electron app
+      - name: Set Tag Version (Non-Windows)
+        if: runner.os != 'Windows'
+        shell: bash
+        id: set_tag_non_windows
         run: |
-          npx quasar build -m electron # Use npx to ensure the locally installed CLI is used
+          VERSION=$(node -p "require('./package.json').version")
+          echo "::set-output name=new_tag::v$VERSION"
+          echo "NEW_TAG=v$VERSION" >> $GITHUB_ENV
+
+      - name: Set Tag Version (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        id: set_tag_windows
+        run: |
+          $VERSION = (node -p "require('./package.json').version")
+          echo "::set-output name=new_tag::v$VERSION"
+          echo "NEW_TAG=v$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      # Use the New Tag
+      - name: Use the New Tag
+        run: echo "New Tag=$NEW_TAG"
+
+      - name: Create and Push Tag (Non-Windows)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_PUSH }}
+        run: |
+          TAG=$NEW_TAG
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists. Skipping tag creation."
+          else
+            git tag -a $TAG -m "Release $TAG"
+            git push origin $TAG
+          fi
+
+      - name: Create and Push Tag (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_PUSH }}
+        run: |
+          $TAG = "$env:NEW_TAG"
+          try {
+            git rev-parse "$TAG" | Out-Null
+            Write-Output "Tag $TAG already exists. Skipping tag creation."
+          }
+          catch {
+            git tag -a $TAG -m "Release $TAG"
+            git push origin $TAG
+          }
+
+      - name: Build Quasar Electron app
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_PUSH }}
+        run: |
+          npx quasar build -m electron
 
       - name: Remove Unpacked folder (macOS only)
         if: matrix.os == 'macos-latest'
@@ -69,32 +123,6 @@ jobs:
         with:
           name: electron-installer-${{ matrix.os }}
           path: dist/compressed
-
-      - name: Generate and Push New Tag
-        if: matrix.os == 'ubuntu-latest' # Only execute tag creation once
-        id: set_tag
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT_PUSH }}
-        run: |
-          git fetch --tags
-          latest_tag=$(git tag --list 'v*' | sort -V | tail -n1)
-
-          if [ -z "$latest_tag" ]; then
-            new_tag="v0.1.0"
-          else
-            IFS='.' read -r -a parts <<< "${latest_tag#v}"
-            parts[-1]=$((parts[-1]+1))
-            new_tag="v${parts[0]}.${parts[1]}.${parts[2]}"
-          fi
-
-          echo "New tag: $new_tag"
-          echo "::set-output name=new_tag::$new_tag"
-
-          # Push the new tag
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git tag $new_tag
-          git push origin $new_tag
 
   release:
     needs: [build_and_tag]

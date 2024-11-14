@@ -10,6 +10,7 @@
 
 const { configure } = require('quasar/wrappers');
 const path = require('path');
+
 // const { resolve } = require('path');
 
 module.exports = configure(function (/* ctx */) {
@@ -89,6 +90,13 @@ module.exports = configure(function (/* ctx */) {
           },
           // { server: false },
         ],
+      ],
+      extraResources: [
+        {
+          from: './src-electron/installScripts',
+          to: 'extraResources',
+          filter: ['**/*.sh'],
+        },
       ],
     },
 
@@ -184,7 +192,7 @@ module.exports = configure(function (/* ctx */) {
 
       inspectPort: 5858,
 
-      bundler: 'packager', // 'packager' or 'builder'
+      bundler: 'builder', // 'packager' or 'builder'
 
       packager: {
         // https://github.com/electron-userland/electron-packager/blob/master/docs/api.md#options
@@ -199,9 +207,31 @@ module.exports = configure(function (/* ctx */) {
 
       builder: {
         appId: 'com.example.app', // Define your app ID here
-        productName: 'YourAppName', // Optional, name for the packaged app
+        productName: 'InfinityInstaller', // Optional, name for the packaged app
         directories: {
           output: 'dist/electron', // This is where the packaged files should go
+        },
+        extraResources: [
+          {
+            from: path.resolve(__dirname, 'src-electron/installScripts'), // Absolute path
+            to: 'extraResources/installScripts', // Adjusted path within app resources
+            filter: ['**/*'], // Include all files
+          },
+        ],
+        afterPack: async (context) => {
+          const fs = require('fs');
+          const path = require('path');
+          const targetPath = path.join(
+            context.appOutDir,
+            'extraResources',
+            'installScripts',
+          );
+          console.log(`Checking extraResources path: ${targetPath}`);
+          if (fs.existsSync(targetPath)) {
+            console.log('extraResources have been successfully added.');
+          } else {
+            console.log('extraResources folder is missing.');
+          }
         },
         // Additional packaging options, such as platform-specific builds
         win: {
@@ -247,6 +277,13 @@ module.exports = configure(function (/* ctx */) {
             provider: 'github',
             owner: 'Code-Czar',
             repo: 'quasar-project',
+          },
+        ],
+        extraResources: [
+          {
+            from: './src-electron/installScripts',
+            to: 'extraResources',
+            filter: ['**/*'],
           },
         ],
       },
