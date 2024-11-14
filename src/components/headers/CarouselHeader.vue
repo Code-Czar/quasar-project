@@ -48,7 +48,7 @@ watch(
 // Compute `carouselData` based on `currentLocale`
 const translatedCarouselData = computed(() => [
   {
-    videoSrc: 'robot_header.webm',
+    videoSrc: '/robot_header.webm',
     headline: t('heroHeader.slide1.header'),
     text: {
       line1: t('heroHeader.slide1.subtitle.line1'),
@@ -56,7 +56,7 @@ const translatedCarouselData = computed(() => [
     },
   },
   {
-    videoSrc: '/Client_header.webm',
+    videoSrc: '/client_header.webm',
     headline: t('heroHeader.slide2.header'),
     text: {
       line1: t('heroHeader.slide2.subtitle.line1'),
