@@ -24,8 +24,6 @@ import { exec, spawn } from 'child_process';
 const platform = process.platform || os.platform();
 const isProduction = process.env.NODE_ENV === 'production';
 
-const logFile = fs.createWriteStream('app.log', { flags: 'a' });
-
 const REPO_OWNER = 'Code-Czar';
 const REPO_NAME = 'quasar-project';
 const ASAR_DOWNLOAD_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/app-asar.zip`;
@@ -37,6 +35,7 @@ const resourcesPath = path.join(app.getPath('userData'), 'app.log');
 const asarPath = path.join(resourcesPath, 'app.asar');
 const zipPath = path.join(resourcesPath, 'app-asar.zip');
 const latestYmlPath = path.join(resourcesPath, 'latest.yml');
+const logFile = fs.createWriteStream('app.log', { flags: 'a' });
 
 const wss = new WebSocket.Server({ port: 8766, host: '0.0.0.0' });
 
@@ -302,7 +301,8 @@ async function downloadAndInstallAsar(latestVersion: string) {
 
 app.whenReady().then(async () => {
   console.log('App is ready, initializing protocols and auto-update check.');
-  await checkForAppUpdate();
+  // await checkForAppUpdate();
+  autoUpdater.checkForUpdatesAndNotify();
 
   protocol.registerFileProtocol('app', (request, callback) => {
     const urlPath = request.url.replace('app://', '');
