@@ -98,31 +98,6 @@ jobs:
         run: |
           npx quasar build -m electron
 
-      # Rename output files for each platform without extra zipping
-      # - name: Rename Artifacts (Linux)
-      #   if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
-      #   run: |
-      #     mv dist/electron/Packaged/*.AppImage dist/electron/Packaged/
-      #     mv dist/electron/Packaged/*.zip dist/electron/Packaged/
-
-      # - name: Rename Artifacts (macOS x64)
-      #   if: matrix.os == 'macos-latest' && matrix.arch == 'x64'
-      #   run: |
-      #     mv dist/electron/Packaged/*.dmg dist/electron/Packaged/
-      #     mv dist/electron/Packaged/*.zip dist/electron/Packaged/
-
-      # - name: Rename Artifacts (macOS arm64)
-      #   if: matrix.os == 'macos-latest' && matrix.arch == 'arm64'
-      #   run: |
-      #     mv dist/electron/Packaged/*.dmg dist/electron/Packaged/
-      #     mv dist/electron/Packaged/*.zip dist/electron/Packaged/
-
-      # - name: Rename Artifacts (Windows)
-      #   if: matrix.os == 'windows-latest' && matrix.arch == 'x64'
-      #   run: |
-      #     mv dist\electron\Packaged\*.exe dist\electron\Packaged\
-      #     mv dist\electron\Packaged\*.zip dist\electron\Packaged\
-
       # Upload build artifacts directly without further compression
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -143,26 +118,38 @@ jobs:
       - name: Download Artifacts (Linux)
         uses: actions/download-artifact@v4
         with:
-          name: electron-installer-ubuntu-latest-x64
-          path: ./artifacts/linux
+          name: electron-installer-ubuntu-latest-x64.AppImage
+          path: ./artifacts/linux/dist/electron/Packaged/electron-installer-linux.AppImage
+
+      - name: Download Artifacts (Linux - Zip)
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-installer-ubuntu-latest-x64.zip
+          path: ./artifacts/linux/dist/electron/Packaged/electron-installer-linux.zip
 
       - name: Download Artifacts (macOS x64)
         uses: actions/download-artifact@v4
         with:
-          name: electron-installer-macos-latest-x64
-          path: ./artifacts/macos/x64
+          name: electron-installer-macos-latest-x64.dmg
+          path: ./artifacts/macos/x64/dist/electron/Packaged/electron-installer-macos-x64.dmg
 
       - name: Download Artifacts (macOS arm64)
         uses: actions/download-artifact@v4
         with:
-          name: electron-installer-macos-latest-arm64
-          path: ./artifacts/macos/arm64
+          name: electron-installer-macos-latest-arm64.dmg
+          path: ./artifacts/macos/arm64/dist/electron/Packaged/electron-installer-macos-arm64.dmg
 
-      - name: Download Artifacts (Windows)
+      - name: Download Artifacts (Windows - Installer)
         uses: actions/download-artifact@v4
         with:
           name: electron-installer-windows-latest-x64
-          path: ./artifacts/windows
+          path: ./artifacts/windows/dist/electron/Packaged/electron-installer-windows.exe
+
+      - name: Download Artifacts (Windows - Zip)
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-installer-windows-latest-zip
+          path: ./artifacts/windows/dist/electron/Packaged/electron-installer-windows.zip
 
       - name: Create GitHub Release for Installers
         uses: softprops/action-gh-release@v1
