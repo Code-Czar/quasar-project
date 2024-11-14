@@ -67,16 +67,16 @@ jobs:
         run: |
           npx quasar build -m electron
 
-      # Ad-hoc signing step for macOS builds only
-      - name: Sign macOS App with Ad-hoc Signature
-        if: matrix.os == 'macos-latest'
-        run: |
-          codesign --force --deep --sign - "dist/electron/Packaged/InfinityInstaller.app"
-
       - name: List Generated Files
         run: |
           echo "Files generated in dist/electron/Packaged:"
           ls -R dist/electron/Packaged
+
+      # Ad-hoc signing step for macOS builds only
+      - name: Sign macOS App with Ad-hoc Signature
+        if: matrix.os == 'macos-latest'
+        run: |
+          codesign --force --deep --sign - "dist/electron/Packaged/mac/InfinityInstaller.app"
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
