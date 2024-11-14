@@ -213,8 +213,8 @@ module.exports = configure(function (/* ctx */) {
         },
         extraResources: [
           {
-            from: path.resolve(__dirname, 'src-electron/installScripts'), // Absolute path
-            to: 'extraResources/installScripts', // Adjusted path within app resources
+            from: path.resolve(__dirname, 'dist-electron/installScripts'), // Absolute path
+            to: 'installScripts', // Adjusted path within app resources
             filter: ['**/*'], // Include all files
           },
         ],

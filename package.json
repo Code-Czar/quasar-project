@@ -11,8 +11,9 @@
     "format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
     "test": "echo \"No test specified\" && exit 0",
     "dev": "quasar dev",
-    "prebuild": "tsc -p tsconfig.json",
-    "build": "quasar build",
+    "build-installscripts": "tsc -p tsconfig.build.json",
+    "prebuild": "yarn build-installscripts",
+    "build": "yarn build-installscripts && quasar build -m electron",
     "release:patch": "yarn version --patch && git push && git push --tags",
     "release:minor": "yarn version --minor && git push && git push --tags",
     "release:major": "yarn version --major && git push && git push --tags"

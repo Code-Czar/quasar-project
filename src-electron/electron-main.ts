@@ -6,6 +6,7 @@ import {
   dialog,
   session,
   screen,
+  ipcRenderer,
 } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import os from 'os';
@@ -15,6 +16,7 @@ import log from 'electron-log';
 import WebSocket from 'ws'; // Import the WebSocket library
 
 import { exec, spawn } from 'child_process';
+import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 
 // import { installDependencies } from './installScripts/install';
 
@@ -29,11 +31,6 @@ const logFile = fs.createWriteStream(`${resourcesPath}/app.log`, {
 });
 
 let wss = null;
-try {
-  wss = new WebSocket.Server({ port: 8777, host: '0.0.0.0' });
-} catch (error) {
-  console.log('ERROR ', error);
-}
 
 const containersDefault = ['crm-1', 'frontend-1', 'redis-serv-1', 'backend-1'];
 
@@ -44,8 +41,14 @@ let mainWindow: BrowserWindow | undefined;
 let screenWidth;
 let screenHeight;
 
-console.log = function (message) {
+// console.log = function (message) {
+//   logFile.write(`${new Date().toISOString()} - ${message}\n`);
+// };
+const logger = function (message) {
   logFile.write(`${new Date().toISOString()} - ${message}\n`);
+  if (!isProduction) {
+    console.log(message);
+  }
 };
 
 async function delay(ms: number) {
@@ -56,106 +59,7 @@ autoUpdater.autoDownload = true;
 autoUpdater.logger = log;
 //@ts-expect-error transport
 autoUpdater.logger.transports.file.level = 'info';
-console.log('App starting...');
-
-const openWindow = (windowTitle: string, url: string | null = null) => {
-  console.log('Action triggered from Quasar frontend!');
-  const newWindow = new BrowserWindow({
-    width: screenWidth,
-    height: screenHeight,
-    webPreferences: {
-      contextIsolation: true,
-      preload: path.join(__dirname, 'electron-preload.js'),
-      sandbox: true,
-      devTools: true, // Enable DevTools in production
-    },
-  });
-  newWindow.setTitle(windowTitle);
-  newWindow.loadURL(url ?? 'http://tiktok.com');
-};
-
-const initWebSocket = () => {
-  // @ts-ignore
-  wss?.on('connection', (ws) => {
-    console.log('Client connected');
-
-    ws.on('message', (message) => {
-      const messageString =
-        message instanceof Buffer ? message.toString() : message;
-
-      try {
-        // Parse the string as JSON
-        // @ts-expect-error ignore
-        const data = JSON.parse(messageString);
-        console.log('Received:', data);
-
-        // Perform actions based on the received message
-        if (data.message === 'open-window') {
-          openWindow(data.windowTitle, data.url);
-          console.log('Triggering action in Electron app!');
-        }
-      } catch (error) {
-        console.error('Error parsing message:', error);
-      }
-    });
-
-    ws.on('close', () => {
-      console.log('Client disconnected');
-    });
-  });
-};
-
-// Helper function to handle worker spawning
-function spawnWorker(scriptPath: string, args: any = {}): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const child = isProduction
-      ? // Production: run the precompiled JS file directly
-        spawn(process.execPath, [scriptPath])
-      : // Development: run TypeScript file with ts-node
-        spawn(process.execPath, [
-          '-r',
-          'ts-node/register/transpile-only',
-          scriptPath,
-        ]);
-
-    child.stdin.write(JSON.stringify(args));
-    child.stdin.end();
-
-    let result = '';
-
-    child.stdout.on('data', (data) => {
-      result += data.toString();
-    });
-
-    child.stderr.on('data', (data) => {
-      console.error(`Worker error: ${data}`);
-    });
-
-    child.on('close', (code) => {
-      if (code === 0) {
-        try {
-          resolve(JSON.parse(result));
-        } catch (err) {
-          reject(new Error(`Failed to parse worker result: ${err}`));
-        }
-      } else {
-        reject(new Error(`Worker exited with code ${code}`));
-      }
-    });
-  });
-}
-
-app.whenReady().then(async () => {
-  console.log('App is ready, initializing protocols and auto-update check.');
-  // await checkForAppUpdate();
-  autoUpdater.checkForUpdatesAndNotify();
-
-  protocol.registerFileProtocol('app', (request, callback) => {
-    const urlPath = request.url.replace('app://', '');
-    const filePath = path.join(__dirname, urlPath);
-    callback({ path: filePath });
-  });
-});
+logger('App starting...');
 
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -168,8 +72,10 @@ function createWindow() {
     frame: true, // Remove the window frame for a borderless look
     resizable: false, // Optional: Prevent resizing if you want a fixed size
     webPreferences: {
-      preload: path.join(__dirname, 'electron-preload.js'),
       contextIsolation: true,
+      sandbox: false, // add this
+      // More info: https://v2.quasar.dev/quasar-cli-vite/developing-electron-apps/electron-preload-script
+      preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD),
     },
   });
 
@@ -188,7 +94,7 @@ function createWindow() {
       filter,
       (details, callback) => {
         const url = details.url;
-        console.log('Intercepted URL:', url); // Log the full URL to inspect
+        logger('Intercepted URL:', url); // Log the full URL to inspect
 
         // Parse the fragment (hash) part to extract tokens
         const urlFragment = new URL(url).hash.substring(1); // Remove the `#` symbol
@@ -198,8 +104,8 @@ function createWindow() {
         const refreshToken = fragmentParams.get('refresh_token');
 
         // Log tokens to confirm they are parsed correctly
-        console.log('Access Token:', accessToken);
-        console.log('Refresh Token:', refreshToken);
+        logger('Access Token:', accessToken);
+        logger('Refresh Token:', refreshToken);
 
         if (accessToken) {
           // Redirect to index.html#/auth with tokens as query parameters
@@ -213,7 +119,42 @@ function createWindow() {
       },
     );
   }
+  if (!wss) {
+    try {
+      wss = new WebSocket.Server({ port: 8777, host: '0.0.0.0' });
+    } catch (error) {
+      logger('ERROR ', error);
+    }
+  }
 }
+
+const openWindow = (windowTitle: string, url: string | null = null) => {
+  logger('Action triggered from Quasar frontend!');
+  const newWindow = new BrowserWindow({
+    width: screenWidth,
+    height: screenHeight,
+    webPreferences: {
+      contextIsolation: true,
+      sandbox: false, // add this
+      // More info: https://v2.quasar.dev/quasar-cli-vite/developing-electron-apps/electron-preload-script
+      preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD),
+    },
+  });
+  newWindow.setTitle(windowTitle);
+  newWindow.loadURL(url ?? 'http://tiktok.com');
+};
+
+app.whenReady().then(async () => {
+  logger('App is ready, initializing protocols and auto-update check.');
+  // await checkForAppUpdate();
+  autoUpdater.checkForUpdatesAndNotify();
+
+  protocol.registerFileProtocol('app', (request, callback) => {
+    const urlPath = request.url.replace('app://', '');
+    const filePath = path.join(__dirname, urlPath);
+    callback({ path: filePath });
+  });
+});
 
 app.whenReady().then(createWindow);
 
@@ -228,6 +169,78 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+const initWebSocket = () => {
+  // @ts-ignore
+  wss?.on('connection', (ws) => {
+    logger('Client connected');
+
+    ws.on('message', (message) => {
+      const messageString =
+        message instanceof Buffer ? message.toString() : message;
+
+      try {
+        // Parse the string as JSON
+        // @ts-expect-error ignore
+        const data = JSON.parse(messageString);
+        logger('Received:', data);
+
+        // Perform actions based on the received message
+        if (data.message === 'open-window') {
+          openWindow(data.windowTitle, data.url);
+          logger('Triggering action in Electron app!');
+        }
+      } catch (error) {
+        console.error('Error parsing message:', error);
+      }
+    });
+
+    ws.on('close', () => {
+      logger('Client disconnected');
+    });
+  });
+};
+
+// Helper function to handle worker spawning
+function spawnWorker(scriptName: string, args: any = {}): Promise<any> {
+  console.log('🚀 ~ spawnWorker ~ scriptName:', scriptName);
+  return new Promise((resolve, reject) => {
+    const scriptPath = path.resolve(
+      isProduction
+        ? path.join(process.resourcesPath, 'installScripts')
+        : './src-electron/installScripts',
+      `${scriptName}.${isProduction ? 'js' : 'ts'}`,
+    );
+
+    const workerOptions = {
+      workerData: { ...args, resourcesPath: app.getPath('userData') },
+      execArgv: isProduction ? [] : ['-r', 'ts-node/register/transpile-only'],
+    };
+
+    const worker = new Worker(scriptPath, workerOptions);
+
+    worker.on('message', (result) => {
+      console.log('RESULT: ', result);
+      // console.log();
+      try {
+        resolve(result);
+      } catch (err) {
+        reject(new Error(`Failed to parse worker result: ${err}`));
+      }
+    });
+
+    worker.on('error', (error) => {
+      console.error(`Worker error: ${error}`);
+      reject(error);
+    });
+
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Worker stopped with exit code ${code}`));
+      }
+    });
+  });
+}
 
 // Show dialog when an update is available
 autoUpdater.on('update-available', () => {
@@ -281,18 +294,10 @@ ipcMain.handle(
     latestVersion?: string;
     error?: string;
   }> => {
-    const scriptPath = isProduction
-      ? path.join(
-          process.resourcesPath,
-          'dist-electron/installScripts/checkUpdatesWorker.js',
-        )
-      : path.join(
-          __dirname,
-          'src-electron/installScripts/checkUpdatesWorker.ts',
-        );
-
+    console.log('🚀 ~ check-for-updates IPC:');
     try {
-      const result = await spawnWorker(scriptPath, { productId });
+      const result = await spawnWorker('checkUpdatesWorker', { productId });
+      console.log('🚀🚀 ~ IPC result:', result);
       return result;
     } catch (error) {
       console.error('Error in check-for-updates worker:', error);
@@ -305,15 +310,10 @@ ipcMain.handle(
 ipcMain.handle(
   'install-dependencies',
   async (event, productId: string): Promise<string> => {
-    const scriptPath = isProduction
-      ? path.join(
-          process.resourcesPath,
-          'dist-electron/installScripts/installWorker.js',
-        )
-      : path.join(__dirname, 'src-electron/installScripts/installWorker.ts');
-
+    console.log('🚀 ~ INSTALL DEPS:', productId);
     try {
-      const result = await spawnWorker(scriptPath, { productId });
+      const result = await spawnWorker('installWorker', { productId });
+      console.log('🚀 ~ result:', result);
       return result;
     } catch (error) {
       console.error('Error in install-dependencies worker:', error);
@@ -349,14 +349,12 @@ ipcMain.handle(
           });
         });
 
-        // console.log(
+        // logger(
         //   '🚀 ~ allContainers.forEach ~ foundContainers:',
         //   foundContainers
         // );
         if (foundContainers.length >= containerNames.length) {
-          console.log(
-            'All specified containers exist. Starting each container...',
-          );
+          logger('All specified containers exist. Starting each container...');
 
           // Variable to track if all containers started successfully
           let allLaunchedSuccessfully = true;
@@ -372,7 +370,7 @@ ipcMain.handle(
                   );
                   allLaunchedSuccessfully = false; // Set to false if any container fails to start
                 } else {
-                  console.log(
+                  logger(
                     `Container ${container} started successfully:`,
                     startStdout,
                   );
@@ -384,14 +382,16 @@ ipcMain.handle(
                   foundContainers.length - 1
                 ) {
                   if (allLaunchedSuccessfully) {
-                    mainWindow!.loadURL(appUrl);
-                    initWebSocket();
+                    setTimeout(() => {
+                      mainWindow!.loadURL(appUrl);
+                      initWebSocket();
 
-                    resolve({
-                      result: true,
-                      details:
-                        'All specified containers have been started successfully.',
-                    });
+                      resolve({
+                        result: true,
+                        details:
+                          'All specified containers have been started successfully.',
+                      });
+                    }, 2000);
                   } else {
                     reject({
                       result: false,
@@ -403,7 +403,7 @@ ipcMain.handle(
             );
           });
         } else {
-          console.log('Not all specified containers are found.');
+          logger('Not all specified containers are found.');
           resolve('Not all specified containers are found.');
         }
       });

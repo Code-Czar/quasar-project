@@ -11,7 +11,7 @@ let isUpdating = false;
 const LICENSE_SERVER_URL = 'https://beniben.hopto.org/user';
 const GITHUB_TOKEN = `${LICENSE_SERVER_URL}/get-github-token`;
 
-async function getGithubToken(productId) {
+async function getGithubToken(productId: string) {
   try {
     const response = await axios_.get(`${GITHUB_TOKEN}/${productId}`);
     return response.data.github_token;
@@ -21,12 +21,19 @@ async function getGithubToken(productId) {
   }
 }
 
-async function checkForUpdates(productId) {
+async function checkForUpdates(productId: string, resourcesPath) {
   const repoOwner = 'Code-Czar';
   const repoName = 'clients-auto';
-  const destinationPath = path_.resolve(__dirname, '.quasar', 'resources');
-  const localLatestFilePath = path_.join(destinationPath, 'latest.yml');
-  const tempFolderPath = path_.join(destinationPath, 'tempFolder');
+
+  const destinationPath = path_.normalize(
+    path_.resolve(resourcesPath, '.quasar', 'resources'),
+  );
+  const localLatestFilePath = path_.normalize(
+    path_.resolve(destinationPath, 'latest.yml'),
+  );
+  const tempFolderPath = path_.normalize(
+    path_.resolve(destinationPath, 'tempFolder'),
+  );
 
   // Abort if tempFolder already exists (to prevent infinite loop)
   if (fs_.existsSync(tempFolderPath)) {
@@ -50,12 +57,12 @@ async function checkForUpdates(productId) {
           Authorization: `Bearer ${githubToken}`,
           Accept: 'application/vnd.github.v3+json',
         },
-      }
+      },
     );
 
     const latestRelease = releaseResponse.data;
     const latestAsset = latestRelease.assets.find(
-      (asset) => asset.name === 'latest.yml'
+      (asset: { name: string }) => asset.name === 'latest.yml',
     );
 
     if (!latestAsset) {
@@ -71,13 +78,26 @@ async function checkForUpdates(productId) {
           Authorization: `Bearer ${githubToken}`,
           Accept: 'application/octet-stream',
         },
-      }
+      },
     );
 
     const latestYmlContent = latestYmlResponse.data;
 
     // Check the local version and compare with the latest version
     let localYmlContent = null;
+    // if (!(await fs_.exists(destinationPath))) {
+    //   await fs_.mkdir(destinationPath, { recursive: true });
+    // }
+    if (!fs_.existsSync(destinationPath)) {
+      fs_.mkdirSync(destinationPath, { recursive: true }, (err) => {
+        if (err) {
+          console.error('Failed to create directory:', err);
+          return;
+        }
+        console.log('Directory created successfully');
+      });
+    }
+
     if (fs_.existsSync(localLatestFilePath)) {
       localYmlContent = fs_.readFileSync(localLatestFilePath, 'utf8');
     }
@@ -91,7 +111,17 @@ async function checkForUpdates(productId) {
       console.log('Update available:', latestVersion);
 
       // Save the latest.yml content to the destination path
-      fs_.writeFileSync(localLatestFilePath, latestYmlContent, 'utf8');
+      console.log(
+        '🚀 ~ checkForUpdates ~ localLatestFilePath:',
+        localLatestFilePath,
+      );
+      console.log('🚀 ~ checkForUpdates ~ latestYmlContent:', latestYmlContent);
+
+      fs_.writeFileSync(
+        path_.join(localLatestFilePath),
+        latestYmlContent,
+        'utf8',
+      );
       return { shouldUpdate: true, latestVersion };
     }
 
@@ -103,15 +133,15 @@ async function checkForUpdates(productId) {
   }
 }
 
-async function cloneRepository(productId) {
-  const destinationPath = path_.resolve(__dirname, '.quasar', 'resources');
+async function cloneRepository(productId: string, resourcesPath) {
+  const destinationPath = resourcesPath; //path_.resolve(__dirname, '.quasar', 'resources');
   const tempFolderPath = path_.join(destinationPath, 'tempFolder');
 
   // Abort if tempFolder already exists (to prevent infinite loop)
-  if (fs_.existsSync(tempFolderPath)) {
-    console.warn('Update process aborted: tempFolder already exists.');
-    return;
-  }
+  // if (fs_.existsSync(tempFolderPath)) {
+  //   console.warn('Update process aborted: tempFolder already exists.');
+  //   return;
+  // }
 
   // Get GitHub Token
   const githubToken = await getGithubToken(productId);
@@ -134,48 +164,60 @@ async function cloneRepository(productId) {
 
     // Build Docker containers from within tempFolder
     const dockerComposeFile = path_.join(tempFolderPath, 'docker-compose.yml');
+
     if (fs_.existsSync(dockerComposeFile)) {
       console.log(`🚀 Building Docker containers in ${tempFolderPath}`);
-      execSync(`docker-compose -f ${dockerComposeFile} up --build -d`, {
+      execSync(`docker-compose -f "${dockerComposeFile}" up --build -d`, {
         stdio: 'inherit',
-        cwd: tempFolderPath,
+        cwd: `${tempFolderPath}`,
       });
       console.log(`✅ Docker containers built and running.`);
     } else {
-      console.error(`Docker Compose file not found at ${dockerComposeFile}`);
+      console.error(
+        `CLONER: Docker Compose file not found at ${dockerComposeFile}`,
+      );
     }
   } catch (error) {
     console.error(
-      `Failed to clone and build Docker containers: ${error.message}`
+      // @ts-ignore
+      `Failed to clone and build Docker containers: ${error.message}`,
     );
   } finally {
     // Clean up temporary folder
-    if (fs_.existsSync(tempFolderPath)) {
-      fs_.rmSync(tempFolderPath, { recursive: true, force: true });
-    }
+    // if (fs_.existsSync(tempFolderPath)) {
+    //   // fs_.rmSync(tempFolderPath, { recursive: true, force: true });
+    // }
     console.log(`🧹 Temporary folder cleaned up.`);
   }
 }
 
-async function buildAndRunDocker() {
-  const destinationPath = path_.resolve(__dirname, '.quasar', 'resources');
-  const dockerComposeFile = path_.join(destinationPath, 'docker-compose.yml');
+async function buildAndRunDocker(resourcesPath) {
+  const destinationPath = resourcesPath; //path_.resolve(__dirname, '.quasar', 'resources');
+  const dockerComposeFile = path_.normalize(
+    path_.join(destinationPath, 'docker-compose.yml'),
+  );
+  console.log('🚀 ~ buildAndRunDocker ~ dockerComposeFile:', dockerComposeFile);
 
-  if (!fs_.existsSync(dockerComposeFile)) {
-    console.error(`Docker Compose file not found at ${dockerComposeFile}`);
+  try {
+    fs_.accessSync(dockerComposeFile, fs_.constants.F_OK);
+  } catch (error) {
+    console.error(
+      `BUILDER : Docker Compose file not found at ${dockerComposeFile}`,
+    );
     return;
   }
 
   try {
     console.log(`🚀 Building Docker containers in ${destinationPath}`);
-    execSync(`docker-compose -f ${dockerComposeFile} up --build -d`, {
+    execSync(`docker-compose -f "${dockerComposeFile}" up --build -d`, {
       stdio: 'inherit',
       cwd: destinationPath,
     });
     console.log(`✅ Docker containers built and running.`);
   } catch (error) {
     console.error(
-      `Failed to build and run Docker containers: ${error.message}`
+      // @ts-ignore
+      `Failed to build and run Docker containers: ${error.message}`,
     );
   }
   isUpdating = false;

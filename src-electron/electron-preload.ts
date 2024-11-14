@@ -1,4 +1,4 @@
-// preload.js
+// electron-preload.ts
 const { contextBridge, ipcRenderer } = require('electron');
 // const { remote } = require('@electron/remote');
 

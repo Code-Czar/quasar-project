@@ -2,7 +2,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "skipLibCheck": true,
-    "noEmitOnError": false,
+    "noEmitOnError": true,
+    "noEmit": true,
     "strict": false, // Temporarily turn off strict mode
   },
   "include": [
