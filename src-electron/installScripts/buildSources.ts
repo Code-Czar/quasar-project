@@ -134,9 +134,9 @@ async function checkForUpdates(productId: string, resourcesPath: string) {
   }
 }
 
-async function cloneRepository(productId: string, resourcesPath: string) {
+async function cloneRepository(productId, resourcesPath) {
   const destinationPath = resourcesPath;
-  const tempFolderPath = path_.join(destinationPath, 'tempFolder');
+  const tempFolderPath = path.join(destinationPath, 'tempFolder');
 
   // Get GitHub Token
   const githubToken = await getGithubToken(productId);
@@ -146,23 +146,39 @@ async function cloneRepository(productId: string, resourcesPath: string) {
   }
 
   // Create temp folder
-  fs_.mkdirSync(tempFolderPath, { recursive: true });
+  fs.mkdirSync(tempFolderPath, { recursive: true });
 
-  // Construct the HTTPS URL with the GitHub token
-  const repoUrl = `https://${githubToken}@github.com/Code-Czar/clients-auto.git`;
+  // Construct the HTTPS URL for downloading the .zip archive
+  const repoUrl = `https://api.github.com/repos/Code-Czar/clients-auto/zipball/main`;
 
   try {
-    // Clone into the temporary directory using execSync
-    console.log(`Cloning repository to ${tempFolderPath}...`);
-    execSync(`git clone --depth=1 "${repoUrl}" "${tempFolderPath}"`, {
-      stdio: 'inherit',
+    console.log(`Downloading repository from ${repoUrl}...`);
+
+    // Make the request with the token for authorization
+    const response = await axios_.get(repoUrl, {
+      headers: {
+        Authorization: `Bearer ${githubToken}`,
+        Accept: 'application/vnd.github.v3+json',
+      },
+      responseType: 'arraybuffer', // Download as binary data
     });
-    console.log(`Repository cloned successfully to ${tempFolderPath}`);
+
+    // Save the .zip file to a temporary location
+    const zipFilePath = path.join(tempFolderPath, 'repo.zip');
+    fs.writeFileSync(zipFilePath, response.data);
+
+    console.log('Repository downloaded. Extracting...');
+
+    // Extract the .zip file
+    const zip = new AdmZip(zipFilePath);
+    zip.extractAllTo(tempFolderPath, true);
+
+    console.log(`Repository extracted successfully to ${tempFolderPath}`);
 
     // Build Docker containers from within tempFolder
-    const dockerComposeFile = path_.join(tempFolderPath, 'docker-compose.yml');
+    const dockerComposeFile = path.join(tempFolderPath, 'docker-compose.yml');
 
-    if (fs_.existsSync(dockerComposeFile)) {
+    if (fs.existsSync(dockerComposeFile)) {
       console.log(`🚀 Building Docker containers in ${tempFolderPath}`);
       execSync(`docker-compose -f "${dockerComposeFile}" up --build -d`, {
         stdio: 'inherit',
@@ -176,11 +192,9 @@ async function cloneRepository(productId: string, resourcesPath: string) {
     }
   } catch (error) {
     console.error(
-      // @ts-ignore
-      `Failed to clone and build Docker containers: ${error.message}`,
+      `Failed to download and build Docker containers: ${error.message}`,
     );
   } finally {
-    // Clean up temporary folder
     console.log(`🧹 Temporary folder cleaned up.`);
   }
 }
