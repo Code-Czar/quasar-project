@@ -4,6 +4,7 @@ const fs_ = require('fs');
 const os_ = require('os');
 const axios_ = require('axios');
 const { execSync } = require('child_process');
+const AdmZip = require('adm-zip');
 // const { CENTRALIZATION_API_URLS } = require('src/shared-consts');
 
 let isUpdating = false;
@@ -134,7 +135,7 @@ async function checkForUpdates(productId: string, resourcesPath: string) {
   }
 }
 
-async function cloneRepository(productId, resourcesPath) {
+async function cloneRepository(productId: string, resourcesPath: string) {
   const destinationPath = resourcesPath;
   const tempFolderPath = path.join(destinationPath, 'tempFolder');
 
@@ -192,6 +193,7 @@ async function cloneRepository(productId, resourcesPath) {
     }
   } catch (error) {
     console.error(
+      // @ts-ignore
       `Failed to download and build Docker containers: ${error.message}`,
     );
   } finally {
