@@ -5,6 +5,8 @@ const os_ = require('os');
 const axios_ = require('axios');
 const { execSync } = require('child_process');
 const AdmZip = require('adm-zip');
+// const { Octokit } = require('@octokit/core');
+
 // const { CENTRALIZATION_API_URLS } = require('src/shared-consts');
 
 let isUpdating = false;
@@ -128,7 +130,7 @@ async function checkForUpdates(productId: string, resourcesPath: string) {
     }
 
     console.log('No update needed. You have the latest version:', localVersion);
-    return { shouldUpdate: false };
+    return { shouldUpdate: false, version: latestVersion };
   } catch (error) {
     console.error('Failed to check for updates:', error);
     return { shouldUpdate: false };
@@ -137,7 +139,13 @@ async function checkForUpdates(productId: string, resourcesPath: string) {
 
 async function cloneRepository(productId: string, resourcesPath: string) {
   const destinationPath = resourcesPath;
-  const tempFolderPath = path.join(destinationPath, 'tempFolder');
+  const tempFolderPath = path_.join(destinationPath, 'tempFolder');
+  const zipFilePath = path_.join(tempFolderPath, 'repo.zip');
+  // const downloadUrl =
+  //   'https://github.com/Code-Czar/clients-auto/releases/latest/download/source-code.zip';
+
+  const downloadUrl =
+    'https://api.github.com/repos/Code-Czar/clients-auto/zipball/main';
 
   // Get GitHub Token
   const githubToken = await getGithubToken(productId);
@@ -146,17 +154,14 @@ async function cloneRepository(productId: string, resourcesPath: string) {
     return;
   }
 
-  // Create temp folder
-  fs.mkdirSync(tempFolderPath, { recursive: true });
-
-  // Construct the HTTPS URL for downloading the .zip archive
-  const repoUrl = `https://api.github.com/repos/Code-Czar/clients-auto/zipball/main`;
+  // Ensure the temp folder exists
+  fs_.mkdirSync(tempFolderPath, { recursive: true });
 
   try {
-    console.log(`Downloading repository from ${repoUrl}...`);
+    console.log(`Downloading repository from ${downloadUrl}...`);
 
-    // Make the request with the token for authorization
-    const response = await axios_.get(repoUrl, {
+    // Download the zip file using axios with authorization header
+    const response = await axios_.get(downloadUrl, {
       headers: {
         Authorization: `Bearer ${githubToken}`,
         Accept: 'application/vnd.github.v3+json',
@@ -164,22 +169,26 @@ async function cloneRepository(productId: string, resourcesPath: string) {
       responseType: 'arraybuffer', // Download as binary data
     });
 
-    // Save the .zip file to a temporary location
-    const zipFilePath = path.join(tempFolderPath, 'repo.zip');
-    fs.writeFileSync(zipFilePath, response.data);
+    // Save the .zip file to the specified path
+    fs_.writeFileSync(zipFilePath, response.data);
+    console.log(`Repository downloaded to ${zipFilePath}. Extracting...`);
 
-    console.log('Repository downloaded. Extracting...');
-
-    // Extract the .zip file
+    // Extract the .zip file without creating the root folder
     const zip = new AdmZip(zipFilePath);
-    zip.extractAllTo(tempFolderPath, true);
-
+    zip.getEntries().forEach((entry) => {
+      const entryPath = entry.entryName.split('/').slice(1).join('/'); // Remove the root folder name
+      const fullPath = path_.join(tempFolderPath, entryPath);
+      if (entry.isDirectory) {
+        fs_.mkdirSync(fullPath, { recursive: true });
+      } else {
+        fs_.writeFileSync(fullPath, entry.getData());
+      }
+    });
     console.log(`Repository extracted successfully to ${tempFolderPath}`);
 
     // Build Docker containers from within tempFolder
-    const dockerComposeFile = path.join(tempFolderPath, 'docker-compose.yml');
-
-    if (fs.existsSync(dockerComposeFile)) {
+    const dockerComposeFile = path_.join(tempFolderPath, 'docker-compose.yml');
+    if (fs_.existsSync(dockerComposeFile)) {
       console.log(`🚀 Building Docker containers in ${tempFolderPath}`);
       execSync(`docker-compose -f "${dockerComposeFile}" up --build -d`, {
         stdio: 'inherit',
@@ -187,9 +196,7 @@ async function cloneRepository(productId: string, resourcesPath: string) {
       });
       console.log(`✅ Docker containers built and running.`);
     } else {
-      console.error(
-        `CLONER: Docker Compose file not found at ${dockerComposeFile}`,
-      );
+      console.error(`Docker Compose file not found at ${dockerComposeFile}`);
     }
   } catch (error) {
     console.error(
@@ -197,9 +204,66 @@ async function cloneRepository(productId: string, resourcesPath: string) {
       `Failed to download and build Docker containers: ${error.message}`,
     );
   } finally {
-    console.log(`🧹 Temporary folder cleaned up.`);
+    console.log(`🧹 Cleaning up temporary folder.`);
+    // fs.rmSync(tempFolderPath, { recursive: true, force: true });
   }
 }
+
+// async function downloadRepoContents(
+//   owner: string,
+//   repo: string,
+//   path = '',
+//   branch = 'main',
+// ) {
+//   try {
+//     const response = await octokit.request(
+//       'GET /repos/{owner}/{repo}/contents/{path}',
+//       {
+//         owner: owner,
+//         repo: repo,
+//         path: path,
+//         headers: {
+//           'X-GitHub-Api-Version': '2022-11-28',
+//         },
+//         ref: branch,
+//       },
+//     );
+
+//     for (const item of response.data) {
+//       if (item.type === 'file') {
+//         await downloadFile(owner, repo, item.path);
+//       } else if (item.type === 'dir') {
+//         await downloadRepoContents(owner, repo, item.path, branch); // Recursively download directories
+//       }
+//     }
+//   } catch (error) {
+//     console.error(`Error fetching contents of ${path}:`, error);
+//   }
+// }
+
+// // Function to download individual files
+// async function downloadFile(owner, repo, filePath, branch = 'main') {
+//   try {
+//     const fileResponse = await octokit.request(
+//       'GET /repos/{owner}/{repo}/contents/{path}',
+//       {
+//         owner: owner,
+//         repo: repo,
+//         path: filePath,
+//         headers: {
+//           'X-GitHub-Api-Version': '2022-11-28',
+//           Accept: 'application/vnd.github.v3.raw', // Get raw file content
+//         },
+//         ref: branch,
+//       },
+//     );
+
+//     console.log(`Downloaded ${filePath}:`, fileResponse.data);
+//     // Here, fileResponse.data contains the file content in raw format
+//   } catch (error) {
+//     console.error(`Error downloading ${filePath}:`, error);
+//   }
+// }
 
 async function buildAndRunDocker(resourcesPath: string) {
   const destinationPath = resourcesPath; //path_.resolve(__dirname, '.quasar', 'resources');

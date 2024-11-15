@@ -213,7 +213,7 @@ function spawnWorker(scriptName: string, args: any = {}): Promise<any> {
   return new Promise((resolve, reject) => {
     const basePath = isProduction
       ? app.getAppPath()
-      : path.resolve(__dirname, './src-electron');
+      : path.resolve(__dirname, '../../src-electron');
     const scriptPath = path.join(
       basePath,
       'installScripts',
@@ -318,14 +318,17 @@ ipcMain.handle(
 ipcMain.handle(
   'install-dependencies',
   async (event, productId: string): Promise<string> => {
-    console.log('🚀 ~ INSTALL DEPS:', productId);
+    logger('🚀 ~ INSTALL DEPS:', productId);
     try {
       const result = await spawnWorker('installWorker', { productId });
       console.log('🚀 ~ result:', result);
       return result;
     } catch (error) {
       console.error('Error in install-dependencies worker:', error);
-      throw error;
+      return {
+        success: false,
+        message: error.message || 'Failed to install dependencies',
+      };
     }
   },
 );
@@ -339,7 +342,7 @@ ipcMain.handle(
   async (event, containerNames = containersDefault) => {
     return new Promise((resolve, reject) => {
       // Command to list all containers (running and stopped)
-      console.log('🚀 ~ returnnewPromise ~ process.env:', process.env);
+      // console.log('🚀 ~ returnnewPromise ~ process.env:', process.env);
       const dockerPs = spawn('docker', ['ps', '-a', '--format', '{{.Names}}'], {
         env: process.env, // Use system environment variables (including PATH)
       });

@@ -6,17 +6,19 @@ const {
 async function installDependencies(
   productId: string,
   resourcesPath: string,
-): Promise<string> {
+): Promise<{ success: boolean; message: string }> {
   try {
-    console.log('Checking and installing Docker if necessary...');
+    // console.log('Checking and installing Docker if necessary...');
+    console.log('!!!!Status');
     const dockerStatus = await installDocker_();
+    console.log('!Status');
     console.log(dockerStatus);
 
     console.log('Cloning the repository...');
     await cloneRepository_(productId, resourcesPath);
-    console.log('Repository cloned successfully.');
-    await buildAndRunDocker_(resourcesPath);
-    console.log('Docker containers built successfully.');
+    // console.log('Repository cloned successfully.');
+    // await buildAndRunDocker_(resourcesPath);
+    // console.log('Docker containers built successfully.');
 
     // @ts-ignore
     return {
@@ -24,11 +26,10 @@ async function installDependencies(
       message: 'All dependencies installed successfully.',
     };
   } catch (error) {
-    throw new Error(
-      `Dependency installation failed: ${
-        error instanceof Error ? error.message : 'Unknown error'
-      }`,
-    );
+    return {
+      success: false,
+      message: error,
+    };
   }
 }
 

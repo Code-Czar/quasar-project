@@ -3,7 +3,7 @@ const { parentPort, workerData } = require('worker_threads');
 
 const install = async (productId: string) => {
   try {
-    console.log('🚀 ~ process.on ~ installer:', installDependencies_);
+    // console.log('🚀 ~ process.on ~ installer:', installDependencies_);
     const result = await installDependencies_(productId, resourcesPath);
     parentPort.postMessage(result);
 
@@ -11,9 +11,9 @@ const install = async (productId: string) => {
   } catch (error) {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore ingore error type
-    process.send!({ error: error.message });
+    parentPort.postMessage!({ error: error.message });
   } finally {
-    process.exit();
+    // process.exit();
   }
 };
 const { productId, resourcesPath } = workerData;
