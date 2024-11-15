@@ -7,7 +7,7 @@ async function installDependencies(
   productId: string,
   resourcesPath: string,
   statusCallback: Function,
-): Promise<{ success: boolean; message: string }> {
+): Promise<{ success: boolean; message: any }> {
   try {
     // console.log('Checking and installing Docker if necessary...');
     console.log('!!!!Status');

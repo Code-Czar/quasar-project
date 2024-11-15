@@ -175,6 +175,7 @@ async function cloneRepository(productId: string, resourcesPath: string) {
 
     // Extract the .zip file without creating the root folder
     const zip = new AdmZip(zipFilePath);
+    // @ts-ignore
     zip.getEntries().forEach((entry) => {
       const entryPath = entry.entryName.split('/').slice(1).join('/'); // Remove the root folder name
       const fullPath = path_.join(tempFolderPath, entryPath);

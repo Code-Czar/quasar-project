@@ -1,6 +1,6 @@
 const { installDependencies: installDependencies_ } = require('./install');
 const { parentPort, workerData } = require('worker_threads');
-
+// @ts-ignore
 function statusCallback(result) {
   parentPort.postMessage(result);
 }
@@ -14,6 +14,7 @@ const install = async (productId: string) => {
     );
     parentPort.postMessage(result);
   } catch (error) {
+    // @ts-ignore
     parentPort.postMessage!({ error: error.message });
   } finally {
   }
