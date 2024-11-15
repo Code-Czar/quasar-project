@@ -234,7 +234,7 @@ function spawnWorker(
     worker.on('message', (result) => {
       console.log('RESULT: ', result);
       // console.log();
-      if (result.success || result.shouldUpdate) {
+      if (result.success || result.shouldUpdate !== null) {
         resolve(result);
       } else if (result.success === false) {
         reject(new Error(`Failed to parse worker result: ${result}`));

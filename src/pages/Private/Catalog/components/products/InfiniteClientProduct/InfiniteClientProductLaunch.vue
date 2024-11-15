@@ -17,11 +17,12 @@ const props = defineProps({
 const isElectron = Platform.is.electron;
 const message = ref('Initializing...');
 const updateMessage = async (inputMessage) =>{
+  console.log("🚀 ~ updateMessage ~ inputMessage:", inputMessage)
   message.value = inputMessage
 }
 
 // Function to install dependencies with productId
-const installDependencies = async () => {
+const installDependencies = async (updateMessage) => {
   console.log("🚀🚀🚀 ~ installDependencies ~ installDependencies:", installDependencies)
   try {
     // @ts-expect-error electronAPI
@@ -50,18 +51,18 @@ const checkContainers = async () => {
 };
 
 // Function to check for updates
-const checkForUpdates = async () => {
+const checkForUpdates = async (updateMessage) => {
   try {
     //   // @ts-expect-error electronAPI
     console.log("WINDOW ELECTRON API",window.electronAPI); // Check if electronAPI is available
     const result = await window.electronAPI.checkForUpdates(props.productId);
     if (result.shouldUpdate) {
       message.value = `Update available: ${result.latestVersion}. Please update to continue.`;
-      installDependencies()
+      installDependencies(updateMessage)
     } else {
       message.value = 'You are using the latest version.';
       // Automatically check containers after a short delay if no update is needed
-      setTimeout(checkContainers, 1000);
+      setTimeout(()=>{checkContainers()}, 1000);
     }
   } catch (error) {
     console.error('Update check failed:', error);
@@ -72,7 +73,7 @@ const checkForUpdates = async () => {
 // Trigger actions on component mount
 onMounted(() => {
   if (isElectron) {
-    checkForUpdates();
+    checkForUpdates(updateMessage);
   } else {
     message.value = 'Not running in Electron environment';
   }
