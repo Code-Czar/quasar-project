@@ -185,24 +185,37 @@ async function cloneRepository(productId: string, resourcesPath: string) {
       }
     });
     console.log(`Repository extracted successfully to ${tempFolderPath}`);
+    return {
+      type: 'install-status-update',
+      status: `Repository extracted successfully to ${tempFolderPath}`,
+      outputFolder: tempFolderPath,
+    };
 
     // Build Docker containers from within tempFolder
-    const dockerComposeFile = path_.join(tempFolderPath, 'docker-compose.yml');
-    if (fs_.existsSync(dockerComposeFile)) {
-      console.log(`🚀 Building Docker containers in ${tempFolderPath}`);
-      execSync(`docker-compose -f "${dockerComposeFile}" up --build -d`, {
-        stdio: 'inherit',
-        cwd: tempFolderPath,
-      });
-      console.log(`✅ Docker containers built and running.`);
-    } else {
-      console.error(`Docker Compose file not found at ${dockerComposeFile}`);
-    }
+    // const dockerComposeFile = path_.join(tempFolderPath, 'docker-compose.yml');
+    // if (fs_.existsSync(dockerComposeFile)) {
+    //   console.log(`🚀 Building Docker containers in ${tempFolderPath}`);
+    //   execSync(`docker-compose -f "${dockerComposeFile}" up --build -d`, {
+    //     stdio: 'inherit',
+    //     cwd: tempFolderPath,
+    //   });
+    //   console.log(`✅ Docker containers built and running. (clone)`);
+    //   return {
+    //     type: 'install-status-update',
+    //     status: `✅ Docker containers built and running.(clone)`,
+    //   };
+    // } else {
+    //   console.error(`Docker Compose file not found at ${dockerComposeFile}`);
+    // }
   } catch (error) {
     console.error(
       // @ts-ignore
       `Failed to download and build Docker containers: ${error.message}`,
     );
+    return {
+      type: 'install-status-update',
+      status: `Clone repo failed: ${error}`,
+    };
   } finally {
     console.log(`🧹 Cleaning up temporary folder.`);
     // fs.rmSync(tempFolderPath, { recursive: true, force: true });
@@ -268,7 +281,7 @@ async function cloneRepository(productId: string, resourcesPath: string) {
 async function buildAndRunDocker(resourcesPath: string) {
   const destinationPath = resourcesPath; //path_.resolve(__dirname, '.quasar', 'resources');
   const dockerComposeFile = path_.normalize(
-    path_.join(destinationPath, 'docker-compose.yml'),
+    path_.join(destinationPath, 'tempFolder', 'docker-compose.yml'),
   );
   console.log('🚀 ~ buildAndRunDocker ~ dockerComposeFile:', dockerComposeFile);
 
@@ -288,11 +301,19 @@ async function buildAndRunDocker(resourcesPath: string) {
       cwd: destinationPath,
     });
     console.log(`✅ Docker containers built and running.`);
+    return {
+      type: 'install-status-update',
+      status: '✅ Docker containers built and running.',
+    };
   } catch (error) {
     console.error(
       // @ts-ignore
       `Failed to build and run Docker containers: ${error.message}`,
     );
+    return {
+      type: 'install-status-update',
+      status: `Failed to build and run Docker containers: ${error}`,
+    };
   }
   isUpdating = false;
 }

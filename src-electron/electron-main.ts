@@ -208,7 +208,11 @@ const initWebSocket = () => {
 };
 
 // Helper function to handle worker spawning
-function spawnWorker(scriptName: string, args: any = {}): Promise<any> {
+function spawnWorker(
+  scriptName: string,
+  args: any = {},
+  callback?: Function = null,
+): Promise<any> {
   console.log('🚀 ~ spawnWorker ~ scriptName:', scriptName);
   return new Promise((resolve, reject) => {
     const basePath = isProduction
@@ -230,10 +234,12 @@ function spawnWorker(scriptName: string, args: any = {}): Promise<any> {
     worker.on('message', (result) => {
       console.log('RESULT: ', result);
       // console.log();
-      try {
+      if (result.success || result.shouldUpdate) {
         resolve(result);
-      } catch (err) {
-        reject(new Error(`Failed to parse worker result: ${err}`));
+      } else if (result.success === false) {
+        reject(new Error(`Failed to parse worker result: ${result}`));
+      } else {
+        callback?.(result);
       }
     });
 
@@ -317,10 +323,14 @@ ipcMain.handle(
 // IPC handler for installing dependencies
 ipcMain.handle(
   'install-dependencies',
-  async (event, productId: string): Promise<string> => {
+  async (event, productId: string, callback: Function): Promise<string> => {
     logger('🚀 ~ INSTALL DEPS:', productId);
     try {
-      const result = await spawnWorker('installWorker', { productId });
+      const result = await spawnWorker(
+        'installWorker',
+        { productId },
+        callback,
+      );
       console.log('🚀 ~ result:', result);
       return result;
     } catch (error) {

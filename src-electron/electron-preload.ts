@@ -3,7 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 // const { remote } = require('@electron/remote');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  installDocker: (productId: string) =>
+  installDocker: (productId: string, callback) =>
     ipcRenderer.invoke('install-dependencies', productId),
   checkContainers: () => ipcRenderer.invoke('check-docker-containers'),
   checkForUpdates: (productId: string) =>

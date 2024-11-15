@@ -16,13 +16,16 @@ const props = defineProps({
 
 const isElectron = Platform.is.electron;
 const message = ref('Initializing...');
+const updateMessage = async (inputMessage) =>{
+  message.value = inputMessage
+}
 
 // Function to install dependencies with productId
 const installDependencies = async () => {
   console.log("🚀🚀🚀 ~ installDependencies ~ installDependencies:", installDependencies)
   try {
     // @ts-expect-error electronAPI
-    const result = await window.electronAPI.installDocker(props.productId);
+    const result = await window.electronAPI.installDocker(props.productId, updateMessage);
     console.log("🚀 ~ installDependencies ~ result:", result)
     if(result.success){
       checkContainers();
@@ -58,7 +61,7 @@ const checkForUpdates = async () => {
     } else {
       message.value = 'You are using the latest version.';
       // Automatically check containers after a short delay if no update is needed
-      setTimeout(checkContainers, 5000);
+      setTimeout(checkContainers, 1000);
     }
   } catch (error) {
     console.error('Update check failed:', error);

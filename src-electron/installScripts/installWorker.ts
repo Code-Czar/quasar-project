@@ -1,19 +1,21 @@
 const { installDependencies: installDependencies_ } = require('./install');
 const { parentPort, workerData } = require('worker_threads');
 
+function statusCallback(result) {
+  parentPort.postMessage(result);
+}
+
 const install = async (productId: string) => {
   try {
-    // console.log('🚀 ~ process.on ~ installer:', installDependencies_);
-    const result = await installDependencies_(productId, resourcesPath);
+    const result = await installDependencies_(
+      productId,
+      resourcesPath,
+      statusCallback,
+    );
     parentPort.postMessage(result);
-
-    // process.send!(result);
   } catch (error) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore ingore error type
     parentPort.postMessage!({ error: error.message });
   } finally {
-    // process.exit();
   }
 };
 const { productId, resourcesPath } = workerData;
