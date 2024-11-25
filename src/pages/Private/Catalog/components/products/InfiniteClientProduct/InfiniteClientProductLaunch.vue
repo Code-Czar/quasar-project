@@ -52,18 +52,21 @@ const checkContainers = async () => {
 
 // Function to check for updates
 const checkForUpdates = async (updateMessage) => {
+  // console.log("WINDOW ELECTRON API",window.electronAPI); // Check if electronAPI is available
+  console.log("PRODUCT ID ",props.productId); // Check if electronAPI is available
   try {
     //   // @ts-expect-error electronAPI
-    console.log("WINDOW ELECTRON API",window.electronAPI); // Check if electronAPI is available
-    const result = await window.electronAPI.checkForUpdates(props.productId);
-    if (result.shouldUpdate) {
-      message.value = `Update available: ${result.latestVersion}. Please update to continue.`;
-      installDependencies(updateMessage)
-    } else {
-      message.value = 'You are using the latest version.';
-      // Automatically check containers after a short delay if no update is needed
-      setTimeout(()=>{checkContainers()}, 1000);
-    }
+    // const result = await window.electronAPI.checkForUpdates(props.productId);
+    // console.log("result",result); // Check if electronAPI is available
+
+    // if (result.shouldUpdate) {
+    //   message.value = `Update available: ${result.latestVersion}. Please update to continue.`;
+    //   installDependencies(updateMessage)
+    // } else {
+    //   message.value = 'You are using the latest version.';
+    //   // Automatically check containers after a short delay if no update is needed
+    //   setTimeout(()=>{checkContainers()}, 1000);
+    // }
   } catch (error) {
     console.error('Update check failed:', error);
     message.value = 'Failed to check for updates';
