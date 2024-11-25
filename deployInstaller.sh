@@ -66,7 +66,23 @@ done
 
 # Create version.yml dynamically and upload it
 echo "Generating and uploading version.yml..."
-ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_IP" "echo \"version: $VERSION\nname: $NAME\" > $REMOTE_DIR/version.yml"
+ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_IP" "printf \"version: %s\nname: %s\n\" \"$VERSION\" \"$NAME\" > $REMOTE_DIR/version.yml"
+
+# Change ownership of the uploaded files and directories
+echo "Setting ownership of $REMOTE_DIR to www-data:www-data on the remote server..."
+ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_IP" "sudo chown -R www-data:www-data \"$REMOTE_DIR\""
+
+# Create symbolic link pointing to the latest version
+REMOTE_LATEST_LINK="$(dirname "$REMOTE_DIR")/latest"
+echo "Creating symbolic link $REMOTE_LATEST_LINK pointing to $REMOTE_DIR..."
+ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_IP" "
+  if [ -L \"$REMOTE_LATEST_LINK\" ] || [ -e \"$REMOTE_LATEST_LINK\" ]; then
+    echo 'Removing existing latest link or directory...';
+    rm -rf \"$REMOTE_LATEST_LINK\";
+  fi
+  ln -s \"$REMOTE_DIR\" \"$REMOTE_LATEST_LINK\";
+  sudo chown -h www-data:www-data \"$REMOTE_LATEST_LINK\"; # Change ownership of the symlink
+"
 
 # Deployment completed
 echo "Deployment completed successfully!"
