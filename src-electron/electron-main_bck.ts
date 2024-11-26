@@ -8,7 +8,7 @@ import {
   screen,
   ipcRenderer,
 } from 'electron';
-import { autoUpdater } from 'electron-updater';
+// import { autoUpdater } from 'electron-updater';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
@@ -59,10 +59,10 @@ async function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-autoUpdater.autoDownload = true;
-autoUpdater.logger = log;
-//@ts-expect-error transport
-autoUpdater.logger.transports.file.level = 'info';
+// autoUpdater.autoDownload = true;
+// autoUpdater.logger = log;
+// //@ts-expect-error transport
+// autoUpdater.logger.transports.file.level = 'info';
 logger('App starting...');
 
 function createWindow() {
@@ -153,7 +153,7 @@ const openWindow = (windowTitle: string, url: string | null = null) => {
 app.whenReady().then(async () => {
   logger('App is ready, initializing protocols and auto-update check.');
   // await checkForAppUpdate();
-  autoUpdater.checkForUpdatesAndNotify();
+  // autoUpdater.checkForUpdatesAndNotify();
 
   protocol.registerFileProtocol('app', (request, callback) => {
     const urlPath = request.url.replace('app://', '');

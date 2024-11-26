@@ -70,7 +70,7 @@ ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_IP" "printf \"version: %s\nname: %s\
 
 # Change ownership of the uploaded files and directories
 echo "Setting ownership of $REMOTE_DIR to www-data:www-data on the remote server..."
-ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_IP" "sudo chown -R www-data:www-data \"$REMOTE_DIR\""
+ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_IP" "sudo chown -R beniben:www-data \"$REMOTE_DIR\""
 
 # Create symbolic link pointing to the latest version
 REMOTE_LATEST_LINK="$(dirname "$REMOTE_DIR")/latest"

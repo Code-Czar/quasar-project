@@ -5,7 +5,7 @@ import TermsOfUseContent from './pages/termsOfUse';
 import DisclaimerContent from './pages/disclaimer';
 
 export default {
-  healineTitle: 'Infinite-Opportunities',
+  healineTitle: 'Infinite-Opportunities 2',
   failed: 'Action failed',
   success: 'Action was successful',
   selectedLanguage: 'English',
@@ -49,7 +49,7 @@ export default {
 
   heroHeader: {
     slide1: {
-      header: 'Infinite-Opportunities',
+      header: 'Infinite-Opportunities :)',
       subtitle: {
         line1: 'Tired of missing out opportunities ?',
         line2: 'We bring you thousands of opportunities everyday',

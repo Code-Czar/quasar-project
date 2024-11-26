@@ -39,6 +39,9 @@ function createMainWindow() {
       preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD),
     },
   });
+  mainWindow.webContents.session.clearCache().then(() => {
+    console.log('Cache cleared successfully.');
+  });
 
   const mainURL = app.isPackaged
     ? `file://${path.join(__dirname, 'index.html')}`
@@ -49,6 +52,8 @@ function createMainWindow() {
 }
 
 app.whenReady().then(() => {
+  // app.clearCache();
+
   createMainWindow();
   initializeAutoUpdater(mainWindow);
   initializeIpcHandlers();

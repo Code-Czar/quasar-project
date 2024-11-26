@@ -206,7 +206,7 @@ module.exports = configure(function (/* ctx */) {
       },
 
       builder: {
-        appId: 'com.example.app', // Define your app ID here
+        appId: 'com.infinityInstaller.app', // Define your app ID here
         productName: 'InfinityInstaller', // Optional, name for the packaged app
         directories: {
           output: 'dist/electron', // This is where the packaged files should go
@@ -264,22 +264,22 @@ module.exports = configure(function (/* ctx */) {
         linux: {
           target: [{ target: 'AppImage' }, { target: 'zip' }],
         },
-        publish: [
-          {
-            provider: 'github',
-            owner: 'Code-Czar',
-            repo: 'quasar-project',
-          },
-        ],
+        // publish: [
+        //   {
+        //     provider: 'github',
+        //     owner: 'Code-Czar',
+        //     repo: 'quasar-project',
+        //   },
+        // ],
       },
       builderOptions: {
-        publish: [
-          {
-            provider: 'github',
-            owner: 'Code-Czar',
-            repo: 'quasar-project',
-          },
-        ],
+        // publish: [
+        //   {
+        //     provider: 'github',
+        //     owner: 'Code-Czar',
+        //     repo: 'quasar-project',
+        //   },
+        // ],
         extraResources: [
           {
             from: './src-electron/installScripts',

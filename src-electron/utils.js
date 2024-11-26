@@ -19,8 +19,6 @@ export const logger = function (message) {
 export const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const extractZip = (zipFilePath, outputDir) => {
-  process.noAsar = true;
-
   return new Promise((resolve, reject) => {
     // Create output directory if it doesn't exist
     if (!fs.existsSync(outputDir)) {
