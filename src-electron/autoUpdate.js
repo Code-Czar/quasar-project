@@ -149,7 +149,10 @@ export const initializeAutoUpdater = (mainWindow) => {
         // });
         const userDataPath = app.getPath('userData');
         log(`Clearing Electron cache at: ${userDataPath}`);
-        await fs.promises.rm(userDataPath, { recursive: true, force: true });
+        await fs.promises.rm(tempAsarPath, { recursive: true, force: true });
+        await fs.promises.rm(asarPathBackup, { recursive: true, force: true });
+
+        // await fs.promises.rm(userDataPath, { recursive: true, force: true });
         log(`Cache cleared.`);
         setTimeout(() => {
           log('Quitting the application to apply the update...');

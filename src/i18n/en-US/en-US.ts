@@ -49,7 +49,7 @@ export default {
 
   heroHeader: {
     slide1: {
-      header: 'Infinite-Opportunities :)',
+      header: 'Infinite-Opportunities 😁',
       subtitle: {
         line1: 'Tired of missing out opportunities ?',
         line2: 'We bring you thousands of opportunities everyday',

@@ -39,11 +39,24 @@ const SUPABASE_URL = "https://yhotbknfiebbflhovpws.supabase.co"
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlob3Ria25maWViYmZsaG92cHdzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY5NDg3MTkxMSwiZXhwIjoyMDEwNDQ3OTExfQ.5dn2ZC9cedTT7vZyvhK7Qxzo71FEtVe1JkAho6FV_7A"
 
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY
+// , {
+//   auth: {
+//     // redirectTo: 'installer://auth', // Your custom protocol
+//     // detectSessionInUrl: true, // Ensure Supabase detects the session
+//     // flowType: 'pkce', // Use PKCE for improved security
+//     // persistSession: true, // Persist session in storage
+//     // storageKey: 'supabase-auth-token',
+//   },
+// }
+);
 console.log("🚀 ~ window:", window)
 
 const mobileURLScheme = 'opportunities://auth';
 const definePostLoginRedirection = (enableAppRedirect = false) => {
+    console.log("🚀 ~ definePostLoginRedirection ~  window.location.origin:",  window.location.origin)
+    console.log("🚀 ~ definePostLoginRedirection ~  window.location.href:",  window.location.href)
+
     let redirectUri = null;
 
     if (Platform.is.android && enableAppRedirect) {
@@ -62,7 +75,10 @@ const definePostLoginRedirection = (enableAppRedirect = false) => {
     else if (
         window.location.href.startsWith('file')
     ){
-        redirectUri = `http://localhost/auth/callback`
+      
+        // redirectUri = `${window.location.href}/auth`
+        // redirectUri = encodeURIComponent('installer://auth');
+        redirectUri ='infinityinstaller://auth';
     }   
     // else if(window.location.href.startsWith('file')){
 
@@ -94,6 +110,7 @@ const login = async (provider: 'google' | 'github') => {
             console.log('Login successful:', data);
             // Set user credentials if needed
             // @ts-expect-error ignore
+            console.log("🚀 ~ login ~ data:", data)
             await useUserStore().setUserCredentials(data.user, data.session);
         }
     } catch (err) {

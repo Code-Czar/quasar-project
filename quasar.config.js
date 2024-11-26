@@ -21,7 +21,7 @@ module.exports = configure(function (/* ctx */) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: ['i18n'],
+    boot: ['i18n', 'router'],
     plugins: ['pinia'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
@@ -193,6 +193,9 @@ module.exports = configure(function (/* ctx */) {
       inspectPort: 5858,
 
       bundler: 'builder', // 'packager' or 'builder'
+      deepLinking: {
+        protocol: 'installer',
+      },
 
       packager: {
         // https://github.com/electron-userland/electron-packager/blob/master/docs/api.md#options
@@ -203,6 +206,12 @@ module.exports = configure(function (/* ctx */) {
         // protocol: 'myapp://path',
         // Windows only
         // win32metadata: { ... }
+        protocols: [
+          {
+            name: 'Installer',
+            schemes: ['installer'],
+          },
+        ],
       },
 
       builder: {
@@ -241,6 +250,15 @@ module.exports = configure(function (/* ctx */) {
           category: 'public.app-category.utility',
           mergeASARs: false,
           identity: null,
+          extendInfo: {
+            CFBundleURLTypes: [
+              {
+                CFBundleURLName: 'com.infinityInstaller.app',
+                CFBundleURLSchemes: ['installer', 'infinityinstaller'],
+              },
+            ],
+            NSPrincipalClass: 'AtomApplication',
+          },
 
           target: [
             {

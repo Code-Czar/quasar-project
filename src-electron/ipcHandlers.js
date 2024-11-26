@@ -1,9 +1,21 @@
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, ipcRenderer, BrowserWindow } from 'electron';
 import { spawnWorker } from './workerUtils';
 // import { mainWindow, appUrl, openWindow, initWebSocket, containersDefault } from './main';
 import { delay } from './utils';
+import { logger as log } from './utils';
 
 export const initializeIpcHandlers = () => {
+  ipcMain.on('auth-redirect', (event, url) => {
+    log('Received auth redirect:', url);
+
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    if (mainWindow) {
+      // Navigate to auth route
+      mainWindow.webContents.executeJavaScript(`
+        window.location.href = '/#/auth${url.includes('access_token') ? window.location.hash : ''}'
+      `);
+    }
+  });
   ipcMain.handle('check-for-updates', async (event, productId) => {
     try {
       const result = await spawnWorker('checkUpdatesWorker', { productId });
@@ -28,10 +40,6 @@ export const initializeIpcHandlers = () => {
         message: error.message || 'Failed to install dependencies',
       };
     }
-  });
-
-  ipcMain.on('navigate-to-url', (event, url) => {
-    mainWindow?.loadURL(url);
   });
 
   ipcMain.handle(
