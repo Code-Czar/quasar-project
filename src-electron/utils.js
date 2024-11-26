@@ -5,6 +5,8 @@ import fs from 'fs-extra';
 import unzip from 'node-unzip-2';
 import path from 'path';
 
+export const isDevMode =
+  !app.isPackaged || process.env.NODE_ENV === 'development';
 const resourcesPath = app.getPath('userData');
 const logFile = fs.createWriteStream(`${resourcesPath}/app.log`, {
   flags: 'a',

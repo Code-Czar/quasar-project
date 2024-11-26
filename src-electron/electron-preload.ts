@@ -43,6 +43,7 @@ ipcRenderer.on('navigate-to-url', (event, url) => {
     // });
     window.dispatchEvent(new CustomEvent('navigate-to-url', { detail: url }));
   } else {
-    mainWindow?.loadURL(url);
+    window.location.href = url;
+    // mainWindow?.loadURL(url);
   }
 });
