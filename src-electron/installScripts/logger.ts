@@ -6,7 +6,7 @@ const resourcesPath = app.getPath('userData');
 const logFile = fs.createWriteStream(`${resourcesPath}/app.log`, {
   flags: 'a',
 });
-const logger = function (message: any) {
+export const logger = function (message: any) {
   logFile.write(`${new Date().toISOString()} - ${message}\n`);
   // if (!isProduction) {
   console.log(message);

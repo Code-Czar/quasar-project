@@ -1,33 +1,28 @@
 import path from 'path';
 import { app, ipcMain, ipcRenderer, BrowserWindow } from 'electron';
-// import { spawnWorker } from './workerUtils';
-// import { mainWindow, appUrl, openWindow, initWebSocket, containersDefault } from './main';
 import { delay } from './utils';
-// import { logger as log } from './utils';
+import { logger as log } from './logger';
 import {
   getCurrentVersion,
   checkForUpdates,
   installSoftwareUpdate,
+  launchSoftware,
 } from './autoUpdate';
 
-const DOWNLOAD_DIR = path.dirname(app.getAppPath());
+// const DOWNLOAD_DIR = path.dirname(app.getAppPath());
 
 export const initializeIpcHandlers = () => {
   ipcMain.handle(
     'check-for-updates',
     async (event, productName, requestPlatform, requestArch) => {
-      console.log('🚀 ~ ipcMain.handle ~ event:', productName);
+      log(` Checking updates for : ${productName}`);
 
       const currentVersion = await getCurrentVersion();
-      console.log('🚀 ~ ipcMain.handle ~ currentVersion:', currentVersion);
-      const updates = await checkForUpdates(
-        productName,
-        false,
-        DOWNLOAD_DIR,
-        requestPlatform,
-        requestArch,
-      );
-      console.log('🚀 ~ ipcMain.handle ~ updates:', updates);
+      log(` Current version : ${currentVersion}`);
+
+      const updates = await checkForUpdates(productName);
+      log(` Check updates result : ${currentVersion}`);
+      return updates;
     },
   );
   ipcMain.handle(
@@ -38,4 +33,9 @@ export const initializeIpcHandlers = () => {
       await installSoftwareUpdate(productName, requestPlatform, requestArch);
     },
   );
+  ipcMain.handle('launch-software', async (event, productName) => {
+    // console.log('🚀 ~ ipcMain.handle ~ event:', productName);
+
+    await launchSoftware(productName);
+  });
 };

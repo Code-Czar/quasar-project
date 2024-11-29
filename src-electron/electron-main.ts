@@ -7,7 +7,7 @@ import path from 'path';
 // Dynamically resolve paths using __dirname (or app.getAppPath() if needed)
 import { initializeAutoUpdater } from './installScripts/autoUpdate';
 import { initializeIpcHandlers } from './installScripts/ipcHandlers';
-import './installScripts/websocket';
+import { initWebSocket } from './installScripts/websocket';
 
 // import { logger as log, isDevMode } from './installScripts/utils';
 // import { isDevMode } from './installScripts/utils';
@@ -59,7 +59,7 @@ function createMainWindow() {
     : 'http://localhost:9300';
 
   mainWindow.loadURL(mainURL);
-  // initWebSocket();
+  initWebSocket(openWindow);
 }
 
 app.whenReady().then(() => {

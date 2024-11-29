@@ -1,5 +1,12 @@
 // electron-preload.ts
 const { contextBridge, ipcRenderer } = require('electron');
+const os = require('os');
+
+const platform = os.platform(); // Expose platform dynamically
+const arch = os.arch(); // Expose architecture dynamically
+console.log('🚀 ~ platform:', platform);
+console.log('🚀 ~ arch:', arch);
+
 // const { logger: log } = require('./utils');
 
 // const { remote } = require('@electron/remote');
@@ -8,18 +15,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   installDocker: (productId: string, callback: Function) =>
     ipcRenderer.invoke('install-dependencies', productId),
   checkContainers: () => ipcRenderer.invoke('check-docker-containers'),
-  checkForUpdates: (
+  checkForUpdates: async (
     productName: string,
-    requestPlatform?: string | undefined,
-    requestArch?: string | undefined,
-  ) =>
-    ipcRenderer.invoke(
-      'check-for-updates',
-      productName,
-      requestPlatform,
-      requestArch,
-    ),
-  installSoftwareUpdate: (
+    platform?: string | undefined,
+    arch?: string | undefined,
+  ) => ipcRenderer.invoke('check-for-updates', productName, platform, arch),
+  installSoftwareUpdate: async (
     productName: string,
     requestPlatform?: string | undefined,
     requestArch?: string | undefined,
@@ -30,8 +31,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       requestPlatform,
       requestArch,
     ),
+  launchSoftware: async (productName: string) =>
+    ipcRenderer.invoke('launch-software', productName),
   navigateTo: (url: string) => ipcRenderer.send('navigate-to-url', url), // Add navigate function
   authRedirect: (url: string) => ipcRenderer.send('auth-redirect', url), // Add navigate function
+  onUpdateProgress: (callback) => ipcRenderer.on('update-progress', callback),
+  onUpdateComplete: (callback) => ipcRenderer.on('update-complete', callback),
+  onUpdateError: (callback) => ipcRenderer.on('update-error', callback),
   // remoteMethod: (methodName: string, ...args: any[]) =>
   //   remote[methodName](...args),
 });

@@ -1,9 +1,11 @@
-import { app, dialog } from 'electron';
-import { log } from 'electron-log';
-import { extractZip } from './utils';
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
+import { app, dialog } from 'electron';
+import { spawn } from 'child_process';
+// import { log } from 'electron-log';
+import { logger as log } from './logger';
+import { extractZip } from './utils';
 
 const UPDATE_CHECK_URL = 'https://beniben.hopto.org/user/check-for-updates';
 const DOWNLOAD_URL = 'https://beniben.hopto.org/user/download-updates';
@@ -11,6 +13,26 @@ const PRODUCT_NAME = 'InfinityInstaller';
 const DOWNLOAD_DIR = path.dirname(app.getPath('userData'));
 
 let mainWindow: any | null = null;
+
+/**
+ * Recursively sets executable permissions for all files in a directory.
+ * @param dirPath The path to the directory to process.
+ */
+const setExecutablePermissionsRecursively = (dirPath: string): void => {
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const entryPath = path.join(dirPath, entry.name);
+
+    if (entry.isDirectory()) {
+      // Recurse into subdirectories
+      setExecutablePermissionsRecursively(entryPath);
+    } else if (entry.isFile()) {
+      // Set executable permissions for files
+      fs.chmodSync(entryPath, '755'); // chmod +x
+    }
+  }
+};
 
 // Utility function to read the current app version
 export const getCurrentVersion = async (): Promise<string | null> => {
@@ -21,7 +43,7 @@ export const getCurrentVersion = async (): Promise<string | null> => {
     );
     if (fs.existsSync(versionPath)) {
       const versionFile = await fs.promises.readFile(versionPath, 'utf8');
-      const versionData = yaml.load(versionFile);
+      const versionData: any = yaml.load(versionFile);
       return versionData?.version || null;
     }
     return null;
@@ -43,11 +65,13 @@ export const checkForUpdates = async (
     const currentVersion = await getCurrentVersion();
     log(`Checking for updates (current version: ${currentVersion})...`);
 
-    const response = await fetch(UPDATE_CHECK_URL, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ version: currentVersion, product }),
-    });
+    const response = await fetch(
+      `${UPDATE_CHECK_URL}?version=${encodeURIComponent(currentVersion || '')}&product=${encodeURIComponent(product)}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
 
     if (!response.ok) {
       throw new Error(`Failed to check updates: ${response.statusText}`);
@@ -174,9 +198,6 @@ export const installUpdate = async (
       await fs.promises.copyFile(tempPath, asarPath);
       await fs.promises.copyFile(versionFile, targetVersionFile);
       log('Update installed successfully.');
-    } else {
-      log('Installing software...');
-      // Add installation logic for new software here if needed
     }
 
     setTimeout(() => {
@@ -186,6 +207,187 @@ export const installUpdate = async (
     }, 1000);
   } catch (error: any) {
     log(`Error during installation: ${error.message}`);
+    throw error;
+  }
+};
+
+// Function to install the extracted update
+export const installSoftware = async (
+  extractedPath: string,
+  productName: string,
+  isUpdate: boolean,
+): Promise<string | null> => {
+  try {
+    const appPath = path.dirname(app.getAppPath());
+    const targetPath = path.join(appPath, productName);
+
+    // Log installation start
+    if (!isUpdate) {
+      log(`Installing software... Extracted Path: ${extractedPath}`);
+    }
+
+    // Ensure target path exists
+    if (!fs.existsSync(targetPath)) {
+      fs.mkdirSync(targetPath, { recursive: true });
+    }
+
+    // Move all extracted files to the target path
+    const files = fs.readdirSync(extractedPath);
+    for (const file of files) {
+      const src = path.join(extractedPath, file);
+      const dest = path.join(targetPath, file);
+      log(`Moving: ${src} -> ${dest}`);
+      fs.renameSync(src, dest);
+    }
+
+    // Extract ZIP files in the target path
+    const zipFiles = fs
+      .readdirSync(targetPath)
+      .filter((file) => file.endsWith('.zip'));
+    for (const zipFile of zipFiles) {
+      const zipPath = path.join(targetPath, zipFile);
+      log(`Extracting ZIP file: ${zipPath}`);
+      await extractZip(zipPath, targetPath); // Use extractZip to extract the file
+      log(`Extracted ZIP file: ${zipPath}`);
+
+      // Optionally delete the ZIP file after extraction
+      fs.unlinkSync(zipPath);
+      log(`Deleted ZIP file: ${zipPath}`);
+    }
+
+    // Find the binary inside 0_appLauncher
+    const appLauncherPath = path.join(targetPath, '0_appLauncher');
+    if (!fs.existsSync(appLauncherPath)) {
+      log(`0_appLauncher folder not found: ${appLauncherPath}`);
+      return null;
+    }
+
+    setExecutablePermissionsRecursively(appLauncherPath);
+
+    const launcherFiles = fs.readdirSync(appLauncherPath);
+
+    // Look for executables (Windows: .exe, .bat; Others: Check executable flag)
+    const binaryFile = launcherFiles.find((file) => {
+      const filePath = path.join(appLauncherPath, file);
+      const isFile = fs.statSync(filePath).isFile();
+      const isExecutable =
+        process.platform === 'win32'
+          ? file.endsWith('.exe') ||
+            file.endsWith('.bat') ||
+            file.endsWith('.cmd') // Check extensions on Windows
+          : (() => {
+              try {
+                fs.accessSync(filePath, fs.constants.X_OK); // Check if file is executable
+                return true;
+              } catch {
+                return false;
+              }
+            })();
+      return isFile && isExecutable;
+    });
+
+    if (binaryFile) {
+      const binaryPath = path.join(appLauncherPath, binaryFile);
+      log(`Binary found: ${binaryPath}`);
+
+      // Set executable permissions only on Unix-like systems
+      if (process.platform !== 'win32') {
+        log(`Setting executable permissions for: ${binaryPath}`);
+        fs.chmodSync(binaryPath, '755');
+      }
+
+      log(`Launcher is ready: ${binaryPath}`);
+      return binaryPath;
+    } else {
+      log('No binary file found in 0_appLauncher.');
+      return null;
+    }
+  } catch (error: any) {
+    log(`Error during installation: ${error.message}`);
+    throw error;
+  }
+};
+
+export const launchSoftware = async (productName: string): Promise<void> => {
+  try {
+    const appPath = path.dirname(app.getAppPath());
+    const productPath = path.join(appPath, productName);
+
+    if (!fs.existsSync(productPath)) {
+      throw new Error(`Product folder not found: ${productPath}`);
+    }
+
+    // Find the first folder matching "0_<anyString>"
+    const subfolders = fs.readdirSync(productPath).filter((folder) => {
+      const fullPath = path.join(productPath, folder);
+      return fs.statSync(fullPath).isDirectory() && /^0_.+/.test(folder);
+    });
+
+    if (subfolders.length === 0) {
+      throw new Error(
+        `No matching "0_<anyString>" folder found in ${productPath}`,
+      );
+    }
+
+    const appFolder = path.join(productPath, subfolders[0]);
+    log(`App folder located: ${appFolder}`);
+
+    // Find the binary file (assumes only one binary exists in the folder)
+    const files = fs.readdirSync(appFolder).filter((file) => {
+      const filePath = path.join(appFolder, file);
+      const isFile = fs.statSync(filePath).isFile();
+      const isExecutable =
+        process.platform === 'win32'
+          ? file.endsWith('.exe') ||
+            file.endsWith('.bat') ||
+            file.endsWith('.cmd') // Windows executables
+          : (() => {
+              try {
+                fs.accessSync(filePath, fs.constants.X_OK); // Check if file is executable
+                return true;
+              } catch {
+                return false;
+              }
+            })();
+      return isFile && isExecutable;
+    });
+
+    if (files.length === 0) {
+      throw new Error(`No executable binary found in ${appFolder}`);
+    }
+
+    const binaryName = files[0];
+    const binaryPath = path.join(appFolder, binaryName);
+    log(`Binary found: ${binaryPath}`);
+
+    // Launch the binary
+    log(`Launching binary: ${binaryName} in working directory: ${appFolder}`);
+    const child = spawn(`./${binaryName}`, [], {
+      cwd: appFolder, // Set the working directory to appFolder
+      env: { ...process.env }, // Inherit parent process environment variables
+      detached: true, // Allows the parent process to exit without killing the child process
+      stdio: ['ignore', 'pipe', 'pipe'], // Capture output for debugging
+    });
+
+    child.stdout?.on('data', (data) => {
+      log(`Binary stdout: ${data.toString()}`);
+    });
+
+    child.stderr?.on('data', (data) => {
+      log(`Binary stderr: ${data.toString()}`);
+    });
+
+    child.on('error', (err) => {
+      log(`Child process error: ${err.message}`);
+    });
+
+    child.on('close', (code) => {
+      log(`Binary process exited with code: ${code}`);
+    });
+
+    child.unref(); // Detach the child process
+  } catch (error: any) {
+    log(`Error launching binary: ${error.message}`);
     throw error;
   }
 };
@@ -201,58 +403,59 @@ export const installSoftwareUpdate = async (
   app.whenReady().then(async () => {
     try {
       // Step 1: Check for updates
-      const { update_available, server_version, userResponse } =
-        await checkForUpdates();
+      // // const { update_available, server_version, userResponse } =
+      // //   await checkForUpdates(productName);
 
-      if (update_available && userResponse === 0) {
-        // User chose to download the update
-        log(
-          `User accepted update. Proceeding to download version ${server_version}...`,
-        );
+      // // if (update_available && userResponse === 0) {
+      //   // User chose to download the update
+      //   log(
+      //     `User accepted update. Proceeding to download version ${server_version}...`,
+      //   );
 
-        // Step 2: Download the update
-        const downloadPath = await downloadUpdate(
-          DOWNLOAD_URL,
-          productName,
-          DOWNLOAD_DIR,
-          requestPlatform,
-          requestArch,
-        );
-        mainWindow.webContents.send('update-progress', {
-          stage: 'downloading',
-          progress: 50,
-        });
+      // Step 2: Download the update
+      const downloadPath = await downloadUpdate(
+        DOWNLOAD_URL,
+        productName,
+        DOWNLOAD_DIR,
+        requestPlatform,
+        requestArch,
+      );
+      mainWindow.webContents.send('update-progress', {
+        stage: 'downloading',
+        progress: 50,
+      });
 
-        log(`Update downloaded to: ${downloadPath}`);
-        mainWindow.webContents.send('update-progress', {
-          stage: 'extracting',
-          progress: 50,
-        });
+      log(`Update downloaded to: ${downloadPath}`);
+      mainWindow.webContents.send('update-progress', {
+        stage: 'extracting',
+        progress: 50,
+      });
+      const appPath = path.dirname(app.getAppPath());
 
-        // Step 3: Extract the downloaded update
-        const extractedPath = await extractUpdate(downloadPath, DOWNLOAD_DIR);
-        log(`Update extracted to: ${extractedPath}`);
-        mainWindow.webContents.send('update-progress', {
-          stage: 'extracted',
-          progress: 50,
-        });
-        mainWindow.webContents.send('update-progress', {
-          stage: 'installing',
-          progress: 50,
-        });
+      // Step 3: Extract the downloaded update
+      const extractedPath = await extractUpdate(downloadPath, appPath);
+      log(`Update extracted to: ${extractedPath}`);
+      mainWindow.webContents.send('update-progress', {
+        stage: 'extracted',
+        progress: 50,
+      });
+      mainWindow.webContents.send('update-progress', {
+        stage: 'installing',
+        progress: 50,
+      });
 
-        // Step 4: Install the update
-        await installUpdate(extractedPath, true);
-        log('Update installation complete.');
-        mainWindow.webContents.send('update-progress', {
-          stage: 'installed',
-          progress: 50,
-        });
-      } else if (update_available) {
-        log('User chose to delay the update.');
-      } else {
-        log('No updates available.');
-      }
+      // Step 4: Install the update
+      await installSoftware(extractedPath, productName, false);
+      log('Update installation complete.');
+      mainWindow.webContents.send('update-progress', {
+        stage: 'installed',
+        progress: 50,
+      });
+      // } else if (update_available) {
+      //   log('User chose to delay the update.');
+      // } else {
+      //   log('No updates available.');
+      // }
     } catch (error: any) {
       log(`Error during the update process: ${error.message}`);
       mainWindow.webContents.send('update-error', { message: error.message });

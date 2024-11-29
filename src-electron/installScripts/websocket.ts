@@ -5,7 +5,7 @@ import { log } from 'electron-log';
 // @ts-ignore
 let wss: Server<typeof WebSocket, typeof IncomingMessage> = null;
 
-const initWebSocket = () => {
+export const initWebSocket = (openWindow) => {
   // @ts-ignore
   wss?.on('connection', (ws) => {
     log('Client connected');
@@ -21,7 +21,7 @@ const initWebSocket = () => {
 
         // Perform actions based on the received message
         if (data.message === 'open-window') {
-          // openWindow(data.windowTitle, data.url);
+          openWindow(data.windowTitle, data.url);
           log('Triggering action in Electron app!');
         }
       } catch (error) {
@@ -38,7 +38,7 @@ const initWebSocket = () => {
 if (!wss) {
   try {
     wss = new WebSocket.Server({ port: 8766, host: '0.0.0.0' });
-    initWebSocket();
+    // initWebSocket();
     // console.log('🚀 ~ createWindow ~ wss:', wss);
   } catch (error) {
     log(`ERROR ${error}`);
