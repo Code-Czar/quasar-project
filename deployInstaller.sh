@@ -11,7 +11,7 @@ REMOTE_DIR="/var/www/softwares/installer" # Target directory on Raspberry Pi
 
 # Files to upload
 FILES_TO_UPLOAD=(
-  "./dist/electron/Packaged/mac/InfinityInstaller.app/Contents/Resources/app.asar"
+  "./dist/electron/Packaged/InfinityInstaller-darwin-arm64/InfinityInstaller.app/Contents/Resources/app.asar"
 )
 
 # Path to package.json

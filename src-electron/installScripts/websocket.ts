@@ -1,25 +1,28 @@
 import WebSocket from 'ws'; // Import the WebSocket library
-let wss = null;
+import { log } from 'electron-log';
+
+// import { logger } from './utils';
+// @ts-ignore
+let wss: Server<typeof WebSocket, typeof IncomingMessage> = null;
 
 const initWebSocket = () => {
   // @ts-ignore
   wss?.on('connection', (ws) => {
-    logger('Client connected');
+    log('Client connected');
 
-    ws.on('message', (message) => {
+    ws.on('message', (message: any) => {
       const messageString =
         message instanceof Buffer ? message.toString() : message;
 
       try {
         // Parse the string as JSON
-        // @ts-expect-error ignore
         const data = JSON.parse(messageString);
-        logger('Received:', data);
+        log(`Received: ${data}`);
 
         // Perform actions based on the received message
         if (data.message === 'open-window') {
-          openWindow(data.windowTitle, data.url);
-          logger('Triggering action in Electron app!');
+          // openWindow(data.windowTitle, data.url);
+          log('Triggering action in Electron app!');
         }
       } catch (error) {
         console.error('Error parsing message:', error);
@@ -27,7 +30,7 @@ const initWebSocket = () => {
     });
 
     ws.on('close', () => {
-      logger('Client disconnected');
+      log('Client disconnected');
     });
   });
 };
@@ -38,6 +41,6 @@ if (!wss) {
     initWebSocket();
     // console.log('🚀 ~ createWindow ~ wss:', wss);
   } catch (error) {
-    logger('ERROR ', error);
+    log(`ERROR ${error}`);
   }
 }

@@ -1,25 +1,27 @@
 // import fs from 'fs';
-import { app } from 'electron';
+// import { app } from 'electron';
 import fs from 'fs-extra';
-
+// @ts-ignore
 import unzip from 'node-unzip-2';
 import path from 'path';
 
-export const isDevMode =
-  !app.isPackaged || process.env.NODE_ENV === 'development';
-const resourcesPath = app.getPath('userData');
-const logFile = fs.createWriteStream(`${resourcesPath}/app.log`, {
-  flags: 'a',
-});
+// export const isDevMode =
+//   !app.isPackaged || process.env.NODE_ENV === 'development';
+// const resourcesPath = app.getPath('userData');
+// const logFile = fs.createWriteStream(`${resourcesPath}/app.log`, {
+//   flags: 'a',
+// });
 
-export const logger = function (message) {
-  logFile.write(`${new Date().toISOString()} - ${message}\n`);
-  // if (!isProduction) {
-  console.log(message);
-  // }
-};
-export const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// export const logger = function (message: any) {
+//   logFile.write(`${new Date().toISOString()} - ${message}\n`);
+//   // if (!isProduction) {
+//   console.log(message);
+//   // }
+// };
+export const delay = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
+// @ts-ignore
 export const extractZip = (zipFilePath, outputDir) => {
   return new Promise((resolve, reject) => {
     // Create output directory if it doesn't exist
@@ -30,6 +32,7 @@ export const extractZip = (zipFilePath, outputDir) => {
     const unzipStream = fs
       .createReadStream(zipFilePath)
       .pipe(unzip.Parse())
+      // @ts-ignore
       .on('entry', function (entry) {
         const fileName = entry.path;
         const type = entry.type;
@@ -66,7 +69,7 @@ export const extractZip = (zipFilePath, outputDir) => {
       resolve(outputDir);
     });
 
-    unzipStream.on('error', (error) => {
+    unzipStream.on('error', (error: any) => {
       console.error('Error extracting ZIP file:', error.message);
       reject(error);
     });

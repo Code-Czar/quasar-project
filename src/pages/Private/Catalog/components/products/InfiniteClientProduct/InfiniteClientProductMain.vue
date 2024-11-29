@@ -7,6 +7,7 @@
     <AppLaunch 
       v-if="!loading && hasActiveSubscription && !error" 
       :product-id="selectedProductId" 
+      :product="selectedProduct" 
     />
     <!-- <ErrorPage v-if="error" /> Replace with an actual error component if needed -->
   </div>
@@ -42,6 +43,7 @@ const productIds = computed(() => {
 });
 
 const selectedProductId = ref<string | null>(null);
+const selectedProduct = ref<{}>(null);
 
 console.log("🚀 ~ productIds:", productIds);
 const checkSubscriptionStatus = async () => {
@@ -62,18 +64,33 @@ const checkSubscriptionStatus = async () => {
       // Get the list of subscribed products from the response
       // @ts-expect-error ignore
       const subscriptions = response.data?.subscribed_products || [];
-      console.log("🚀 ~ checkSubscriptionStatus ~ subscriptions:", subscriptions, productIds.value);
+      console.log("🚀 ~ checkSubscriptionStatus ~ subscriptions:", subscriptions, productIds.value, response.data);
 
-      // Determine if the user is subscribed to either product ID and set the selected product ID
-      if (subscriptions.includes(productIds.value?.testing)) {
+      for(const subscription of subscriptions){
+        console.log("🚀 ~ checkSubscriptionStatus ~ subscription:", subscription)
+        if(!subscription || !subscription.product_id){
+          continue
+        }
+        const products_ids =  Object.values(subscription.product_id)
+        // console.log("🚀 ~ checkSubscriptionStatus ~ products_ids:", products_ids, subscription)
+        if (products_ids?.includes(productIds.value?.testing)) {
         hasActiveSubscription.value = true;
         selectedProductId.value = productIds.value?.testing;
-      } else if (subscriptions.includes(productIds.value?.production)) {
+        selectedProduct.value = subscription;
+        break;
+      } else if (products_ids?.includes(productIds.value?.production)) {
         hasActiveSubscription.value = true;
+        
         selectedProductId.value = productIds.value?.production;
+        selectedProduct.value = subscription;
+        break;
+
       } else {
         hasActiveSubscription.value = false;
       }
+      }
+      // Determine if the user is subscribed to either product ID and set the selected product ID
+      
 
       console.log("🚀 ~ checkSubscriptionStatus ~ hasActiveSubscription.value:", hasActiveSubscription.value);
     } else {

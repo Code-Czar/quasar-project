@@ -3,8 +3,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, onMounted } from 'vue';
+import { ref, defineProps, onMounted, onUnmounted } from 'vue';
 import { Platform } from 'quasar';
+const { ipcRenderer } = window.require('electron');
+
 
 // Props
 const props = defineProps({
@@ -12,73 +14,69 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  product:{
+    // type: typeof any, 
+    required: true,
+  }
 });
 
 const isElectron = Platform.is.electron;
 const message = ref('Initializing...');
-const updateMessage = async (inputMessage) =>{
-  console.log("🚀 ~ updateMessage ~ inputMessage:", inputMessage)
-  message.value = inputMessage
-}
+const updateStage = ref<string | null>(null);
+const updateProgress = ref<number | null>(null);
+const updateMessage = ref<string | null>(null);
 
-// Function to install dependencies with productId
-const installDependencies = async (updateMessage) => {
-  console.log("🚀🚀🚀 ~ installDependencies ~ installDependencies:", installDependencies)
-  try {
-    // @ts-expect-error electronAPI
-    const result = await window.electronAPI.installDocker(props.productId, updateMessage);
-    console.log("🚀 ~ installDependencies ~ result:", result)
-    if(result.success){
-      checkContainers();
-    }
-    // console.log(result); // Log or display success message
-  } catch (error) {
-    console.error(error); // Handle errors
-  }
-};
 
-// Function to check Docker containers with productId
-const checkContainers = async () => {
-  try {
-    // @ts-expect-error electronAPI
-    const result = await window.electronAPI.checkContainers(props.productId);
-    console.log(result); // Log or display success message
-    message.value = result;
-  } catch (error) {
-    console.error(error); // Handle errors
-    message.value = 'Failed to check containers';
-  }
-};
+// const updateMessage = async (inputMessage) =>{
+//   console.log("🚀 ~ updateMessage ~ inputMessage:", inputMessage)
+//   message.value = inputMessage
+// }
+
 
 // Function to check for updates
 const checkForUpdates = async (updateMessage) => {
   // console.log("WINDOW ELECTRON API",window.electronAPI); // Check if electronAPI is available
   console.log("PRODUCT ID ",props.productId); // Check if electronAPI is available
+  console.log("PRODUCT value ",props.product); // Check if electronAPI is available
   try {
-    //   // @ts-expect-error electronAPI
-    // const result = await window.electronAPI.checkForUpdates(props.productId);
-    // console.log("result",result); // Check if electronAPI is available
+    // @ts-expect-error electronAPI
+    const {update_available, userResponse} = await window.electronAPI.checkForUpdates(props.product.product_name, "mac", "arm64");
 
-    // if (result.shouldUpdate) {
-    //   message.value = `Update available: ${result.latestVersion}. Please update to continue.`;
-    //   installDependencies(updateMessage)
-    // } else {
-    //   message.value = 'You are using the latest version.';
-    //   // Automatically check containers after a short delay if no update is needed
-    //   setTimeout(()=>{checkContainers()}, 1000);
-    // }
+    if(update_available && userResponse){
+
+      const result = await window.electronAPI.installSoftwareUpdate(props.product.product_name, "mac", "arm64");
+    }
   } catch (error) {
     console.error('Update check failed:', error);
-    message.value = 'Failed to check for updates';
+    updateMessage.value = 'Failed to check for updates';
   }
 };
 
 // Trigger actions on component mount
 onMounted(() => {
   if (isElectron) {
+     // Listen for 'update-progress' events
+  ipcRenderer.on('update-progress', (event, data) => {
+    updateMessage.value = data.stage;
+    updateProgress.value = data.progress;
+  });
+
+  // Listen for 'update-complete' events
+  ipcRenderer.on('update-complete', (event, data) => {
+    updateMessage.value = data.stage;
+  });
+
+  // Listen for 'update-error' events
+  ipcRenderer.on('update-error', (event, data) => {
+    updateMessage.value = `Error: ${data.message}`;
+  });
     checkForUpdates(updateMessage);
   } else {
     message.value = 'Not running in Electron environment';
   }
 });
+
 </script>
+
+
+

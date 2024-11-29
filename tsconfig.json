@@ -1,10 +1,11 @@
 {
   "extends": "@quasar/app-vite/tsconfig-preset",
   "compilerOptions": {
-    "baseUrl": "."
+    "baseUrl": ".", 
   },
   "include": [
-    "src-electron/installScripts/**/*.ts"  // Use "include" instead of "files" for glob patterns
+    "src-electron/installScripts/**/*.ts",  // Use "include" instead of "files" for glob patterns
+    "src-electron/*.ts",  // Use "include" instead of "files" for glob patterns
   ],
   // "files": ["./src-electron/installScripts/*.ts"],
   "exclude": [

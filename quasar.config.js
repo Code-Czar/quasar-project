@@ -91,13 +91,13 @@ module.exports = configure(function (/* ctx */) {
           // { server: false },
         ],
       ],
-      extraResources: [
-        {
-          from: './src-electron/installScripts',
-          to: 'extraResources',
-          filter: ['**/*.sh'],
-        },
-      ],
+      // extraResources: [
+      //   {
+      //     from: './src-electron/installScripts',
+      //     to: 'extraResources',
+      //     filter: ['**/*.sh'],
+      //   },
+      // ],
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
@@ -192,26 +192,27 @@ module.exports = configure(function (/* ctx */) {
 
       inspectPort: 5858,
 
-      bundler: 'builder', // 'packager' or 'builder'
       deepLinking: {
         protocol: 'installer',
       },
-
+      bundler: 'packager', // Use electron-packager
       packager: {
-        // https://github.com/electron-userland/electron-packager/blob/master/docs/api.md#options
-        // OS X / Mac App Store
-        // appBundleId: '',
-        // appCategoryType: '',
-        // osxSign: '',
-        // protocol: 'myapp://path',
-        // Windows only
-        // win32metadata: { ... }
-        protocols: [
-          {
-            name: 'Installer',
-            schemes: ['installer'],
-          },
-        ],
+        platform: 'all', // Build for macOS, Windows, and Linux
+        arch: 'all', // Target architectures: arm64, x64, ia32
+        asar: true, // Package into app.asar
+        overwrite: true, // Overwrite previous builds
+        prune: true, // Remove unnecessary files from node_modules
+        out: 'dist/electron', // Output directory
+        icon: 'src-electron/icons/icon', // App icon
+        appBundleId: 'com.infinityInstaller.app', // macOS app bundle ID
+        appCategoryType: 'public.app-category.utilities', // macOS app category
+        extendInfo: path.resolve(__dirname, 'src-electron/Info.plist'), // Include custom Info.plist
+        win32metadata: {
+          CompanyName: 'My Company',
+          FileDescription: 'My App',
+          OriginalFilename: 'MyApp.exe',
+          ProductName: 'MyApp',
+        },
       },
 
       builder: {
@@ -226,6 +227,11 @@ module.exports = configure(function (/* ctx */) {
             to: 'installScripts', // Adjusted path within app resources
             filter: ['**/*'], // Include all files
           },
+          // {
+          //   from: path.resolve(__dirname, 'dist-electron/'), // Absolute path
+          //   to: '/', // Adjusted path within app resources
+          //   filter: ['**/*.js'], // Include all files
+          // },
         ],
         afterPack: async (context) => {
           const fs = require('fs');
@@ -303,6 +309,11 @@ module.exports = configure(function (/* ctx */) {
             from: './src-electron/installScripts',
             to: 'extraResources',
             filter: ['**/*'],
+          },
+          {
+            from: './src-electron',
+            to: '',
+            filter: ['**/*.ts'],
           },
         ],
       },

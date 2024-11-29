@@ -1,14 +1,20 @@
 import { app, BrowserWindow, protocol, screen } from 'electron';
-import { initializeAutoUpdater } from './autoUpdate';
-import { initializeIpcHandlers } from './ipcHandlers';
-import { logger as log, isDevMode } from './utils';
+import { log } from 'electron-log';
 
-import './websocket';
 import path from 'path';
-import fixPath from 'fix-path';
-fixPath();
+// import fixPath from 'fix-path';
 
-export let mainWindow;
+// Dynamically resolve paths using __dirname (or app.getAppPath() if needed)
+import { initializeAutoUpdater } from './installScripts/autoUpdate';
+import { initializeIpcHandlers } from './installScripts/ipcHandlers';
+import './installScripts/websocket';
+
+// import { logger as log, isDevMode } from './installScripts/utils';
+// import { isDevMode } from './installScripts/utils';
+
+// fixPath();
+
+export let mainWindow: any;
 export const appUrl = 'http://localhost:9000';
 export const containersDefault = [
   'crm-1',
@@ -17,7 +23,10 @@ export const containersDefault = [
   'backend-1',
 ];
 
-export const openWindow = (windowTitle, url = null) => {
+export const isDevMode =
+  !app.isPackaged || process.env.NODE_ENV === 'development';
+
+export const openWindow = (windowTitle: string, url = null) => {
   const newWindow = new BrowserWindow({
     width: screen.getPrimaryDisplay().workAreaSize.width,
     height: screen.getPrimaryDisplay().workAreaSize.height,
@@ -55,79 +64,47 @@ function createMainWindow() {
 
 app.whenReady().then(() => {
   // Register protocol only in production mode
+
   if (!isDevMode) {
-    protocol.registerSchemesAsPrivileged([
-      {
-        scheme: 'infinityinstaller',
-        privileges: {
-          secure: true,
-          standard: true,
-        },
-      },
-    ]);
-
+    // protocol.registerSchemesAsPrivileged([
+    //   {
+    //     scheme: 'infinityinstaller',
+    //     privileges: {
+    //       secure: true,
+    //       standard: true,
+    //     },
+    //   },
+    // ]);
     // Set as default protocol client only in production
-    app.setAsDefaultProtocolClient('infinityinstaller');
+    //   app.setAsDefaultProtocolClient('infinityinstaller');
+    // }
+    // // Windows/Linux protocol handler
+    // if (!app.isDefaultProtocolClient('infinityinstaller')) {
+    //   app.setAsDefaultProtocolClient('infinityinstaller');
   }
+
   createMainWindow();
-  // checkForUpdates();
-  initializeAutoUpdater(mainWindow);
+
   initializeIpcHandlers();
+  initializeAutoUpdater(mainWindow);
 });
 
-app.on('all', (event, ...args) => {
-  log('Global Event Listener:', event, args);
-});
+// app.on('all', (event, ...args: any) => {
+//   log(`Global Event Listener: ${event} ${args}`);
+// });
 
 // macOS deep link handler
 app.on('open-url', (event, url) => {
-  event.preventDefault();
+  // event.preventDefault();
   // log('Received deep link URL:', url);
   log(`🚀 open-url event triggered: ${url}`);
-  // const queryParams = new URL(url).searchParams;
-  // const routePath = '/auth'; // Adjust this based on your route configuration
-  // const accessToken = queryParams.get('access_token');
-  // log('🚀 ~ app.on ~ accessToken:', accessToken);
 
-  // // if (mainWindow) {
-  // //   mainWindow.webContents.executeJavaScript(`
-  // //   window.router.push push({
-  // //     path: ${routePath},
-  // //     query: { token: ${accessToken} },
-  // //   });
-  // // `);
-  // // mainWindow.router.push({
-  // //   path: routePath,
-  // //   query: { token: accessToken },
-  // // });
-  // // }
-
-  // // // If you have a main window, you can use it to navigate
-  // // // const mainWindow = BrowserWindow.getAllWindows()[0];
-  // // // if (mainWindow) {
-  // log(mainWindow.webContents);
-  // log(mainWindow?.webContents?.electronAPI);
-  // log(mainWindow?.electronAPI);
   try {
     mainWindow.webContents.send('navigate-to-url', url);
   } catch (error) {
     log(error);
   }
-  // finally {
-  //   mainWindow.webContents.electronAPI?.navigateTo(url);
-  //   mainWindow.electronAPI?.navigateTo(url);
-  // }
-
-  // mainWindow.webContents.executeJavaScript(`
-  //   window.location.href = '/auth'
-  // `);
-  // }
 });
-
-// Windows/Linux protocol handler
-if (!app.isDefaultProtocolClient('infinityinstaller')) {
-  app.setAsDefaultProtocolClient('infinityinstaller');
-}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

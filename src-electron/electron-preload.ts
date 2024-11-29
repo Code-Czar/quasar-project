@@ -1,14 +1,35 @@
 // electron-preload.ts
 const { contextBridge, ipcRenderer } = require('electron');
+// const { logger: log } = require('./utils');
 
 // const { remote } = require('@electron/remote');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  installDocker: (productId: string, callback) =>
+  installDocker: (productId: string, callback: Function) =>
     ipcRenderer.invoke('install-dependencies', productId),
   checkContainers: () => ipcRenderer.invoke('check-docker-containers'),
-  checkForUpdates: (productId: string) =>
-    ipcRenderer.invoke('check-for-updates', productId),
+  checkForUpdates: (
+    productName: string,
+    requestPlatform?: string | undefined,
+    requestArch?: string | undefined,
+  ) =>
+    ipcRenderer.invoke(
+      'check-for-updates',
+      productName,
+      requestPlatform,
+      requestArch,
+    ),
+  installSoftwareUpdate: (
+    productName: string,
+    requestPlatform?: string | undefined,
+    requestArch?: string | undefined,
+  ) =>
+    ipcRenderer.invoke(
+      'install-software-update',
+      productName,
+      requestPlatform,
+      requestArch,
+    ),
   navigateTo: (url: string) => ipcRenderer.send('navigate-to-url', url), // Add navigate function
   authRedirect: (url: string) => ipcRenderer.send('auth-redirect', url), // Add navigate function
   // remoteMethod: (methodName: string, ...args: any[]) =>
@@ -16,9 +37,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 
 ipcRenderer.on('auth-callback', (event, data) => {
-  log('Access Token:', data);
-  log('Access Token:', data.accessToken);
-  log('Refresh Token:', data.refreshToken);
+  // log('Access Token:', data);
+  // log('Access Token:', data.accessToken);
+  // log('Refresh Token:', data.refreshToken);
   // Store or use the token as needed
 });
 
@@ -47,3 +68,8 @@ ipcRenderer.on('navigate-to-url', (event, url) => {
     // mainWindow?.loadURL(url);
   }
 });
+// ipcRenderer.on('check-for-updates', (url) => {
+//   // const { logger: log } = require('./utils');
+
+//   console.log('🚀 IPC check for updates:', url);
+// });
