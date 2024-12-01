@@ -65,6 +65,12 @@ for FILE in "${FILES_TO_UPLOAD[@]}"; do
   fi
 done
 
+
+# Create version.yml dynamically and upload it
+echo "Generating and uploading version.yml..."
+ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_IP" "printf \"version: %s\nname: %s\n\" \"$VERSION\" \"$NAME\" > $REMOTE_DIR/updates/version.yml"
+
+
 # Ensure the remote software directory exists
 echo "Ensuring remote software directory exists..."
 ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_IP" "mkdir -p $REMOTE_DIR/software"
@@ -95,9 +101,7 @@ for FOLDER in ./dist/electron/Packaged/*; do
   fi
 done
 
-# Create version.yml dynamically and upload it
-echo "Generating and uploading version.yml..."
-ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_IP" "printf \"version: %s\nname: %s\n\" \"$VERSION\" \"$NAME\" > $REMOTE_DIR/version.yml"
+
 
 # Change ownership of the uploaded files and directories
 echo "Setting ownership of $REMOTE_DIR to www-data:www-data on the remote server..."

@@ -11,6 +11,7 @@ const UPDATE_CHECK_URL = 'https://beniben.hopto.org/user/check-for-updates';
 const DOWNLOAD_URL = 'https://beniben.hopto.org/user/download-updates';
 const PRODUCT_NAME = 'InfinityInstaller';
 const DOWNLOAD_DIR = path.dirname(app.getPath('userData'));
+const UPDATE_DIR = `${DOWNLOAD_DIR}/${PRODUCT_NAME}/updates`;
 
 let mainWindow: any | null = null;
 
@@ -65,13 +66,13 @@ export const checkForUpdates = async (
     const currentVersion = await getCurrentVersion();
     log(`Checking for updates (current version: ${currentVersion})...`);
 
-    const response = await fetch(
-      `${UPDATE_CHECK_URL}?version=${encodeURIComponent(currentVersion || '')}&product=${encodeURIComponent(product)}`,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      },
-    );
+    const updateURL = `${UPDATE_CHECK_URL}?version=${encodeURIComponent(currentVersion || '')}&product=${encodeURIComponent(product)}`;
+
+    log(`🚀 ~ updateURL: ${updateURL}`);
+    const response = await fetch(updateURL, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to check updates: ${response.statusText}`);
@@ -117,11 +118,24 @@ export const downloadUpdate = async (
   try {
     log(`Downloading update from: ${url}`);
     const urlConstructed = new URL(url);
-    const params: { product: string; platform?: string; arch?: string } = {
+    const params: {
+      product: string;
+      platform?: string;
+      arch?: string;
+      zip_files?: string;
+    } = {
       product: productName,
-      platform: requestPlatform,
-      arch: requestArch,
     };
+    if (requestPlatform) {
+      params.platform = requestPlatform;
+    }
+    if (requestArch) {
+      params.platform = requestArch;
+    }
+    if (!requestArch && !requestPlatform) {
+      params.zip_files = 'true';
+    }
+
     urlConstructed.search = new URLSearchParams(params).toString();
     log(`Params: ${urlConstructed.search}`);
 
@@ -164,10 +178,11 @@ export const extractUpdate = async (
   destination: string,
 ): Promise<string> => {
   try {
-    const extractDir = path.join(destination, 'extracted');
+    const extractDir = UPDATE_DIR; // path.join(UPDATE_DIR, 'extracted');
     log(`Extracting update to: ${extractDir}`);
     process.noAsar = true;
     await extractZip(filePath, extractDir);
+    await extractZip(`${UPDATE_DIR}/app.asar.zip`, extractDir);
     return extractDir;
   } catch (error: any) {
     log(`Error during extraction: ${error.message}`);
@@ -181,15 +196,15 @@ export const installUpdate = async (
   isUpdate: boolean,
 ) => {
   try {
-    const resourcesPath = path.dirname(app.getAppPath());
+    const applicationPath = path.dirname(app.getAppPath());
 
     if (isUpdate) {
       log('Installing update...');
-      const asarPath = path.join(resourcesPath, 'app.asar');
-      const backupPath = path.join(resourcesPath, 'app.asar_backup');
-      const tempPath = path.join(resourcesPath, 'app.asar_temp');
+      const asarPath = path.join(applicationPath, 'app.asar');
+      const backupPath = path.join(applicationPath, 'app.asar_backup');
+      const tempPath = path.join(applicationPath, 'app.asar_temp');
       const versionFile = path.join(extractedPath, 'version.yml');
-      const targetVersionFile = path.join(resourcesPath, 'version.yml');
+      const targetVersionFile = path.join(applicationPath, 'version.yml');
 
       await fs.promises.copyFile(asarPath, backupPath);
       await fs.promises.copyFile(
