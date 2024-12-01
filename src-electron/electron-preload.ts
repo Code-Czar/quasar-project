@@ -2,6 +2,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 const os = require('os');
 
+// const platform = 'windows'; // os.platform(); // Expose platform dynamically
+// const arch = 'x64'; //os.arch(); // Expose architecture dynamically
 const platform = os.platform(); // Expose platform dynamically
 const arch = os.arch(); // Expose architecture dynamically
 console.log('🚀 ~ platform:', platform);
@@ -25,19 +27,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     requestPlatform?: string | undefined,
     requestArch?: string | undefined,
   ) =>
-    ipcRenderer.invoke(
-      'install-software-update',
-      productName,
-      requestPlatform,
-      requestArch,
-    ),
-  launchSoftware: async (productName: string) =>
+    ipcRenderer.invoke('install-software-update', productName, platform, arch),
+  launchSoftware: (productName: string) =>
     ipcRenderer.invoke('launch-software', productName),
   navigateTo: (url: string) => ipcRenderer.send('navigate-to-url', url), // Add navigate function
   authRedirect: (url: string) => ipcRenderer.send('auth-redirect', url), // Add navigate function
-  onUpdateProgress: (callback) => ipcRenderer.on('update-progress', callback),
-  onUpdateComplete: (callback) => ipcRenderer.on('update-complete', callback),
-  onUpdateError: (callback) => ipcRenderer.on('update-error', callback),
+  onUpdateProgress: (callback: any) =>
+    ipcRenderer.on('update-progress', callback),
+  onUpdateComplete: (callback: any) =>
+    ipcRenderer.on('update-complete', callback),
+  onUpdateError: (callback: any) => ipcRenderer.on('update-error', callback),
   // remoteMethod: (methodName: string, ...args: any[]) =>
   //   remote[methodName](...args),
 });
@@ -50,6 +49,33 @@ ipcRenderer.on('auth-callback', (event, data) => {
 });
 
 ipcRenderer.on('navigate-to-url', (event, url) => {
+  // const { logger: log } = require('./utils');
+
+  console.log('🚀 1) Navigate to URL:', url);
+  if (url.startsWith('infinityinstaller://')) {
+    console.log('🚀 2) Navigate to URL:', url);
+
+    // Assuming Vue Router is available in the renderer process
+    const queryParams = new URL(url).searchParams;
+    const routePath = '/auth'; // Adjust this based on your route configuration
+    const accessToken = queryParams.get('access_token');
+    console.log('🚀 3) Navigation params:', queryParams);
+    console.log('🚀 4) Token:', accessToken);
+
+    // Use Vue Router to navigate
+    // window.router.push({
+    //   path: routePath,
+    //   query: { token: accessToken },
+    // });
+    window.dispatchEvent(new CustomEvent('navigate-to-url', { detail: url }));
+  } else {
+    window.location.href = url;
+    // mainWindow?.loadURL(url);
+  }
+});
+
+// Listen for protocol invocation
+ipcRenderer.on('protocol-invoked', (event, url) => {
   // const { logger: log } = require('./utils');
 
   console.log('🚀 1) Navigate to URL:', url);

@@ -197,8 +197,8 @@ module.exports = configure(function (/* ctx */) {
       },
       bundler: 'packager', // Use electron-packager
       packager: {
-        platform: 'all', // Build for macOS, Windows, and Linux
-        arch: 'all', // Target architectures: arm64, x64, ia32
+        platform: 'win32,darwin', // Build for Windows (win32) and macOS (darwin)
+        arch: 'arm64,x64', // Target architectures: arm64 and x64
         asar: true, // Package into app.asar
         overwrite: true, // Overwrite previous builds
         prune: true, // Remove unnecessary files from node_modules

@@ -123,6 +123,7 @@ export const downloadUpdate = async (
       arch: requestArch,
     };
     urlConstructed.search = new URLSearchParams(params).toString();
+    log(`Params: ${urlConstructed.search}`);
 
     const response = await fetch(urlConstructed.toString(), {
       method: 'GET',
@@ -413,6 +414,9 @@ export const installSoftwareUpdate = async (
       //   );
 
       // Step 2: Download the update
+      log(
+        `🔥 Installing software update : ${DOWNLOAD_URL}, ${productName}, ${DOWNLOAD_DIR},${requestPlatform},${requestArch}`,
+      );
       const downloadPath = await downloadUpdate(
         DOWNLOAD_URL,
         productName,

@@ -28,6 +28,9 @@ export const initializeIpcHandlers = () => {
   ipcMain.handle(
     'install-software-update',
     async (event, productName, requestPlatform, requestArch) => {
+      console.log('🚀 ~ requestArch:', requestArch);
+      console.log('🚀 ~ requestPlatform:', requestPlatform);
+      console.log('🚀 ~ productName:', productName);
       // console.log('🚀 ~ ipcMain.handle ~ event:', productName);
 
       await installSoftwareUpdate(productName, requestPlatform, requestArch);

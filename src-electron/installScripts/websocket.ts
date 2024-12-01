@@ -5,7 +5,7 @@ import { log } from 'electron-log';
 // @ts-ignore
 let wss: Server<typeof WebSocket, typeof IncomingMessage> = null;
 
-export const initWebSocket = (openWindow) => {
+export const initWebSocket = (openWindow: any) => {
   // @ts-ignore
   wss?.on('connection', (ws) => {
     log('Client connected');

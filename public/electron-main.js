@@ -7,11 +7,12 @@ exports.openWindow = exports.isDevMode = exports.containersDefault = exports.app
 const electron_1 = require("electron");
 const electron_log_1 = require("electron-log");
 const path_1 = __importDefault(require("path"));
-// import fixPath from 'fix-path';
-// Dynamically resolve paths using __dirname (or app.getAppPath() if needed)
+const fs_1 = __importDefault(require("fs"));
+const child_process_1 = require("child_process");
 const autoUpdate_1 = require("./installScripts/autoUpdate");
 const ipcHandlers_1 = require("./installScripts/ipcHandlers");
-require("./installScripts/websocket");
+const websocket_1 = require("./installScripts/websocket");
+exports.mainWindow = null;
 exports.appUrl = 'http://localhost:9000';
 exports.containersDefault = [
     'crm-1',
@@ -51,51 +52,96 @@ function createMainWindow() {
         ? `file://${path_1.default.join(__dirname, 'index.html')}`
         : 'http://localhost:9300';
     exports.mainWindow.loadURL(mainURL);
-    // initWebSocket();
+    (0, websocket_1.initWebSocket)(exports.openWindow);
 }
 electron_1.app.whenReady().then(() => {
-    // Register protocol only in production mode
-    if (!exports.isDevMode) {
-        // protocol.registerSchemesAsPrivileged([
-        //   {
-        //     scheme: 'infinityinstaller',
-        //     privileges: {
-        //       secure: true,
-        //       standard: true,
-        //     },
-        //   },
-        // ]);
-        // Set as default protocol client only in production
-        //   app.setAsDefaultProtocolClient('infinityinstaller');
-        // }
-        // // Windows/Linux protocol handler
-        // if (!app.isDefaultProtocolClient('infinityinstaller')) {
-        //   app.setAsDefaultProtocolClient('infinityinstaller');
+    if (process.platform === 'win32') {
+        // Protocol setup
+        const protocolName = 'infinityinstaller';
+        const execPath = process.execPath;
+        const escapedExecPath = execPath
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"');
+        const command = `"${escapedExecPath}" "%1"`;
+        const registryScript = `
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\\Software\\Classes\\${protocolName}]
+@="URL:Infinity Installer Protocol"
+"URL Protocol"=""
+
+[HKEY_CURRENT_USER\\Software\\Classes\\${protocolName}\\shell]
+
+[HKEY_CURRENT_USER\\Software\\Classes\\${protocolName}\\shell\\open]
+
+[HKEY_CURRENT_USER\\Software\\Classes\\${protocolName}\\shell\\open\\command]
+@="${command}"
+`;
+        // Register protocol
+        const success = electron_1.app.setAsDefaultProtocolClient(protocolName);
+        if (success) {
+            console.log(`${protocolName} protocol successfully registered.`);
+        }
+        else {
+            console.log(`Failed to register ${protocolName} protocol.`);
+        }
+        // Log and execute registry script
+        console.log('Generated Registry Script:', registryScript);
+        const tempRegistryFile = `${require('os').tmpdir()}\\protocol_registry.reg`;
+        fs_1.default.writeFileSync(tempRegistryFile, registryScript, 'utf-8');
+        try {
+            (0, child_process_1.execSync)(`reg import "${tempRegistryFile}"`, { stdio: 'inherit' });
+            console.log('Protocol handler registered successfully.');
+        }
+        catch (error) {
+            console.error('Failed to register protocol handler:', error.message);
+        }
     }
     createMainWindow();
     (0, ipcHandlers_1.initializeIpcHandlers)();
     (0, autoUpdate_1.initializeAutoUpdater)(exports.mainWindow);
 });
-// app.on('all', (event, ...args: any) => {
-//   log(`Global Event Listener: ${event} ${args}`);
-// });
-// macOS deep link handler
+// Single-instance lock to prevent multiple app instances
+const gotTheLock = electron_1.app.requestSingleInstanceLock();
+if (!gotTheLock) {
+    electron_1.app.quit();
+}
+else {
+    electron_1.app.on('second-instance', (event, argv) => {
+        // Handle protocol URL when second instance is invoked
+        if (process.platform === 'win32' && argv.length > 1) {
+            const url = argv.find((arg) => arg.startsWith('infinityinstaller://'));
+            if (url && exports.mainWindow) {
+                exports.mainWindow.webContents.send('navigate-to-url', url);
+            }
+        }
+        // Focus the existing window
+        if (exports.mainWindow) {
+            if (exports.mainWindow.isMinimized()) {
+                exports.mainWindow.restore();
+            }
+            exports.mainWindow.focus();
+        }
+    });
+    electron_1.app.on('ready', () => {
+        createMainWindow();
+    });
+}
+// Handle macOS deep linking
 electron_1.app.on('open-url', (event, url) => {
-    // event.preventDefault();
-    // log('Received deep link URL:', url);
+    event.preventDefault();
     (0, electron_log_1.log)(`🚀 open-url event triggered: ${url}`);
-    try {
+    if (exports.mainWindow) {
         exports.mainWindow.webContents.send('navigate-to-url', url);
     }
-    catch (error) {
-        (0, electron_log_1.log)(error);
-    }
 });
+// Handle all windows closed
 electron_1.app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         electron_1.app.quit();
     }
 });
+// Handle app activation
 electron_1.app.on('activate', () => {
     if (!exports.mainWindow) {
         createMainWindow();
