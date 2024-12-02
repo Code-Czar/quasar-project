@@ -72,9 +72,13 @@ export const checkForUpdates = async (
   update_available: boolean;
   server_version: string | null;
   userResponse: number | null;
+  currentVersion: string | null;
 }> => {
+  let userResponse = null;
+  let server_version_ = null;
+  let currentVersion = null;
   try {
-    const currentVersion = await getCurrentVersion(product);
+    currentVersion = await getCurrentVersion(product);
     log(`Checking for updates (current version: ${currentVersion})...`);
 
     let updateURL;
@@ -94,33 +98,53 @@ export const checkForUpdates = async (
       throw new Error(`Failed to check updates: ${response.statusText}`);
     }
 
-    const { update_available, server_version } = await response.json();
-    console.log('🚀 ~ server_version:', server_version);
+    const { update_available, server_version: server_version_ } =
+      await response.json();
+    console.log(
+      '🚀 ~ server_version:',
+      server_version_,
+      currentVersion,
+      server_version_ !== currentVersion,
+    );
     console.log('🚀 ~ update_available:', update_available);
+    console.log(
+      '🚀 ~ variables:',
+      update_available,
+      server_version_,
+      currentVersion,
+      update_available && server_version_ != currentVersion,
+    );
 
-    if (update_available) {
-      log(`Update available: ${server_version}`);
-      const userResponse = dialog.showMessageBoxSync({
+    if (update_available && server_version_ != currentVersion) {
+      log(`Update available: ${server_version_}`);
+      userResponse = dialog.showMessageBoxSync({
         type: 'info',
         buttons: ['Download', 'Later'],
         title: 'Update Available',
-        message: `Version ${server_version} is available. Would you like to download it now?`,
+        message: `Version ${server_version_} is available. Would you like to download it now?`,
       });
-      return { update_available, server_version, userResponse };
+      return {
+        update_available,
+        server_version: server_version_,
+        userResponse,
+        currentVersion,
+      };
     } else {
       log('No updates available.');
       return {
         update_available: false,
-        server_version: null,
-        userResponse: null,
+        server_version: server_version_,
+        userResponse: userResponse,
+        currentVersion,
       };
     }
   } catch (error: any) {
     log(`Error checking for updates: ${error.message}`);
     return {
       update_available: false,
-      server_version: null,
-      userResponse: null,
+      server_version: server_version_,
+      userResponse: userResponse,
+      currentVersion,
     };
   }
 };
@@ -245,16 +269,37 @@ export const installUpdate = async (
       const versionFile = path.join(extractedPath, 'version.yml');
       const targetVersionFile = path.join(applicationPath, 'version.yml');
 
+      // Backup the current app.asar
       await fs.promises.copyFile(asarPath, backupPath);
+
+      // Copy new app.asar to a temporary file
       await fs.promises.copyFile(
         path.join(extractedPath, 'app.asar'),
         tempPath,
       );
+
+      // Replace the current app.asar with the new one
       await fs.promises.copyFile(tempPath, asarPath);
+
+      // Copy the version file
       await fs.promises.copyFile(versionFile, targetVersionFile);
+
+      // Remove temporary files after successful installation
+      await fs.promises.unlink(backupPath).catch(() => {
+        log(
+          '🟥 Failed to remove app.asar_backup. It may not exist or is in use.',
+        );
+      });
+      await fs.promises.unlink(tempPath).catch(() => {
+        log(
+          '🟥 Failed to remove app.asar_temp. It may not exist or is in use.',
+        );
+      });
+
       log('Update installed successfully.');
     }
 
+    // Relaunch the application after a short delay
     setTimeout(() => {
       log('Relaunching application...');
       app.relaunch();
@@ -465,24 +510,8 @@ export const installSoftwareUpdate = async (
   requestPlatform: string,
   requestArch: string,
 ) => {
-  log(
-    'Custom updater initialized : $ {productName} ${requestPlatform} ${requestArch}',
-  );
-  // mainWindow = inputMainWindow;
-
   app.whenReady().then(async () => {
     try {
-      // Step 1: Check for updates
-      // // const { update_available, server_version, userResponse } =
-      // //   await checkForUpdates(productName);
-
-      // // if (update_available && userResponse === 0) {
-      //   // User chose to download the update
-      //   log(
-      //     `User accepted update. Proceeding to download version ${server_version}...`,
-      //   );
-
-      // Step 2: Download the update
       log(
         `🔥 Installing software update : ${DOWNLOAD_URL}, ${productName}, ${DOWNLOAD_DIR},${requestPlatform},${requestArch}`,
       );
@@ -497,10 +526,6 @@ export const installSoftwareUpdate = async (
         requestPlatform,
         requestArch,
       );
-      // mainWindow.webContents.send('update-progress', {
-      //   stage: 'downloading',
-      //   progress: 50,
-      // });
 
       log(`Update downloaded to: ${downloadPath}`);
       mainWindow.webContents.send('update-progress', {
@@ -532,11 +557,6 @@ export const installSoftwareUpdate = async (
         stage: 'Software installed',
         progress: 100,
       });
-      // } else if (update_available) {
-      //   log('User chose to delay the update.');
-      // } else {
-      //   log('No updates available.');
-      // }
     } catch (error: any) {
       log(`Error during the update process: ${error.message}`);
       mainWindow.webContents.send('update-error', {
@@ -552,7 +572,7 @@ export const initializeAutoUpdater = async (inputMainWindow: any) => {
   app.whenReady().then(async () => {
     try {
       // Step 1: Check for updates
-      const { update_available, server_version, userResponse } =
+      const { currentVersion, update_available, server_version, userResponse } =
         await checkForUpdates();
 
       if (update_available && userResponse === 0) {
