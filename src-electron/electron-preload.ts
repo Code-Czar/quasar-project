@@ -17,12 +17,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   installDocker: (productId: string, callback: Function) =>
     ipcRenderer.invoke('install-dependencies', productId),
   checkContainers: () => ipcRenderer.invoke('check-docker-containers'),
-  checkForUpdates: async (
+  checkForUpdates: (
     productName: string,
     platform?: string | undefined,
     arch?: string | undefined,
   ) => ipcRenderer.invoke('check-for-updates', productName, platform, arch),
-  installSoftwareUpdate: async (
+  installSoftwareUpdate: (
     productName: string,
     requestPlatform?: string | undefined,
     requestArch?: string | undefined,

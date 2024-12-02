@@ -1,5 +1,5 @@
 import { app, BrowserWindow, protocol, screen } from 'electron';
-import { log } from 'electron-log';
+// import { log } from 'electron-log';
 import { execSync } from 'child_process';
 
 import path from 'path';
@@ -11,7 +11,7 @@ import { initializeAutoUpdater } from './installScripts/autoUpdate';
 import { initializeIpcHandlers } from './installScripts/ipcHandlers';
 import { initWebSocket } from './installScripts/websocket';
 
-// import { logger as log, isDevMode } from './installScripts/utils';
+import { logger as log } from './installScripts/logger';
 // import { isDevMode } from './installScripts/utils';
 
 // fixPath();
@@ -35,8 +35,8 @@ export const isDevMode =
 const protocolName = 'infinityinstaller';
 const execPath = process.execPath;
 
-const command = `"${escapedExecPath}" "%1"`;
 const escapedExecPath = execPath.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+const command = `"${escapedExecPath}" "%1"`;
 
 const registryScript = `
 Windows Registry Editor Version 5.00
@@ -62,18 +62,20 @@ if (!app.isDefaultProtocolClient(protocolName)) {
   }
 }
 
-const protocolRegistryFlagPath = `${app.getPath('userData')}/protocol_registered.flag`;
+if (process.platform === 'win32') {
+  const protocolRegistryFlagPath = `${app.getPath('userData')}/protocol_registered.flag`;
 
-if (!fs.existsSync(protocolRegistryFlagPath)) {
-  const tempRegistryFile = `${require('os').tmpdir()}\\protocol_registry.reg`;
-  fs.writeFileSync(tempRegistryFile, registryScript, 'utf-8');
+  if (!fs.existsSync(protocolRegistryFlagPath)) {
+    const tempRegistryFile = `${require('os').tmpdir()}\\protocol_registry.reg`;
+    fs.writeFileSync(tempRegistryFile, registryScript, 'utf-8');
 
-  try {
-    execSync(`reg import "${tempRegistryFile}"`, { stdio: 'inherit' });
-    log('Protocol handler registered successfully.');
-    fs.writeFileSync(protocolRegistryFlagPath, 'true', 'utf-8'); // Mark as registered
-  } catch (error: any) {
-    console.error('Failed to register protocol handler:', error.message);
+    try {
+      execSync(`reg import "${tempRegistryFile}"`, { stdio: 'inherit' });
+      log('Protocol handler registered successfully.');
+      fs.writeFileSync(protocolRegistryFlagPath, 'true', 'utf-8'); // Mark as registered
+    } catch (error: any) {
+      console.error('Failed to register protocol handler:', error.message);
+    }
   }
 }
 
@@ -89,6 +91,7 @@ export const openWindow = (windowTitle: string, url = null) => {
       contextIsolation: true,
       sandbox: false,
       preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD),
+      // devTools: true, // Ensure DevTools are enabled
     },
   });
   newWindow.setTitle(windowTitle);
@@ -132,37 +135,37 @@ app.whenReady().then(() => {
     const filter = { urls: [`${redirectUri}*`] };
 
     // Intercept redirect URIs
-    session.defaultSession.webRequest.onBeforeRequest(
-      filter,
-      (details, callback) => {
-        const url = details.url;
-        console.log('Intercepted URL:', url);
+    // session.defaultSession.webRequest.onBeforeRequest(
+    //   filter,
+    //   (details, callback) => {
+    //     const url = details.url;
+    //     console.log('Intercepted URL:', url);
 
-        // Parse tokens from URL fragment (hash)
-        const urlFragment = new URL(url).hash.substring(1); // Remove the `#` symbol
-        const fragmentParams = new URLSearchParams(urlFragment);
-        const accessToken = fragmentParams.get('access_token');
-        const refreshToken = fragmentParams.get('refresh_token');
+    //     // Parse tokens from URL fragment (hash)
+    //     const urlFragment = new URL(url).hash.substring(1); // Remove the `#` symbol
+    //     const fragmentParams = new URLSearchParams(urlFragment);
+    //     const accessToken = fragmentParams.get('access_token');
+    //     const refreshToken = fragmentParams.get('refresh_token');
 
-        // Log tokens
-        console.log('Access Token:', accessToken);
-        console.log('Refresh Token:', refreshToken);
+    //     // Log tokens
+    //     console.log('Access Token:', accessToken);
+    //     console.log('Refresh Token:', refreshToken);
 
-        if (accessToken) {
-          // Redirect to the auth page with tokens
-          mainWindow.loadURL(
-            `${mainURL}#/auth?access_token=${accessToken}&refresh_token=${refreshToken}`,
-          );
-        }
+    //     if (accessToken) {
+    //       // Redirect to the auth page with tokens
+    //       mainWindow.loadURL(
+    //         `${mainURL}#/auth?access_token=${accessToken}&refresh_token=${refreshToken}`,
+    //       );
+    //     }
 
-        // Cancel the original request
-        callback({ cancel: true });
-      },
-    );
+    //     // Cancel the original request
+    //     callback({ cancel: true });
+    //   },
+    // );
   }
 
   createMainWindow();
-  log(`Location origin : ${mainWindow.origin.location}`);
+  // log(`Location origin : ${mainWindow.origin.location}`);
 
   initializeIpcHandlers();
   initializeAutoUpdater(mainWindow);

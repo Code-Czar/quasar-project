@@ -26,12 +26,20 @@ const updateProgress = ref<number | null>(null);
 const updateMessage = ref<string | null>(null);
 const isUpdating = ref<bool>(true);
 
+const openApp = ()=> {
+  setTimeout(()=>{
+
+    window.location.href = 'http://localhost:3001/'
+  },5000)
+}
+
 // Function to check for updates
 const checkForUpdates = async () => {
   console.log('PRODUCT ID', props.productId);
   console.log('PRODUCT value', props.product);
   isUpdating.value = true;
   try {
+    console.log("🚀 ~ checkForUpdates ~ window.electronAPI:", window.electronAPI)
     const { update_available, userResponse } = await window.electronAPI.checkForUpdates(
       props.product.product_name
     );
@@ -47,7 +55,7 @@ const checkForUpdates = async () => {
         props.product.product_name
       );
     }else {
-      launchDependencies()
+      await launchDependencies()
     }
   } catch (error) {
     console.error('Update check failed:', error);
@@ -81,6 +89,7 @@ const launchDependencies = async () => {
 watch(isUpdating.value, async (newValue)=>{
   if(newValue.value === false){
     await launchDependencies();
+    openApp()
   }
 }, {deep:true})
 
@@ -99,7 +108,7 @@ onMounted(async () => {
     });
     // Listen for update events
     window.electronAPI.onDependenciesLaunchStatus((event, data) => {
-      window.location.href = 'http://localhost:3001/'
+      openApp()
     });
 
     window.electronAPI.onUpdateComplete((event, data) => {

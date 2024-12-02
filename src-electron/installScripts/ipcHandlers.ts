@@ -12,6 +12,9 @@ import {
 // const DOWNLOAD_DIR = path.dirname(app.getAppPath());
 
 export const initializeIpcHandlers = () => {
+  // console.log('Initializing IPC Handlers...');
+  log("🚀 ~ initializeIpcHandlers ~ 'Initializing IPC Handlers...':");
+
   ipcMain.handle(
     'check-for-updates',
     async (event, productName, requestPlatform, requestArch) => {
