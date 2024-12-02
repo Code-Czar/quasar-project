@@ -36,15 +36,26 @@ const setExecutablePermissionsRecursively = (dirPath: string): void => {
 };
 
 // Utility function to read the current app version
-export const getCurrentVersion = async (): Promise<string | null> => {
+export const getCurrentVersion = async (
+  productName: string | null = null,
+): Promise<string | null> => {
   try {
-    const versionPath = path.join(
-      path.dirname(app.getAppPath()),
-      'version.yml',
-    );
+    let versionPath;
+    if (!productName) {
+      versionPath = path.join(path.dirname(app.getAppPath()), 'version.yml');
+    } else {
+      versionPath = path.join(
+        path.dirname(app.getAppPath()),
+        productName as string,
+        'version.yml',
+      );
+    }
+    console.log('🚀 ~ versionPath:', versionPath);
+
     if (fs.existsSync(versionPath)) {
       const versionFile = await fs.promises.readFile(versionPath, 'utf8');
       const versionData: any = yaml.load(versionFile);
+      console.log('🚀 ~ versionData:', versionData);
       return versionData?.version || null;
     }
     return null;
@@ -56,17 +67,22 @@ export const getCurrentVersion = async (): Promise<string | null> => {
 
 // Function to check for updates
 export const checkForUpdates = async (
-  product = PRODUCT_NAME,
+  product = null,
 ): Promise<{
   update_available: boolean;
   server_version: string | null;
   userResponse: number | null;
 }> => {
   try {
-    const currentVersion = await getCurrentVersion();
+    const currentVersion = await getCurrentVersion(product);
     log(`Checking for updates (current version: ${currentVersion})...`);
 
-    const updateURL = `${UPDATE_CHECK_URL}?version=${encodeURIComponent(currentVersion || '')}&product=${encodeURIComponent(product)}`;
+    let updateURL;
+    if (product) {
+      updateURL = `${UPDATE_CHECK_URL}?product=${encodeURIComponent(product)}`;
+    } else {
+      updateURL = `${UPDATE_CHECK_URL}?product=${encodeURIComponent(PRODUCT_NAME)}`;
+    }
 
     log(`🚀 ~ updateURL: ${updateURL}`);
     const response = await fetch(updateURL, {
@@ -79,6 +95,8 @@ export const checkForUpdates = async (
     }
 
     const { update_available, server_version } = await response.json();
+    console.log('🚀 ~ server_version:', server_version);
+    console.log('🚀 ~ update_available:', update_available);
 
     if (update_available) {
       log(`Update available: ${server_version}`);
@@ -116,7 +134,9 @@ export const downloadUpdate = async (
   requestArch?: string,
 ): Promise<string> => {
   try {
-    log(`Downloading update from: ${url}`);
+    log(
+      `Downloading update from: ${url} ${productName} ${destination} ${requestPlatform} ${requestArch}`,
+    );
     const urlConstructed = new URL(url);
     const params: {
       product: string;
@@ -130,7 +150,7 @@ export const downloadUpdate = async (
       params.platform = requestPlatform;
     }
     if (requestArch) {
-      params.platform = requestArch;
+      params.arch = requestArch;
     }
     if (!requestArch && !requestPlatform) {
       params.zip_files = 'true';
@@ -183,6 +203,25 @@ export const extractUpdate = async (
     process.noAsar = true;
     await extractZip(filePath, extractDir);
     await extractZip(`${UPDATE_DIR}/app.asar.zip`, extractDir);
+    // try {
+    // } catch (error) {}
+    return extractDir;
+  } catch (error: any) {
+    log(`Error during extraction: ${error.message}`);
+    throw error;
+  }
+};
+// Function to extract the downloaded update
+export const extractSoftwareUpdate = async (
+  filePath: string,
+  destination: string,
+): Promise<string> => {
+  try {
+    const extractDir = UPDATE_DIR; // path.join(UPDATE_DIR, 'extracted');
+    log(`Extracting update to: ${extractDir}`);
+    process.noAsar = true;
+    await extractZip(filePath, extractDir);
+
     return extractDir;
   } catch (error: any) {
     log(`Error during extraction: ${error.message}`);
@@ -242,10 +281,16 @@ export const installSoftware = async (
       log(`Installing software... Extracted Path: ${extractedPath}`);
     }
 
-    // Ensure target path exists
-    if (!fs.existsSync(targetPath)) {
-      fs.mkdirSync(targetPath, { recursive: true });
+    // Ensure the target path is cleaned before extracting
+    if (fs.existsSync(targetPath)) {
+      log(`Cleaning up target path: ${targetPath}`);
+      fs.rmSync(targetPath, { recursive: true, force: true }); // Remove folder and contents
+      log(`Target path cleaned: ${targetPath}`);
     }
+
+    // Recreate the target path
+    fs.mkdirSync(targetPath, { recursive: true });
+    log(`Recreated target path: ${targetPath}`);
 
     // Move all extracted files to the target path
     const files = fs.readdirSync(extractedPath);
@@ -262,6 +307,7 @@ export const installSoftware = async (
       .filter((file) => file.endsWith('.zip'));
     for (const zipFile of zipFiles) {
       const zipPath = path.join(targetPath, zipFile);
+
       log(`Extracting ZIP file: ${zipPath}`);
       await extractZip(zipPath, targetPath); // Use extractZip to extract the file
       log(`Extracted ZIP file: ${zipPath}`);
@@ -313,6 +359,7 @@ export const installSoftware = async (
       }
 
       log(`Launcher is ready: ${binaryPath}`);
+
       return binaryPath;
     } else {
       log('No binary file found in 0_appLauncher.');
@@ -402,6 +449,11 @@ export const launchSoftware = async (productName: string): Promise<void> => {
     });
 
     child.unref(); // Detach the child process
+
+    mainWindow.webContents.send('dependencies-launch-status', {
+      stage: 'Dependencies Started',
+      progress: 100,
+    });
   } catch (error: any) {
     log(`Error launching binary: ${error.message}`);
     throw error;
@@ -413,7 +465,9 @@ export const installSoftwareUpdate = async (
   requestPlatform: string,
   requestArch: string,
 ) => {
-  log('Custom updater initialized');
+  log(
+    'Custom updater initialized : $ {productName} ${requestPlatform} ${requestArch}',
+  );
   // mainWindow = inputMainWindow;
 
   app.whenReady().then(async () => {
@@ -432,6 +486,10 @@ export const installSoftwareUpdate = async (
       log(
         `🔥 Installing software update : ${DOWNLOAD_URL}, ${productName}, ${DOWNLOAD_DIR},${requestPlatform},${requestArch}`,
       );
+      mainWindow.webContents.send('update-progress', {
+        stage: 'Downloading update ...',
+        progress: 50,
+      });
       const downloadPath = await downloadUpdate(
         DOWNLOAD_URL,
         productName,
@@ -439,36 +497,40 @@ export const installSoftwareUpdate = async (
         requestPlatform,
         requestArch,
       );
-      mainWindow.webContents.send('update-progress', {
-        stage: 'downloading',
-        progress: 50,
-      });
+      // mainWindow.webContents.send('update-progress', {
+      //   stage: 'downloading',
+      //   progress: 50,
+      // });
 
       log(`Update downloaded to: ${downloadPath}`);
       mainWindow.webContents.send('update-progress', {
-        stage: 'extracting',
-        progress: 50,
+        stage: 'Extracting update',
+        progress: 25,
       });
       const appPath = path.dirname(app.getAppPath());
 
       // Step 3: Extract the downloaded update
-      const extractedPath = await extractUpdate(downloadPath, appPath);
+      const extractedPath = await extractSoftwareUpdate(downloadPath, appPath);
       log(`Update extracted to: ${extractedPath}`);
       mainWindow.webContents.send('update-progress', {
-        stage: 'extracted',
+        stage: 'Update extracted',
         progress: 50,
       });
       mainWindow.webContents.send('update-progress', {
-        stage: 'installing',
-        progress: 50,
+        stage: 'Installing Software ...',
+        progress: 75,
       });
 
       // Step 4: Install the update
       await installSoftware(extractedPath, productName, false);
       log('Update installation complete.');
       mainWindow.webContents.send('update-progress', {
-        stage: 'installed',
-        progress: 50,
+        stage: 'Software installed',
+        progress: 100,
+      });
+      mainWindow.webContents.send('update-complete', {
+        stage: 'Software installed',
+        progress: 100,
       });
       // } else if (update_available) {
       //   log('User chose to delay the update.');
@@ -477,7 +539,9 @@ export const installSoftwareUpdate = async (
       // }
     } catch (error: any) {
       log(`Error during the update process: ${error.message}`);
-      mainWindow.webContents.send('update-error', { message: error.message });
+      mainWindow.webContents.send('update-error', {
+        message: `${error.message} ${DOWNLOAD_URL}, ${productName}, ${DOWNLOAD_DIR},${requestPlatform},${requestArch}`,
+      });
     }
   });
 };

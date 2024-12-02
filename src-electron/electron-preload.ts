@@ -34,6 +34,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   authRedirect: (url: string) => ipcRenderer.send('auth-redirect', url), // Add navigate function
   onUpdateProgress: (callback: any) =>
     ipcRenderer.on('update-progress', callback),
+  onDependenciesLaunchStatus: (callback: any) =>
+    ipcRenderer.on('dependencies-launch-status', callback),
   onUpdateComplete: (callback: any) =>
     ipcRenderer.on('update-complete', callback),
   onUpdateError: (callback: any) => ipcRenderer.on('update-error', callback),

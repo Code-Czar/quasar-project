@@ -1,8 +1,9 @@
 <template>
   <p>{{ updateMessage }}</p>
 </template>
+
 <script setup lang="ts">
-import { ref, defineProps, onMounted, onUnmounted } from 'vue';
+import { ref, defineProps, onMounted, onUnmounted, watch } from 'vue';
 import { Platform } from 'quasar';
 
 const delay = (ms: number) =>
@@ -23,7 +24,7 @@ const message = ref('Initializing...');
 const updateStage = ref<string | null>(null);
 const updateProgress = ref<number | null>(null);
 const updateMessage = ref<string | null>(null);
-const isUpdating = ref<bool>(false);
+const isUpdating = ref<bool>(true);
 
 // Function to check for updates
 const checkForUpdates = async () => {
@@ -33,7 +34,6 @@ const checkForUpdates = async () => {
   try {
     const { update_available, userResponse } = await window.electronAPI.checkForUpdates(
       props.product.product_name
-     
     );
     // const result = await window.electronAPI.checkForUpdates(
     //   props.product.product_name,
@@ -46,6 +46,8 @@ const checkForUpdates = async () => {
       await window.electronAPI.installSoftwareUpdate(
         props.product.product_name
       );
+    }else {
+      launchDependencies()
     }
   } catch (error) {
     console.error('Update check failed:', error);
@@ -55,7 +57,7 @@ const checkForUpdates = async () => {
   }
   
 };
-const launchSoftware = async () => {
+const launchDependencies = async () => {
 
   console.log('Launching : ', props.product.product_name);
   while(isUpdating.value){
@@ -76,6 +78,12 @@ const launchSoftware = async () => {
  
 };
 
+watch(isUpdating.value, async (newValue)=>{
+  if(newValue.value === false){
+    await launchDependencies();
+  }
+}, {deep:true})
+
 // Trigger actions on component mount
 onMounted(async () => {
   if (isElectron) {
@@ -85,10 +93,19 @@ onMounted(async () => {
     window.electronAPI.onUpdateProgress((event, data) => {
       updateMessage.value = data.stage;
       updateProgress.value = data.progress;
+      if(data.progress === 100){
+        isUpdating.value = false;
+      }
+    });
+    // Listen for update events
+    window.electronAPI.onDependenciesLaunchStatus((event, data) => {
+      window.location.href = 'http://localhost:3001/'
     });
 
     window.electronAPI.onUpdateComplete((event, data) => {
       updateMessage.value = data.message;
+      isUpdating.value = false;
+      launchDependencies();
     });
 
     window.electronAPI.onUpdateError((event, data) => {
@@ -96,7 +113,6 @@ onMounted(async () => {
     });
 
     await checkForUpdates();
-    await launchSoftware();
   } else {
     message.value = 'Not running in Electron environment';
   }

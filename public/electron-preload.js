@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     navigateTo: (url) => ipcRenderer.send('navigate-to-url', url), // Add navigate function
     authRedirect: (url) => ipcRenderer.send('auth-redirect', url), // Add navigate function
     onUpdateProgress: (callback) => ipcRenderer.on('update-progress', callback),
+    onDependenciesLaunchStatus: (callback) => ipcRenderer.on('dependencies-launch-status', callback),
     onUpdateComplete: (callback) => ipcRenderer.on('update-complete', callback),
     onUpdateError: (callback) => ipcRenderer.on('update-error', callback),
     // remoteMethod: (methodName: string, ...args: any[]) =>
