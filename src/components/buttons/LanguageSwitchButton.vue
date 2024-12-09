@@ -3,13 +3,11 @@
   <q-select
     v-model="locale"
     :options="localeOptions"
-    label="Quasar Language"
     dense
     borderless
     emit-value
     map-options
     options-dense
-    style="min-width: 150px"
   />
   <!-- ...... -->
 </template>
@@ -29,8 +27,8 @@ export default {
     return {
       locale,
       localeOptions: [
-        { value: 'en-US', label: 'English' },
-        { value: 'fr-FR', label: 'Français' }
+        { value: 'en-US', label: '🇺🇸' },
+        { value: 'fr-FR', label: '🇫🇷' }
       ]
     }
   }

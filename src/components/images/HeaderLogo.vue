@@ -6,11 +6,11 @@
   
 
 <script setup>
-import logo from 'src/assets/Inifinite-8-logo.svg';
+import logo from 'src/assets/Inifinite-8-logo_wide.svg';
 </script>
 
 <style lang="scss" scoped> img {
-   width: 5rem;
-   height: 5rem;
+   width: 3rem;
+   height: 3rem;
  }
 </style>

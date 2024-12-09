@@ -1,8 +1,8 @@
 .base-text {
-  // color: white;
+  font-family:'Roboto';
+  font-weight: 300;
 }
 body, div {
-  // @extend .base-text;
   font-size:1rem;
 }
 
@@ -12,21 +12,23 @@ h3,
 h4,
 h5 {
   @extend .base-text;
+  line-height: 3rem;
 }
 
 h1 {
-  font-size: 4rem;
-  font-weight: 600;
+  font-size: 2.5rem;
+  font-weight: 300;
   margin: unset;
+
 }
 h2 {
-  font-size: 4rem;
+  font-size: 2rem;
 }
 h3 {
-  font-size: 3rem;
+  font-size: 1.5rem;
 }
 h4 {
-  font-size: 2rem;
+  font-size: 1rem;
 }
 
 h5 {
@@ -43,11 +45,9 @@ h5 {
 }
 
 .q-tab__label {
-  // @extend .base-text;
 }
 
 .q-item__label {
-  // color:$deep-blue;
 }
 
 .text-centered {

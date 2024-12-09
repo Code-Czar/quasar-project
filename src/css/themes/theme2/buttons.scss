@@ -1,0 +1,66 @@
+@import './colors.scss';
+
+.body-theme-two .button-default {
+ background-color: $gold-mid;
+}
+.body-theme-two .button-charts-default {
+  background-color: $gold-mid;
+  padding-left:0.5rem;
+  padding-right:0.5rem;
+  background-color: transparent;
+  border: 1px solid $pristine-white;
+  font-size: 0.7rem;
+  display:flex; 
+  flex-grow:1;
+ }
+
+ .body-theme-two .button-dark{
+  background-color: $q-dark;
+}
+
+.body-theme-two .q-btn__content {
+  color: $pristine-white;
+
+}
+.body-theme-two .controls input{
+  background-color: transparent;
+  border: unset;
+}
+
+.body-theme-two .button-default {
+  background-color: $blue-ia-4;
+  color: $gold-high;
+  margin: 0.1rem;
+  border-radius: 3px;
+  color: $pristine-white;
+  padding-left:2rem;
+  padding-right:2rem;
+  padding-top:0.8rem;
+  padding-bottom:0.8rem;
+}
+.body-theme-two  .default-button {
+  border: 1px solid $blue-ia-5;
+  
+  box-shadow: unset !important;
+  margin: 0.1rem;
+  border: 1px solid $blue-ia-5;
+
+  border-radius: 3px;
+  padding-left:2rem;
+  padding-right:2rem;
+  padding-top:0.8rem;
+  padding-bottom:0.8rem;
+  & span {
+    color: $blue-ia-5 ;
+  }
+}
+.body-theme-two  .default-button:hover {
+  background-color: $blue-ia-5;
+  color: $gold-high;
+  border-radius: 3px;
+  & span{
+
+    color: $pristine-white;
+  }
+}
+

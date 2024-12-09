@@ -1,18 +1,14 @@
 <template>
-  <q-layout>
-    <q-page-container>
-      <q-page>
-       <h1>CATALOG</h1>
-        <ProductCatalog />
-      </q-page>
-    </q-page-container>
-
-    <q-footer>
-      <!-- Footer content goes here -->
-    </q-footer>
-  </q-layout>
+  <q-page class="flex-column gap-1">
+    <h1>{{ t('pages.catalog.title') }}</h1>
+    <ProductCatalog />
+  </q-page>
 </template>
 
 <script setup lang="ts">
 import ProductCatalog from './components/ProductCatalog.vue';
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
+
+
 </script>

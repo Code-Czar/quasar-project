@@ -1,12 +1,36 @@
 @import './sharedColors.scss';
 
-.q-field__native, 
-.q-field__native, 
-.q-field__append{
- padding:unset;
+.q-field__native,
+.q-field__native,
+.q-field__append {
+  padding: unset;
+}
+
+.q-field--auto-height .q-field__control,
+.q-field--auto-height .q-field__native {
+  min-height: unset !important;
+}
+
+.q-list {
+  background-color: $primary;
+  align-items: center;
+  padding: unset;
+}
+
+.q-list .q-item,
+.q-virtual-scroll__content .q-item {
+  padding: 1rem;
+  align-items: center;
+  min-height: unset;
+}
+
+.q-drawer,
+.q-drawer__content {
+  padding: unset !important;
 }
 
 
-.q-field--auto-height .q-field__control, .q-field--auto-height .q-field__native{
-  min-height:unset !important;
+
+.q-drawer .q-item__label {
+  text-align: left;
 }

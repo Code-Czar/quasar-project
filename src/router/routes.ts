@@ -15,10 +15,23 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false, roles: [] },
   },
   {
+    name: 'auth',
     path: '/auth',
-    component: () => import('components/login/CallbackComponent.vue'),
+    component: () => import('layouts/PublicLayout.vue'),
+    children: [
+      {
+        name: 'callbackComponent',
+        path: '',
+        component: () => import('components/login/CallbackComponent.vue'),
+      },
+    ],
     meta: { requiresAuth: false, roles: [] },
   },
+  // {
+  //   path: '/auth',
+  //   component: () => import('components/login/CallbackComponent.vue'),
+  //   meta: { requiresAuth: false, roles: [] },
+  // },
   {
     name: 'app_root',
     path: '/app',

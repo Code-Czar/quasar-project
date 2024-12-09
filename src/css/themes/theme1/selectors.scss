@@ -1,0 +1,9 @@
+@import '../../common/sharedColors.scss';
+
+.body-theme-one .q-list .q-item,
+.body-theme-one .q-virtual-scroll__content .q-item {
+  
+  &:hover {
+    background-color: $secondary;
+  }
+}

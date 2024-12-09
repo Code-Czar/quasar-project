@@ -12,4 +12,31 @@
   padding-top:0.8rem;
   padding-bottom:0.8rem;
 }
+ .default-button {
+  border: 1px solid $blue-ia-5;
+  // background-color: $blue-ia-5;
+  color: $gold-high;
+  box-shadow: unset !important;
+  margin: 0.1rem;
+  // border: 1px solid grey;
+  border-radius: 3px;
+  color: $pristine-white;
+  padding-left:2rem;
+  padding-right:2rem;
+  padding-top:0.8rem;
+  padding-bottom:0.8rem;
+}
+ .default-button:hover {
+  // border: 1px solid $blue-ia-5;
+  background-color: $blue-ia-5;
+  color: $gold-high;
+  // margin: 0.1rem;
+  // border: 1px solid grey;
+  border-radius: 3px;
+  color: $pristine-white;
+  // padding-left:2rem;
+  // padding-right:2rem;
+  // padding-top:0.8rem;
+  // padding-bottom:0.8rem;
+}
 

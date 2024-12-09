@@ -1,0 +1,23 @@
+@import '../../common/sharedColors.scss';
+
+.body-theme-two .q-drawer .q-list, 
+.body-theme-two .q-list .q-item, 
+.body-theme-two .q-virtual-scroll__content {
+  background-color: white;
+}
+
+
+.body-theme-two .q-list .q-item,
+.body-theme-two .q-virtual-scroll__content .q-item {
+  
+  &:hover {
+    background-color: $secondary;
+    color: $background;
+  }
+}
+
+.body-theme-two .q-field *{
+  color: $background !important;
+  // background-color: $secondary !important;
+}
+

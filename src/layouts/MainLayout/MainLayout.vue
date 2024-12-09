@@ -1,7 +1,7 @@
 <template>
   <q-layout view="lHh Lpr lFf" class="main-layout">
-    <q-header elevated>
-      <q-toolbar>
+    <q-header elevated dense>
+      <q-toolbar class="toolbar">
         <q-btn
           id="navMenuDrawer-toggleButton"
           flat
@@ -12,8 +12,9 @@
           @click="toggleLeftDrawer"
         />
         <HeaderLogo />
-        <q-toolbar-title> Opportunities </q-toolbar-title>
+        <q-toolbar-title class="toolbar-title"> {{ t("productName")}} </q-toolbar-title>
         <ThemeSwitcher />
+        <LanguageSwitchButton />
         <q-item side="right">
           <q-item-section>
             <q-btn v-if="!userStore_.picture" flat round icon="person" class="person" size="1em" />
@@ -38,7 +39,7 @@
     <!-- Navigation Drawer Component -->
     <NavigationDrawer ref="navigationDrawer" />
 
-    <q-page-container>
+    <q-page-container class="page-container">
       <router-view />
     </q-page-container>
   </q-layout>
@@ -48,11 +49,15 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from 'src/stores/userStore';
-import { HeaderLogo, ThemeSwitcher } from 'src/components';
+import { useI18n } from "vue-i18n";
+
+import { LanguageSwitchButton, HeaderLogo, ThemeSwitcher } from 'src/components';
 import NavigationDrawer from './MainDrawer.vue';
 
 const router = useRouter();
 const userStore_ = useUserStore();
+const { t } = useI18n();
+
 
 // Ref to access `NavigationDrawer` and control `leftDrawerOpen`
 const navigationDrawer = ref(null);
@@ -71,3 +76,17 @@ const userLogout = () => {
   router.push({ name: 'home' });
 };
 </script>
+
+
+<style lang="scss" scoped>
+.toolbar{
+  gap:1rem;
+}
+
+
+.toolbar-title{
+  padding:unset; 
+}
+
+
+</style>

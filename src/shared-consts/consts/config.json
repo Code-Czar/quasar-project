@@ -1,7 +1,7 @@
 {
     "REMOTE_URL": "127.0.0.1",
     "LICENSE_SERVER_URL": "https://beniben.hopto.org/user",
-    "REMOTE_WSS": "ws://127.0.0.1",
+    "REMOTE_WSS": "ws://127.0.0.1:8001",
     "INFLUXDB_URL": "http://localhost:8086",
     "INFLUXDB_ORG": "Opportunities",
     "INFLUXDB_BUCKET": "Opportunities",

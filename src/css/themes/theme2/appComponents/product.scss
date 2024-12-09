@@ -1,0 +1,10 @@
+.body-theme-two .product-card{
+    background-color: $background;
+    transition: all 0.2s ease-in-out;
+}
+
+.body-theme-two .product-card:hover{
+  background-color: $background-2;
+  color: $background;
+
+}

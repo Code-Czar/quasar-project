@@ -10,32 +10,14 @@
         <q-list>
           <q-item-label header> Navigation </q-item-label>
   
-          <!-- Link to Dev Panel -->
-          <q-item v-if="isDev" clickable @click="goToAdminPage">
-            <q-item-section avatar>
-              <q-icon name="admin_panel_settings" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Dev Panel</q-item-label>
-            </q-item-section>
-          </q-item>
-  
-          <!-- Link to Application -->
-          <q-item clickable @click="goToApp">
-            <q-item-section avatar>
-              <q-icon name="apps" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Application</q-item-label>
-            </q-item-section>
-          </q-item>
+        
           <!-- Link to Application -->
           <q-item clickable @click="goToCatalog">
             <q-item-section avatar>
               <q-icon name="apps" />
             </q-item-section>
             <q-item-section>
-              <q-item-label>Products</q-item-label>
+              <q-item-label>{{ t('navigationDrawer.items.one.name') }}</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
@@ -50,8 +32,11 @@
   import { ref } from 'vue';
   import { useRouter } from 'vue-router';
   import { useUserRole } from 'src/composables/useUserRoles';
-  
+  import { useI18n } from "vue-i18n";
+  const { t } = useI18n();
+
   const { isDev } = useUserRole();
+
   const router = useRouter();
   const leftDrawerOpen = ref(false);
   

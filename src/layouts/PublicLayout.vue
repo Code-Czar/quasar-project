@@ -1,16 +1,16 @@
 <!-- Layout.vue -->
 
 <template>
-    <q-layout>
-        <LandingPageHeader />
-        <q-page-container>
-            <router-view />
-        </q-page-container>
-    </q-layout>
+  <q-layout class="home-page-layout">
+    <LandingPageHeader />
+    <q-page-container>
+      <router-view />
+    </q-page-container>
+  </q-layout>
 </template>
 
 <script setup>
-import {LandingPageHeader} from 'src/components';
+import { LandingPageHeader } from 'src/components';
 </script>
 
 <style lang="scss" scoped>

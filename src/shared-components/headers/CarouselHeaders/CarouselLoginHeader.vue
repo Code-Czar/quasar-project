@@ -15,13 +15,16 @@
         <div class="overlay-content">
           <div class="two-third">
             <h1 class="text-h2 text-white">{{ item.headline }}</h1>
-            <div v-if="item.text.line1" class="text-subtitle1 q-my-md text-white">
-              {{ item.text.line1 }}
+            <div class="flex-column justify-center" style="align-items: center;">
+              <div class="flex-column flex-grow-1" style="display:flex; flex-grow:1">
+
+                <div v-for="line in Object.values(item.text)">
+                  {{ line }}
+                </div>
+              </div>
+           
+              <!-- <q-btn color="primary" @click="goToApp" class="button-default" style="width:calc(20%)">Discover</q-btn> -->
             </div>
-            <div v-if="item.text.line2" class="text-subtitle1 q-my-md text-white">
-              {{ item.text.line2 }}
-            </div>
-            <q-btn color="primary" @click="goToApp" class="button-default">Discover</q-btn>
           </div>
           <div class="one-third">
             <LoginComponent/>
@@ -44,7 +47,7 @@ const router = useRouter();
 
 const slide = ref(0); // Current slide index
 const intervalRef = ref(null);
-const SLIDE_DURATION = 3000;
+const SLIDE_DURATION = 2000;
 
 
 
@@ -62,7 +65,10 @@ const carouselData = computed(() => [
     videoSrc: 'client_header.webm',
     headline: t('heroHeader.slide2.header'),
     text: {
-      line1: t('heroHeader.slide2.subtitle.line1'),
+      line1: t('heroHeader.slide2.subtitle.line1.text'),
+      line2: t('heroHeader.slide2.subtitle.line2'),
+      line3: t('heroHeader.slide2.subtitle.line3'),
+      line4: t('heroHeader.slide2.subtitle.line4'),
     },
   },
 ]);
@@ -117,7 +123,7 @@ onUnmounted(() => {
   text-align: center;
   display:flex;
   flex-direction: row;
-  width:100%;
+  width:95%;
 }
 
 .two-third{

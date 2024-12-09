@@ -65,7 +65,7 @@ const carouselData = ref([
     videoSrc: '/Client_header.webm',
     headline: t('heroHeader.slide2.header'),
     text: {
-      line1:t('heroHeader.slide2.subtitle.line1'),
+      line1:t('heroHeader.slide2.subtitle.line1.text'),
     },
   },
   // Add more slides as needed

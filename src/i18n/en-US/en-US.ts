@@ -14,6 +14,17 @@ export default {
   no: 'No',
   ok: 'OK',
 
+  productName: 'Infinite-Installer',
+
+  navigationDrawer: {
+    title: 'Navigation',
+    items: {
+      one: {
+        name: 'Products',
+      },
+    },
+  },
+
   navigationMenu: {
     homeHeader: {
       home: 'Home',
@@ -22,6 +33,16 @@ export default {
       features: 'Features',
       beta: 'Beta',
       pricing: 'Pricing',
+    },
+  },
+
+  pages: {
+    catalog: {
+      title: 'Available Products',
+    },
+    productCatalog: {
+      title: 'ProductCatalog',
+      loading: 'Loading products...',
     },
   },
   footerWide: {
@@ -49,16 +70,22 @@ export default {
 
   heroHeader: {
     slide1: {
-      header: 'Infinite-Opportunities 😁',
+      header: 'Infinite-Installer',
       subtitle: {
-        line1: 'Tired of missing out opportunities ?',
-        line2: 'We bring you thousands of opportunities everyday',
+        line1: 'Install infinity software products',
+        line2: '',
       },
     },
     slide2: {
-      header: 'Infinite-Opportunities',
+      header: 'Infinite-Clients',
       subtitle: {
-        line1: 'For both non-professional and professional traders',
+        line1: {
+          text: 'Reach thousands of clients from :',
+          align: 'center',
+        },
+        line2: 'Facebook',
+        line3: 'Instagram',
+        line4: 'TikTok',
       },
     },
   },
@@ -162,56 +189,6 @@ export default {
         'Are you okay to send anonymous usage data so we can see how you behave on the app and improve user experience?',
 
       submit: 'Submit',
-    },
-  },
-  liveBot: {
-    buttons: {
-      start: 'Start Bot',
-      stop: 'Stop Bot',
-    },
-  },
-  defaultChart: {
-    buttons: {
-      boillingerBands: 'Bollinger Bands',
-      RSI: 'RSI',
-      SMA: 'SMA',
-      EMA: 'EMA',
-      MACD: 'MACD',
-      volumes: 'Toggle Volumes',
-      support: 'Support',
-      resistance: 'Resistance',
-      rsiSignals: 'RSI Signals',
-    },
-  },
-  backtesting: {
-    strategySelector: {
-      setupTitle: 'Setup',
-      riskManagementTitle: 'Risk Manangement',
-      selectStrategyLabel: 'Select Strategy',
-      selectPairLabel: 'Select Pair',
-      selectTimeframeLabel: 'Select Timeframe',
-    },
-    buttons: {
-      runBacktest: { label: 'Run Backtest', tooltip: 'Start here' },
-      reset: 'Reset',
-      backward: 'Backward',
-      forward: 'Forward',
-      pause: 'Pause',
-    },
-    timePickers: {
-      startTime: 'Start time',
-      endTime: 'End Time',
-    },
-    positionsDiv: {
-      positionsTitle: 'Positions',
-      totalPnL: 'Total P&L',
-      open: 'Open',
-      closed: 'Closed',
-    },
-    loaders: {
-      backtestLoader: {
-        title: 'Starting Backtest',
-      },
     },
   },
   loginPage: {

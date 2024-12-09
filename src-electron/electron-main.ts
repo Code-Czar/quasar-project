@@ -53,6 +53,8 @@ Windows Registry Editor Version 5.00
 @="${command}"
 `;
 
+app.commandLine.appendSwitch('remote-debugging-port', '9222');
+
 if (!app.isDefaultProtocolClient(protocolName)) {
   const success = app.setAsDefaultProtocolClient(protocolName);
   if (success) {
@@ -87,13 +89,19 @@ export const openWindow = (windowTitle: string, url = null) => {
   const newWindow = new BrowserWindow({
     width: screen.getPrimaryDisplay().workAreaSize.width,
     height: screen.getPrimaryDisplay().workAreaSize.height,
+    frame: true, // Makes the window borderless
+    resizable: false,
     webPreferences: {
       contextIsolation: true,
       sandbox: false,
       preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD),
+      devTools: true, // Ensure DevTools are enabled
+
       // devTools: true, // Ensure DevTools are enabled
     },
   });
+  console.log('🚀 ~ openWindow ~ url:', url);
+  console.log('🚀 ~ openWindow ~ windowTitle:', windowTitle);
   newWindow.setTitle(windowTitle);
   newWindow.loadURL(url || 'http://tiktok.com');
 };
@@ -102,10 +110,13 @@ function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: screen.getPrimaryDisplay().workAreaSize.width,
     height: screen.getPrimaryDisplay().workAreaSize.height,
+    frame: false, // Makes the window borderless
+
     webPreferences: {
       contextIsolation: true,
       sandbox: false,
       preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD),
+      devTools: false, // Ensure DevTools are enabled
     },
   });
   mainWindow.webContents.session.clearCache().then(() => {
@@ -133,35 +144,6 @@ app.whenReady().then(() => {
     // Define the Supabase redirect URI
     const redirectUri = 'http://localhost/auth/callback';
     const filter = { urls: [`${redirectUri}*`] };
-
-    // Intercept redirect URIs
-    // session.defaultSession.webRequest.onBeforeRequest(
-    //   filter,
-    //   (details, callback) => {
-    //     const url = details.url;
-    //     console.log('Intercepted URL:', url);
-
-    //     // Parse tokens from URL fragment (hash)
-    //     const urlFragment = new URL(url).hash.substring(1); // Remove the `#` symbol
-    //     const fragmentParams = new URLSearchParams(urlFragment);
-    //     const accessToken = fragmentParams.get('access_token');
-    //     const refreshToken = fragmentParams.get('refresh_token');
-
-    //     // Log tokens
-    //     console.log('Access Token:', accessToken);
-    //     console.log('Refresh Token:', refreshToken);
-
-    //     if (accessToken) {
-    //       // Redirect to the auth page with tokens
-    //       mainWindow.loadURL(
-    //         `${mainURL}#/auth?access_token=${accessToken}&refresh_token=${refreshToken}`,
-    //       );
-    //     }
-
-    //     // Cancel the original request
-    //     callback({ cancel: true });
-    //   },
-    // );
   }
 
   createMainWindow();
@@ -169,6 +151,7 @@ app.whenReady().then(() => {
 
   initializeIpcHandlers();
   initializeAutoUpdater(mainWindow);
+  // app.commandLine.appendSwitch('remote-debugging-port', '9222');
 });
 
 if (!app.requestSingleInstanceLock()) {

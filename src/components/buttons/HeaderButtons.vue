@@ -1,10 +1,5 @@
 <template>
   <div class="header-buttons-container">
-
-    <q-btn flat id="header-login-button" rounded dense class="nav-menu-item" @click="goToLogin">
-      {{ $t('buttons.login') }}
-    </q-btn>
-
     <ThemeSwitcher />
     <LanguageSwitchButton />
   </div>
