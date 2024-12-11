@@ -59,6 +59,7 @@ export const useUserStore = defineStore('user', {
     isSubscribed: (state) =>
       Boolean(state.user?.stripe_customer_details) &&
       state.user?.stripe_customer_details?.payment_status === 'paid',
+    userFullInfos: (state) => state.user,
   },
   actions: {
     async saveUser() {
@@ -81,7 +82,7 @@ export const useUserStore = defineStore('user', {
     async updateStripeCustomer() {
       try {
         const response = await apiConnector.get(
-          `${CENTRALIZATION_API_URLS.USERS}/${this.user.id}`
+          `${CENTRALIZATION_API_URLS.USERS}/${this.user.id}`,
         );
 
         // Explicitly cast response data to the expected structure
@@ -99,7 +100,7 @@ export const useUserStore = defineStore('user', {
         const stripeInfo = { subscriptionId: subscriptionId };
         const response = await apiConnector.post(
           `${CENTRALIZATION_API_URLS.STRIPE_CANCEL_SUBSCRIPTION}/`,
-          stripeInfo
+          stripeInfo,
         );
 
         if (response.status === 200) {
@@ -114,7 +115,7 @@ export const useUserStore = defineStore('user', {
     async pushUserToBackend(user) {
       try {
         const checkResponse = await apiConnector.get(
-          `${CENTRALIZATION_API_URLS.USERS}/${user.id}`
+          `${CENTRALIZATION_API_URLS.USERS}/${user.id}`,
         );
 
         let response = null;
@@ -122,12 +123,12 @@ export const useUserStore = defineStore('user', {
         if (checkResponse.status === 200) {
           response = await apiConnector.patch(
             `${CENTRALIZATION_API_URLS.USERS}/${user.id}/`,
-            userInfo
+            userInfo,
           );
         } else {
           response = await apiConnector.post(
             `${CENTRALIZATION_API_URLS.USERS}/`,
-            userInfo
+            userInfo,
           );
         }
 

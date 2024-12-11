@@ -1,6 +1,19 @@
 @import './colors.scss';
 
 .body-theme-one .q-card {
-    background-color: $primary;
+  background-color: $primary;
+}
 
+.body-theme-one .form-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 1rem;
+  background-color: $background;
+}
+
+.body-theme-one .form-card .form-actions {
+   justify-content: right;
+    display:flex;
+   align-items: center;
 }

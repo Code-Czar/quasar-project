@@ -18,3 +18,21 @@ $text-primary: $pristine-white;
 
 $section-odd-background: $blue-ia-4;
 $section-even-background: $blue-ia-1;
+
+
+:root {
+    --q-dark: #1D1D1D;
+  
+    --primary: var(--blue-logo-1);
+    --secondary: var(--blue-ia-6);
+    --background: var(--blue-ia-2);
+    --background-2: var(--blue-ia-3);
+    --accent: var(--gold-level-5);
+    --page: var(--blue-ia-4);
+  
+    --text-primary: var(--pristine-white);
+  
+    --section-odd-background: var(--blue-ia-4);
+    --section-even-background: var(--blue-ia-1);
+  }
+  

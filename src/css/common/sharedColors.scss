@@ -37,3 +37,40 @@ $blue-ia-3: #1f4e6e;
 $blue-ia-4: #08476a; 
 $blue-ia-5: #2ba5ca;
 $blue-ia-6: #53b1c8;
+
+
+:root {
+    --primary-color: #3498db;
+  
+    --deep-blue: #003366;
+    --deep-blue-light: #26517d;
+    --pristine-white: #FFFFFF;
+    --luminous-gold: #FFD700;
+    --soft-grey: #A9A9A9;
+    --warm-beige: #F5DEB3;
+  
+    --gold-brown: #985d16;
+    --gold-mid: #dfb354;
+    --gold-up1: #f2c465;
+    --gold-high: #fffbaf;
+    --gold-high2: #fffecd;
+  
+    --gold-level-1: var(--gold-brown);
+    --gold-level-2: var(--gold-mid);
+    --gold-level-3: var(--gold-up1);
+    --gold-level-4: var(--gold-high);
+    --gold-level-5: var(--gold-high2);
+  
+    --blue-logo-1: #021730;
+    --blue-logo-2: #1a3346;
+    --blue-logo-3: #355c66;
+    --blue-logo-4: #628a93;
+  
+    --blue-ia-1: #071523;
+    --blue-ia-2: #093352;
+    --blue-ia-3: #1f4e6e;
+    --blue-ia-4: #08476a;
+    --blue-ia-5: #2ba5ca;
+    --blue-ia-6: #53b1c8;
+  }
+  

@@ -91,70 +91,228 @@ export default {
   },
 
   ourMission: {
-    header: 'Our Mission',
-    content:
-      'To give you tools and data to make money with low investment, without spending hours staring at charts.',
+    slide1: {
+      header: `
+      <strong style="color: var(--gold-up1) !important; -webkit-text-stroke: 1px black; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+        Automate
+      </strong>
+      Your  <br/>
+      <strong style="color: var(--q-secondary) !important; -webkit-text-stroke: 1px black; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+        Client 
+      </strong>
+      <strong style="-webkit-text-stroke: 1px black; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+        Acquisition
+      </strong> 
+      Across <br /><br/>
+    `,
+      content: `<q-icon name="fab fa-facebook-f"></q-icon> Facebook <br />
+      <q-icon name="fab fa-instagram"></q-icon> Instagram <br />
+      <q-icon name="fab fa-tiktok"></q-icon> TikTok <br/>
+      <br/>Effortlessly grow your CRM with advanced automation and auto-messaging tools.
+      <br/>Contact up to 8000+ clients per month
+      `,
+    },
   },
 
   howItWorks: {
-    header: 'How do we do that ?',
-    // subHeader: 'How do we do that ?',
-    card1: {
-      title: 'Market analysis',
-      text: 'We constantly analyze more than 300 cryptocurrencies',
-    },
-    card2: {
-      title: 'Strategy analysis',
-      text: `We use multiple indicators to define most profitable and safest strategies. \n
-      Then we test them to get the best possible strategies`,
-    },
-    card3: {
-      title: 'AI and Machine Learning',
-      text: `We use AI to :  \n
-            - test thousands of strategies and define new ones`,
-      // text: 'This is a string\\nthat spans multiple\\nlines.',
-    },
+    header: 'How It Works',
+    steps: [
+      {
+        icon: 'account_circle',
+        title: '<strong>Get contacts</strong>',
+        description: 'Get clients from <br/>Facebook, Instagram, and TikTok ',
+      },
+      {
+        icon: 'settings',
+        title: '<strong>Generate custom hook messages</strong>',
+        description:
+          'By using custom messages, you drastically increase user response.',
+      },
+      {
+        icon: 'trending_up',
+        title: '<strong>Automatically contact user</strong>',
+        description:
+          'Launch your automation on each plateform and interact only with engaged people.',
+      },
+    ],
   },
+
   features: {
-    header: 'What can you do with our tool ?',
-    // subHeader: 'How do we do that ?',
-    card1: {
-      title: 'Highly customizable notifications',
-      text: 'Set the notifications you want ',
-    },
-    card2: {
-      title: 'Real-Time notification',
-      text: 'Get instantly notified when opportunities comes in',
-    },
-    card3: {
-      title: 'Mobile application',
-      text: 'Either use a webbrowser or mobile app to get notifications everywhere',
-    },
-    card4: {
-      title: 'Backtest your strategy',
-      text: `Use customizable, predifined strategies and backtest them on more than 300 crypto pairs, \n
-      to see if they are profitable and adjust if not.`,
-    },
+    header: 'What can you do with our tool?',
+    sections: [
+      {
+        sectionTitle: 'Social Media Integration',
+        sectionSubtitle: 'Expand Your Reach Across Platforms',
+        background: 'var(--section-odd-background)',
+        list: [
+          {
+            icon: 'fab fa-facebook-f',
+            title: '<strong>Facebook</strong>',
+            description:
+              'Access <strong>Groups</strong>, <strong>Followers</strong>, and <strong>Friends</strong> to grow your CRM.',
+          },
+          {
+            icon: 'fab fa-instagram',
+            title: '<strong>Instagram</strong>',
+            description:
+              'Leverage <strong>Followers</strong>, <strong>Likes</strong>, and <strong>Comments</strong> (coming soon).',
+          },
+          {
+            icon: 'fab fa-tiktok',
+            title: '<strong>TikTok</strong>',
+            description:
+              'Engage with <strong>Followers</strong> and <strong>Likes/Comments</strong> (coming soon).',
+          },
+        ],
+      },
+      {
+        sectionTitle: 'Automated Messaging',
+        sectionSubtitle: 'Personalized Messaging at Scale',
+        background: 'var(--section-even-background)',
+        list: [
+          {
+            icon: 'message',
+            title: '<strong>Auto-Messaging</strong>',
+            description:
+              'Send thousands of messages monthly with tailored content for your audience.',
+          },
+          {
+            icon: 'chat',
+            title: '<strong>ChatGPT Integration</strong>',
+            description:
+              'Generate <strong>personalized messages</strong> variations easily for any niche using <strong>AI</strong>.',
+          },
+          {
+            icon: 'library_books',
+            title: '<strong>Message Library</strong>',
+            description:
+              'Save frequently used messages to streamline the messaging process.',
+          },
+        ],
+      },
+    ],
   },
-  roadmap: {
-    title: 'Roadmap',
+
+  testimonials: {
+    header: 'What Our Customers Say',
+    list: [
+      {
+        image: '/assets/customer1.jpg',
+        quote:
+          '“This tool has revolutionized the way I manage my clients. Highly recommend!”',
+        rating: 5,
+        name: 'John Doe',
+        title: 'Entrepreneur',
+      },
+      {
+        image: '/assets/customer2.jpg',
+        quote:
+          '“I was skeptical at first, but now it’s an essential part of my workflow!”',
+        rating: 4,
+        name: 'Jane Smith',
+        title: 'Marketing Specialist',
+      },
+      {
+        image: '/assets/customer3.jpg',
+        quote:
+          '“The automation features are a game changer. My CRM has never looked better.”',
+        rating: 5,
+        name: 'Alex Johnson',
+        title: 'Freelancer',
+      },
+    ],
   },
   pricing: {
     title: 'Pricing',
     cards: {
       card1: {
-        title: 'Basic',
+        title: 'Lifetime Access',
         items: [
-          { title: 'Unlimited notifications', icon: 'notifications' },
-          { title: 'Backtesting Strategy', icon: 'mdi-bullseye-arrow' },
-          { title: 'Lifetime access', icon: 'mdi-check' },
+          {
+            category: 'Automation',
+            subcategories: [
+              {
+                title: 'Get clients from',
+                features: [
+                  {
+                    platform: 'Facebook',
+                    details: [
+                      'Groups (up to 10k+ per group)',
+                      'Famous user followers (no known limit)',
+                      'Famous user friends (no known limit)',
+                    ],
+                  },
+                  {
+                    platform: 'Instagram',
+                    details: ['Famous account: get followers (no known limit)'],
+                  },
+                  {
+                    platform: 'TikTok',
+                    details: ['Famous account: get followers (no known limit)'],
+                  },
+                ],
+              },
+              {
+                title: 'Sending messages',
+                features: [
+                  {
+                    platform: 'Facebook',
+                    details: ['Between 100 and 200 per day: 6000 per month'],
+                  },
+                  {
+                    platform: 'Instagram',
+                    details: ['Between 80 and 100 per day: 3000 per month'],
+                  },
+                  {
+                    platform: 'TikTok',
+                    details: ['Under testing'],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            category: 'Lifetime Access',
+            subcategories: [
+              {
+                title: 'Fixed price',
+                features: {
+                  details: ['Public price will increase as features are added'],
+                },
+              },
+              {
+                title: 'Free updates',
+                features: {
+                  details: ['All updates included for free'],
+                },
+              },
+            ],
+          },
+          {
+            category: 'CRM',
+            subcategories: [
+              {
+                title: 'Your CRM',
+                features: [{ details: ['You own your CRM completely'] }],
+              },
+              {
+                title: 'Upcoming Integrations',
+                features: [
+                  { details: ['Monday integration (coming really soon)'] },
+                  { details: ['Hubspot integration (coming really soon)'] },
+                ],
+              },
+            ],
+          },
         ],
-        price: '10$',
-        recurring: 'month',
+        price: '100€',
+        reductionPrice: '30€',
+        recurring: 'per month',
       },
     },
-    buyButton: 'Buy Now',
+    buyButton: 'Get Instant Access',
   },
+
   registerBeta: {
     header: `Interested in getting \ninvestment opportunities ?`,
     subHeader: 'Become a beta user for free',

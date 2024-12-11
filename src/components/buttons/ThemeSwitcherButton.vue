@@ -1,28 +1,41 @@
 <template>
-    <q-select
-      v-model="currentTheme"
-      :options="themeOptions"
-      label="Select Theme"
-      outlined
-      dense
-      @update:model-value="updateTheme"
+  <div class="theme-toggle-container">
+    <q-btn
+      flat
+      round
+      :icon="!isDarkTheme ? 'fa-solid fa-moon' : 'fa-solid fa-sun'"
+      color="primary"
+      @click="toggleTheme"
+      aria-label="Toggle Theme"
     />
-    <!-- Your layout and page content -->
-  </template>
-  
-  <script lang="ts" setup>
-  import { ref } from 'vue';
-  
-  const currentTheme = ref({ label: 'Theme One', value: 'theme-one' }); // Default theme
-  const themeOptions = [
-    { label: 'Theme One', value: 'theme-one' },
-    { label: 'Theme Two', value: 'theme-two' }
-  ];
-  
-  const updateTheme = (newTheme) => {
-    document.body.className = `body-${newTheme.value}`;
-  };
-  
-  updateTheme(currentTheme.value); // Set initial theme
-  </script>
-  
+  </div>
+</template>
+
+<script lang="ts" setup>
+import { ref } from 'vue';
+
+// State to manage the theme toggle
+const isDarkTheme = ref(true); // Default theme: light
+const themeOptions = [
+  { label: 'Light Theme', value: 'theme-one' },
+  { label: 'Dark Theme', value: 'theme-two' },
+];
+
+// Toggle the theme
+const toggleTheme = () => {
+  isDarkTheme.value = !isDarkTheme.value;
+  const selectedTheme = isDarkTheme.value ? themeOptions[1] : themeOptions[0];
+  document.body.className = `body-${selectedTheme.value}`;
+};
+
+// Set the initial theme
+toggleTheme();
+</script>
+
+<style scoped>
+.theme-toggle-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+</style>

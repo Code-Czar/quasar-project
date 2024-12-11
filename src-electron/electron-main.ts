@@ -126,7 +126,7 @@ function createMainWindow() {
       contextIsolation: true,
       sandbox: false,
       preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD),
-      devTools: false, // Ensure DevTools are enabled
+      devTools: true, // Ensure DevTools are enabled
     },
   });
   mainWindow.webContents.session.clearCache().then(() => {

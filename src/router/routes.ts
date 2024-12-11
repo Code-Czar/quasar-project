@@ -33,23 +33,6 @@ const routes: RouteRecordRaw[] = [
   //   meta: { requiresAuth: false, roles: [] },
   // },
   {
-    name: 'app_root',
-    path: '/app',
-    component: () => import('layouts/MainLayout/MainLayout.vue'),
-    children: [
-      {
-        name: 'app',
-        path: '',
-        component: () => import('pages/Private/MainApp.vue'),
-      },
-    ],
-    meta: {
-      requiresAuth: true,
-      permissionLevel: [],
-      roles: ['Admin', 'Dev', 'BetaTester'],
-    },
-  },
-  {
     name: 'catalog',
     path: '/catalog',
     component: () => import('layouts/MainLayout/MainLayout.vue'),
@@ -103,6 +86,20 @@ const routes: RouteRecordRaw[] = [
       },
     ],
     meta: { requiresAuth: false, roles: [] },
+  },
+
+  {
+    name: 'user_root',
+    path: '/user',
+    component: () => import('layouts/MainLayout/MainLayout.vue'),
+    children: [
+      {
+        name: 'user',
+        path: '',
+        component: () => import('pages/Private/UserPage.vue'),
+      },
+    ],
+    meta: { requiresAuth: true, roles: [] },
   },
 ];
 

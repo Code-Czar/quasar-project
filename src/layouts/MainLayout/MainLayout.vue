@@ -18,7 +18,7 @@
         <q-item side="right">
           <q-item-section>
             <q-btn v-if="!userStore_.picture" flat round icon="person" class="person" size="1em" />
-            <q-avatar v-if="userStore_.picture" size="30px">
+            <q-avatar v-if="userStore_.picture" :key="userStore_.picture" size="30px">
               <img :src="userStore_.picture" />
             </q-avatar>
             <q-menu class="userMenu">
@@ -47,25 +47,31 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { useUserStore } from 'src/stores/userStore';
 import { useI18n } from "vue-i18n";
+import { useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
+
+import { useUserStore } from 'src/stores/userStore';
+import { useUiStore } from 'src/stores/uiStore'; // New UI store
 
 import { LanguageSwitchButton, HeaderLogo, ThemeSwitcher } from 'src/components';
 import NavigationDrawer from './MainDrawer.vue';
 
 const router = useRouter();
 const userStore_ = useUserStore();
+console.log("🚀 ~ userStore_ PICTURE:", userStore_.picture)
 const { t } = useI18n();
+const uiStore = useUiStore();
+const { leftDrawerOpen } = storeToRefs(uiStore);
+console.log("🚀 ~ leftDrawerOpen:", leftDrawerOpen)
+
 
 
 // Ref to access `NavigationDrawer` and control `leftDrawerOpen`
 const navigationDrawer = ref(null);
 
 function toggleLeftDrawer() {
-  if (navigationDrawer.value) {
-    navigationDrawer.value.leftDrawerOpen = !navigationDrawer.value.leftDrawerOpen;
-  }
+    leftDrawerOpen.value = !leftDrawerOpen.value
 }
 
 const openUserSettings = () => {

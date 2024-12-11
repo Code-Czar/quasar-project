@@ -1,7 +1,6 @@
 <template>
     <q-drawer
       v-model="leftDrawerOpen"
-      show-if-above
       bordered
       style="display:flex; flex-direction: column; padding-left: 1rem; padding-right: 1rem;"
       :width="200"
@@ -10,7 +9,6 @@
         <q-list>
           <q-item-label header> Navigation </q-item-label>
   
-        
           <!-- Link to Application -->
           <q-item clickable @click="goToCatalog">
             <q-item-section avatar>
@@ -33,12 +31,22 @@
   import { useRouter } from 'vue-router';
   import { useUserRole } from 'src/composables/useUserRoles';
   import { useI18n } from "vue-i18n";
+  import { storeToRefs } from 'pinia';
+  import { useUiStore } from 'src/stores/uiStore'; // New UI store
+
+
+
   const { t } = useI18n();
 
   const { isDev } = useUserRole();
 
   const router = useRouter();
-  const leftDrawerOpen = ref(false);
+  const uiStore = useUiStore();
+
+  const { leftDrawerOpen } = storeToRefs(uiStore);
+  
+  console.log("🚀 ~ leftDrawerOpen:", leftDrawerOpen)
+
   
   // Expose `leftDrawerOpen` for parent component access
   defineExpose({ leftDrawerOpen });

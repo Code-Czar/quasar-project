@@ -64,9 +64,10 @@ export default {
   },
 
   ourMission: {
-    header: 'Our Mission',
+    header:
+      'Automate Your Client Acquisition Across Facebook, Instagram, and TikTok',
     content:
-      'To give you tools and data to make money with low investment, without spending hours staring at charts.',
+      'To  you tools and data to make money with low investment, without spending hours staring at charts.',
   },
 
   howItWorks: {

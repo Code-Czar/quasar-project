@@ -1,0 +1,41 @@
+@import './colors.scss';
+/* Scrollbar styles for theme one */
+.body-theme-one {
+/* Apply to all scrollbars globally */
+::-webkit-scrollbar {
+  width: 12px; /* Width of the scrollbar */
+  height: 12px; /* Height for horizontal scrollbars */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--primary-color); /* Use your primary color */
+  border-radius: 6px; /* Rounded corners */
+  border: 3px solid var(--pristine-white); /* Space around the thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--blue-logo-2); /* Darker color on hover */
+}
+
+::-webkit-scrollbar-track {
+  background-color: var(--blue-ia-2); /* Track background */
+  border-radius: 6px; /* Rounded corners for track */
+}
+
+::-webkit-scrollbar-track:hover {
+  background-color: var(--blue-ia-3); /* Track hover state */
+}
+
+/* For Firefox (scrollbars are styled using pseudo-elements) */
+* {
+  scrollbar-width: thin; /* Thin scrollbar */
+  scrollbar-color: var(--primary-color) var(--blue-ia-2); /* Thumb and track */
+}
+
+/* For Edge and IE (via scrollbar-color and scrollbar-width) */
+html {
+  scroll-behavior: smooth;
+  scrollbar-color: var(--primary-color) var(--blue-ia-2);
+  scrollbar-width: thin;
+}
+}

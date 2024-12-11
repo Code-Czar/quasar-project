@@ -18,7 +18,7 @@ const handleSubscriptionSuccess = async () => {
   userStore_.setIsSubscribing(false);
 
   setTimeout(() => {
-    // router.push({ name: 'app' });
+    router.push({ name: 'catalog' });
   }, 3000);
 };
 

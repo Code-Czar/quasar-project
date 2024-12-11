@@ -37,9 +37,6 @@ onMounted(() => {
   }
 });
 
-const handleSubscribe = async () => {
-  router.push({name: 'login'});
-};
 
 const scrollToSection = (sectionId) => {
   const sectionElement = document.getElementById(sectionId);

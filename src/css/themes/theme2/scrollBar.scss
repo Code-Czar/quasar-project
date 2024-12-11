@@ -1,0 +1,41 @@
+@import './colors.scss';
+
+/* Scrollbar styles for theme two */
+.body-theme-two {
+  /* Apply to all scrollbars globally */
+  ::-webkit-scrollbar {
+    width: 12px; /* Width of the scrollbar */
+    height: 12px; /* Height for horizontal scrollbars */
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--secondary-color); /* Use secondary color */
+    border-radius: 6px; /* Rounded corners */
+    border: 3px solid var(--soft-grey); /* Space around the thumb */
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--gold-brown); /* Darker color on hover */
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: var(--warm-beige); /* Track background */
+    border-radius: 6px; /* Rounded corners for track */
+  }
+
+  ::-webkit-scrollbar-track:hover {
+    background-color: var(--gold-mid); /* Track hover state */
+  }
+
+  * {
+    scrollbar-width: thin; /* Thin scrollbar */
+    scrollbar-color: var(--secondary-color) var(--warm-beige); /* Thumb and track */
+  }
+
+  html {
+    scrollbar-color: var(--secondary-color) var(--warm-beige);
+    scrollbar-width: thin;
+  }
+}
+
+/* Repeat for other themes */
