@@ -41,6 +41,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onUpdateError: (callback: any) => ipcRenderer.on('update-error', callback),
   // remoteMethod: (methodName: string, ...args: any[]) =>
   //   remote[methodName](...args),
+  sendFeedback: (feedbackData: any) =>
+    ipcRenderer.invoke('send-feedback', feedbackData),
 });
 
 ipcRenderer.on('auth-callback', (event, data) => {

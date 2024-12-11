@@ -90,7 +90,7 @@ export const openWindow = (windowTitle: string, url = null) => {
     width: screen.getPrimaryDisplay().workAreaSize.width,
     height: screen.getPrimaryDisplay().workAreaSize.height,
     frame: true, // Makes the window borderless
-    resizable: false,
+    resizable: true, // Allow the window to be resized
     webPreferences: {
       contextIsolation: true,
       sandbox: false,
@@ -102,8 +102,18 @@ export const openWindow = (windowTitle: string, url = null) => {
   });
   console.log('🚀 ~ openWindow ~ url:', url);
   console.log('🚀 ~ openWindow ~ windowTitle:', windowTitle);
-  newWindow.setTitle(windowTitle);
   newWindow.loadURL(url || 'http://tiktok.com');
+
+  newWindow.webContents.on('did-finish-load', () => {
+    newWindow.webContents
+      .executeJavaScript(`document.title = ${JSON.stringify(windowTitle)};`)
+      .then(() => {
+        console.log('🚀 ~ Page title set to:', windowTitle);
+      })
+      .catch((error) => {
+        console.error('🚀 ~ Error setting page title:', error);
+      });
+  });
 };
 
 function createMainWindow() {
@@ -128,7 +138,9 @@ function createMainWindow() {
     : 'http://localhost:9300';
 
   mainWindow.loadURL(mainURL);
-  initWebSocket(openWindow);
+  try {
+    initWebSocket(openWindow);
+  } catch (error) {}
 }
 
 app.whenReady().then(() => {
