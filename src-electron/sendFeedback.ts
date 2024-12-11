@@ -11,7 +11,7 @@ export const sendFeedback = (to: string, subject: string, message: string) => {
       subject: subject,
       html: message,
     },
-    function (err, reply) {
+    function (err: any, reply: any) {
       console.log(err && err.stack);
       console.dir(reply);
     },
