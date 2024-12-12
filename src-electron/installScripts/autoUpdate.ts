@@ -199,7 +199,7 @@ export const downloadUpdate = async (
     // Delete the destination folder if it exists
     if (fs.existsSync(destination)) {
       log(`1) Deleting existing destination folder: ${destination}`);
-      fs.rmdirSync(destination, { recursive: true });
+      // @ts-ignore
     }
 
     // Recreate the destination folder
