@@ -195,8 +195,15 @@ export const downloadUpdate = async (
     }
 
     destination = path.join(destination, productName, 'updates');
-    if (!fs.existsSync(destination))
-      fs.mkdirSync(destination, { recursive: true });
+
+    // Delete the destination folder if it exists
+    if (fs.existsSync(destination)) {
+      log(`1) Deleting existing destination folder: ${destination}`);
+      fs.rmdirSync(destination, { recursive: true });
+    }
+
+    // Recreate the destination folder
+    fs.mkdirSync(destination, { recursive: true });
 
     const fileName =
       // @ts-ignore
@@ -297,6 +304,11 @@ export const installUpdate = async (
       });
 
       log('Update installed successfully.');
+      // Delete the destination folder if it exists
+      if (fs.existsSync(extractedPath)) {
+        log(`2) Deleting existing destination folder: ${extractedPath}`);
+        fs.rmdirSync(extractedPath, { recursive: true });
+      }
     }
 
     // Relaunch the application after a short delay
@@ -311,7 +323,6 @@ export const installUpdate = async (
   }
 };
 
-// Function to install the extracted update
 export const installSoftware = async (
   extractedPath: string,
   productName: string,
@@ -320,16 +331,37 @@ export const installSoftware = async (
   try {
     const appPath = path.dirname(app.getAppPath());
     const targetPath = path.join(appPath, productName);
+    const backupPath = path.join(appPath, 'sqlite_backup');
 
     // Log installation start
     if (!isUpdate) {
       log(`Installing software... Extracted Path: ${extractedPath}`);
     }
 
+    // Backup .sqlite files if they exist in the target path
+    if (fs.existsSync(targetPath)) {
+      log(`Backing up .sqlite files from: ${targetPath}`);
+
+      if (!fs.existsSync(backupPath)) {
+        fs.mkdirSync(backupPath, { recursive: true });
+      }
+
+      const sqliteFiles = fs
+        .readdirSync(targetPath)
+        .filter((file) => file.endsWith('.sqlite'));
+
+      for (const sqliteFile of sqliteFiles) {
+        const src = path.join(targetPath, sqliteFile);
+        const dest = path.join(backupPath, sqliteFile);
+        fs.copyFileSync(src, dest);
+        log(`Backed up: ${src} -> ${dest}`);
+      }
+    }
+
     // Ensure the target path is cleaned before extracting
     if (fs.existsSync(targetPath)) {
       log(`Cleaning up target path: ${targetPath}`);
-      fs.rmSync(targetPath, { recursive: true, force: true }); // Remove folder and contents
+      fs.rmSync(targetPath, { recursive: true, force: true });
       log(`Target path cleaned: ${targetPath}`);
     }
 
@@ -344,6 +376,26 @@ export const installSoftware = async (
       const dest = path.join(targetPath, file);
       log(`Moving: ${src} -> ${dest}`);
       fs.renameSync(src, dest);
+    }
+
+    // Restore backed-up .sqlite files
+    if (fs.existsSync(backupPath)) {
+      log(`Restoring .sqlite files to: ${targetPath}`);
+
+      const backupFiles = fs
+        .readdirSync(backupPath)
+        .filter((file) => file.endsWith('.sqlite'));
+
+      for (const backupFile of backupFiles) {
+        const src = path.join(backupPath, backupFile);
+        const dest = path.join(targetPath, backupFile);
+        fs.copyFileSync(src, dest);
+        log(`Restored: ${src} -> ${dest}`);
+      }
+
+      // Optionally clean up backup files
+      fs.rmSync(backupPath, { recursive: true, force: true });
+      log(`Cleaned up backup path: ${backupPath}`);
     }
 
     // Extract ZIP files in the target path
@@ -557,6 +609,11 @@ export const installSoftwareUpdate = async (
         stage: 'Software installed',
         progress: 100,
       });
+      // Delete the destination folder if it exists
+      if (fs.existsSync(extractedPath)) {
+        log(`3) Deleting existing destination folder: ${extractedPath}`);
+        fs.rmdirSync(extractedPath, { recursive: true });
+      }
     } catch (error: any) {
       log(`Error during the update process: ${error.message}`);
       mainWindow.webContents.send('update-error', {
@@ -617,6 +674,12 @@ export const initializeAutoUpdater = async (inputMainWindow: any) => {
           stage: 'installed',
           progress: 50,
         });
+
+        // Delete the destination folder if it exists
+        if (fs.existsSync(extractedPath)) {
+          log(`4) Deleting existing destination folder: ${extractedPath}`);
+          fs.rmdirSync(extractedPath, { recursive: true });
+        }
       } else if (update_available) {
         log('User chose to delay the update.');
       } else {
