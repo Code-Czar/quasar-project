@@ -1,37 +1,27 @@
-// electron-preload.ts
 const { contextBridge, ipcRenderer } = require('electron');
 const os = require('os');
 
-// const platform = 'windows'; // os.platform(); // Expose platform dynamically
-// const arch = 'x64'; //os.arch(); // Expose architecture dynamically
-const platform = os.platform(); // Expose platform dynamically
-const arch = os.arch(); // Expose architecture dynamically
-console.log('🚀 ~ platform:', platform);
-console.log('🚀 ~ arch:', arch);
+const platform = os.platform();
+const arch = os.arch();
 
-// const { logger: log } = require('./utils');
+console.log('🚀 Platform:', platform);
+console.log('🚀 Architecture:', arch);
 
-// const { remote } = require('@electron/remote');
-
+// Expose Electron APIs to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
-  installDocker: (productId: string, callback: Function) =>
+  installDocker: (productId: string) =>
     ipcRenderer.invoke('install-dependencies', productId),
   checkContainers: () => ipcRenderer.invoke('check-docker-containers'),
-  checkForUpdates: (
-    productName: string,
-    platform?: string | undefined,
-    arch?: string | undefined,
-  ) => ipcRenderer.invoke('check-for-updates', productName, platform, arch),
-  installSoftwareUpdate: (
-    productName: string,
-    requestPlatform?: string | undefined,
-    requestArch?: string | undefined,
-  ) =>
+  checkForUpdates: (productName: string) =>
+    ipcRenderer.invoke('check-for-updates', productName, platform, arch),
+  installSoftwareUpdate: (productName: string) =>
     ipcRenderer.invoke('install-software-update', productName, platform, arch),
   launchSoftware: (productName: string) =>
     ipcRenderer.invoke('launch-software', productName),
-  navigateTo: (url: string) => ipcRenderer.send('navigate-to-url', url), // Add navigate function
-  authRedirect: (url: string) => ipcRenderer.send('auth-redirect', url), // Add navigate function
+  navigateTo: (url: string) => ipcRenderer.send('navigate-to-url', url),
+  authRedirect: (url: string) => ipcRenderer.send('auth-redirect', url),
+  sendFeedback: (feedbackData: any) =>
+    ipcRenderer.invoke('send-feedback', feedbackData),
   onUpdateProgress: (callback: any) =>
     ipcRenderer.on('update-progress', callback),
   onDependenciesLaunchStatus: (callback: any) =>
@@ -39,73 +29,47 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onUpdateComplete: (callback: any) =>
     ipcRenderer.on('update-complete', callback),
   onUpdateError: (callback: any) => ipcRenderer.on('update-error', callback),
-  // remoteMethod: (methodName: string, ...args: any[]) =>
-  //   remote[methodName](...args),
-  sendFeedback: (feedbackData: any) =>
-    ipcRenderer.invoke('send-feedback', feedbackData),
+  handleStripe: (action: string, redirectUrl: string) =>
+    ipcRenderer.invoke('handle-stripe', { action, redirectUrl }),
 });
 
-ipcRenderer.on('auth-callback', (event, data) => {
-  // log('Access Token:', data);
-  // log('Access Token:', data.accessToken);
-  // log('Refresh Token:', data.refreshToken);
-  // Store or use the token as needed
-});
+// Helper function for navigating
+const handleNavigation = (url: string) => {
+  console.log('🚀 Handling Navigation for URL:', url);
 
-ipcRenderer.on('navigate-to-url', (event, url) => {
-  // const { logger: log } = require('./utils');
-
-  console.log('🚀 1) Navigate to URL:', url);
   if (url.startsWith('infinityinstaller://')) {
-    console.log('🚀 2) Navigate to URL:', url);
+    const eventDetails = { detail: url };
 
-    // Assuming Vue Router is available in the renderer process
-    const queryParams = new URL(url).searchParams;
-    const routePath = '/auth'; // Adjust this based on your route configuration
-    const accessToken = queryParams.get('access_token');
-    console.log('🚀 3) Navigation params:', queryParams);
-    console.log('🚀 4) Token:', accessToken);
+    if (url.includes('subscription_success')) {
+      // const stripeWindow = window.opener;
+      // if (stripeWindow && !stripeWindow.closed) {
+      //   stripeWindow.close();
+      //   console.log('Stripe checkout window closed.');
+      // }
+      // @ts-ignore
+      // window.electronAPI.handleStripe('redirect', 'subscription_success');
 
-    // Use Vue Router to navigate
-    // window.router.push({
-    //   path: routePath,
-    //   query: { token: accessToken },
-    // });
-    window.dispatchEvent(new CustomEvent('navigate-to-url', { detail: url }));
+      ipcRenderer.invoke('handle-stripe', {
+        action: 'redirect',
+        redirectUrl: 'subscription_success',
+        url,
+      });
+      // window.dispatchEvent(new CustomEvent('navigate-to-url', eventDetails));
+    } else if (url.includes('auth')) {
+      const queryParams = new URL(url).searchParams;
+      const routePath = '/auth';
+      const accessToken = queryParams.get('access_token');
+      console.log('🚀 Auth Navigation Params:', { queryParams, accessToken });
+
+      window.dispatchEvent(new CustomEvent('navigate-to-url', eventDetails));
+    } else {
+      window.location.href = url;
+    }
   } else {
-    window.location.href = url;
-    // mainWindow?.loadURL(url);
+    console.error('Invalid Protocol:', url);
   }
-});
+};
 
-// Listen for protocol invocation
-ipcRenderer.on('protocol-invoked', (event, url) => {
-  // const { logger: log } = require('./utils');
-
-  console.log('🚀 1) Navigate to URL:', url);
-  if (url.startsWith('infinityinstaller://')) {
-    console.log('🚀 2) Navigate to URL:', url);
-
-    // Assuming Vue Router is available in the renderer process
-    const queryParams = new URL(url).searchParams;
-    const routePath = '/auth'; // Adjust this based on your route configuration
-    const accessToken = queryParams.get('access_token');
-    console.log('🚀 3) Navigation params:', queryParams);
-    console.log('🚀 4) Token:', accessToken);
-
-    // Use Vue Router to navigate
-    // window.router.push({
-    //   path: routePath,
-    //   query: { token: accessToken },
-    // });
-    window.dispatchEvent(new CustomEvent('navigate-to-url', { detail: url }));
-  } else {
-    window.location.href = url;
-    // mainWindow?.loadURL(url);
-  }
-});
-// ipcRenderer.on('check-for-updates', (url) => {
-//   // const { logger: log } = require('./utils');
-
-//   console.log('🚀 IPC check for updates:', url);
-// });
+// Listen for navigation-related events
+ipcRenderer.on('navigate-to-url', (event, url) => handleNavigation(url));
+ipcRenderer.on('protocol-invoked', (event, url) => handleNavigation(url));

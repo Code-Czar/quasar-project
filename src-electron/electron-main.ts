@@ -127,6 +127,7 @@ function createMainWindow() {
       sandbox: false,
       preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD),
       devTools: true, // Ensure DevTools are enabled
+      webSecurity: false, // Disable web security to allow file:// URLs
     },
   });
   mainWindow.webContents.session.clearCache().then(() => {
@@ -161,7 +162,7 @@ app.whenReady().then(() => {
   createMainWindow();
   // log(`Location origin : ${mainWindow.origin.location}`);
 
-  initializeIpcHandlers();
+  initializeIpcHandlers(mainWindow);
   initializeAutoUpdater(mainWindow);
   // app.commandLine.appendSwitch('remote-debugging-port', '9222');
 });

@@ -42,8 +42,8 @@
         `${CENTRALIZATION_API_URLS.STRIPE_CHECKOUT_SESSION}/`,
         {
           priceId,
-          successURL,
-          cancelURL: window.location.origin,
+          successURL:successURL.replace('file://', 'https://beniben.hopto.org/user/subscription-success'),
+          cancelURL: 'https://beniben.hopto.org/user/subscription-success',
           email: userEmail,
         },
         {
