@@ -2,14 +2,10 @@
   <I18nProvider>
     <q-header
       class="bg-transparent"
-      style="position: absolute; top: 0; left: 0; 
-      /* position:fixed */
-      "
+      style="position: absolute; top: 0; left: 0; /* position:fixed */"
     >
       <q-toolbar>
-
-      <HeaderButtons :callback="scrollToSection"/>
-
+        <HeaderButtons :callback="scrollToSection" />
       </q-toolbar>
     </q-header>
   </I18nProvider>

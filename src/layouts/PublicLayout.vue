@@ -15,4 +15,9 @@ import { LandingPageHeader } from 'src/components';
 
 <style lang="scss" scoped>
 /* Add any styles specific to the layout component */
+.home-page-layout{
+  height: 100vh; 
+  width: 100vw; 
+  overflow: hidden;
+}
 </style>

@@ -81,9 +81,16 @@ $default-gap: 1rem;
   width: 100%;
 }
 
+.q-page-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 92vh;
+}
 .q-page {
   padding: 1rem;
   justify-content: left;
+  flex-grow:1;
 }
 .home-page-layout {
   padding: unset !important;

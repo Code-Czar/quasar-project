@@ -30,7 +30,7 @@ const setExecutablePermissionsRecursively = (dirPath: string): void => {
       setExecutablePermissionsRecursively(entryPath);
     } else if (entry.isFile()) {
       // Set executable permissions for files
-      fs.chmodSync(entryPath, '755'); // chmod +x
+      fs.chmodSync(entryPath, '777'); // chmod +x
     }
   }
 };
@@ -200,6 +200,7 @@ export const downloadUpdate = async (
     if (fs.existsSync(destination)) {
       log(`1) Deleting existing destination folder: ${destination}`);
       // @ts-ignore
+      fs.rmdirSync(destination, { recursive: true });
     }
 
     // Recreate the destination folder
@@ -307,6 +308,7 @@ export const installUpdate = async (
       // Delete the destination folder if it exists
       if (fs.existsSync(extractedPath)) {
         log(`2) Deleting existing destination folder: ${extractedPath}`);
+        // @ts-ignore
         fs.rmdirSync(extractedPath, { recursive: true });
       }
     }
@@ -378,6 +380,22 @@ export const installSoftware = async (
       fs.renameSync(src, dest);
     }
 
+    // Extract ZIP files in the target path
+    const zipFiles = fs
+      .readdirSync(targetPath)
+      .filter((file) => file.endsWith('.zip'));
+    for (const zipFile of zipFiles) {
+      const zipPath = path.join(targetPath, zipFile);
+
+      log(`Extracting ZIP file: ${zipPath}`);
+      await extractZip(zipPath, targetPath); // Use extractZip to extract the file
+      log(`Extracted ZIP file: ${zipPath}`);
+
+      // Optionally delete the ZIP file after extraction
+      fs.unlinkSync(zipPath);
+      log(`Deleted ZIP file: ${zipPath}`);
+    }
+
     // Restore backed-up .sqlite files
     if (fs.existsSync(backupPath)) {
       log(`Restoring .sqlite files to: ${targetPath}`);
@@ -396,22 +414,6 @@ export const installSoftware = async (
       // Optionally clean up backup files
       fs.rmSync(backupPath, { recursive: true, force: true });
       log(`Cleaned up backup path: ${backupPath}`);
-    }
-
-    // Extract ZIP files in the target path
-    const zipFiles = fs
-      .readdirSync(targetPath)
-      .filter((file) => file.endsWith('.zip'));
-    for (const zipFile of zipFiles) {
-      const zipPath = path.join(targetPath, zipFile);
-
-      log(`Extracting ZIP file: ${zipPath}`);
-      await extractZip(zipPath, targetPath); // Use extractZip to extract the file
-      log(`Extracted ZIP file: ${zipPath}`);
-
-      // Optionally delete the ZIP file after extraction
-      fs.unlinkSync(zipPath);
-      log(`Deleted ZIP file: ${zipPath}`);
     }
 
     // Find the binary inside 0_appLauncher
@@ -612,6 +614,7 @@ export const installSoftwareUpdate = async (
       // Delete the destination folder if it exists
       if (fs.existsSync(extractedPath)) {
         log(`3) Deleting existing destination folder: ${extractedPath}`);
+        // @ts-ignore
         fs.rmdirSync(extractedPath, { recursive: true });
       }
     } catch (error: any) {
@@ -676,8 +679,10 @@ export const initializeAutoUpdater = async (inputMainWindow: any) => {
         });
 
         // Delete the destination folder if it exists
+        // @ts-ignore
         if (fs.existsSync(extractedPath)) {
           log(`4) Deleting existing destination folder: ${extractedPath}`);
+          // @ts-ignore
           fs.rmdirSync(extractedPath, { recursive: true });
         }
       } else if (update_available) {

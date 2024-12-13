@@ -21,7 +21,7 @@
         </q-list>
       </div>
       <div style="display:flex; flex-grow:0">
-        <q-btn flat class="full-width" icon="home" label="Home" @click="goToHome" />
+        <q-btn flat class="full-width default-button" icon="home" label="Home" @click="goToHome" style="border: unset"/>
       </div>
     </q-drawer>
   </template>

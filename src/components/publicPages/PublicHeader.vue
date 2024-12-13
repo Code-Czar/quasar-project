@@ -6,13 +6,14 @@
     >
       <q-toolbar>
         <HeaderLogo />
-        <q-toolbar-title> Opportunities </q-toolbar-title>
+        <q-toolbar-title> {{ t('productName') }} </q-toolbar-title>
     
         <div
           class="flex-container"
           style="justify-content: flex-end; flex-grow: 1; flex-wrap: nowrap"
         >
         <HeaderButtons/>
+        <HomeButton />
 
           
         </div>
@@ -24,7 +25,10 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { HeaderLogo, HeaderButtons } from 'src/components';
+import { HeaderLogo, HeaderButtons, HomeButton } from 'src/components';
+import { useI18n } from 'vue-i18n';
+
+const { t, locale } = useI18n({ useScope: 'global' });
 
 const router = useRouter();
 

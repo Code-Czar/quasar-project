@@ -1,5 +1,5 @@
 <template>
-  <q-page class="home-page">
+  <q-page class="flex-column q-py-xl">
     <h1 class="text-centered"> {{ $t('footerWide.contactUs') }}</h1>
     <ContactUsForm />
   </q-page>

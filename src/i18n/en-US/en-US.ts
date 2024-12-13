@@ -58,7 +58,7 @@ export default {
       title: 'Disclaimer',
       content: DisclaimerContent.content,
     },
-    brandName: 'Infinite-Opportunities',
+    brandName: 'Infinite-Solutions',
     copyright: '©. All rights reserved',
     contactUs: 'Contact Us',
   },

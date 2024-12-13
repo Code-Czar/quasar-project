@@ -34,7 +34,7 @@
             :label="$t('loginPage.loginWithGoogle')"
             @click="login('google')"
             icon="mdi-google"
-            color="secondary"
+            class=" default-button"
             style="min-height: 5rem; width:80%"
           />
         </div>

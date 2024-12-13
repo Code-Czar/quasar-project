@@ -4,11 +4,6 @@
       <q-page-scroller  :scroll-duration="scrollDuration" :easing="scrollEasing" />
     </q-page-sticky>
     <CarouselLoginHeader />
-   
-    
-    
-    <!-- <PricingSection @subscriptionClicked="handleSubscribe" /> -->
-
     <PublicFooterWide />
   </q-page>
 </template>
@@ -66,7 +61,8 @@ watchEffect(() => {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100vw;
+  width: 99.9vw;
+  overflow: hidden;
 }
 
 /* Styles for other sections */

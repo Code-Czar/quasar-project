@@ -1,3 +1,7 @@
+html, body {
+  overflow: auto; /* Apply to root elements */
+}
+
 /* Global Scrollbar Styles */
 ::-webkit-scrollbar {
   width: 12px; /* Adjust for vertical scrollbars */
@@ -25,7 +29,7 @@
 
 /* Vertical Scrollbars Specific */
 html {
-  overflow-y: scroll; /* Ensure vertical scrollbars are always visible */
+  overflow: auto; /* Ensure vertical scrollbars are always visible */
 }
 
 * {

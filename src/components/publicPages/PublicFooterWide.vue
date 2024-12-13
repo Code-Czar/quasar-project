@@ -25,9 +25,11 @@
   </footer>
 </template>
 
-<style lang="scss"> .footer-container {
+<style lang="scss"> 
+.footer-container {
    display: flex;
    flex-direction: column;
+   background-color: transparent !important;
  }
 
  .footer-columns-container {

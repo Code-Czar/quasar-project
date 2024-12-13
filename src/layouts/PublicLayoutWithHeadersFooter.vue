@@ -1,7 +1,7 @@
 <template>
-    <q-layout class="flex">
+    <q-layout class="flex flex-column">
         <PublicHeader />
-        <q-page-container class="flex">
+        <q-page-container class="flex-column flex-grow-1">
             <router-view />
         </q-page-container>
         <PublicFooterWide class="no-grow" />
@@ -9,14 +9,15 @@
 </template>
 
 <script setup>
-import { PublicHeader, PublicFooterWide } from '@/components';
+import { PublicHeader, PublicFooterWide } from 'src/components';
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .flex {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
+    // display: flex;
+    // flex-direction: column;
+    // flex-grow: 1;
+    // min-height: calc(90%);
 }
 .no-grow {
     flex-grow: 0;

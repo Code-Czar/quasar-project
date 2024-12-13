@@ -101,6 +101,52 @@ const routes: RouteRecordRaw[] = [
     ],
     meta: { requiresAuth: true, roles: [] },
   },
+
+  // Legals
+  {
+    path: '/privacyPolicy',
+    component: () => import('layouts/PublicLayoutWithHeadersFooter.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('pages/Public/Legals/PrivacyPolicyPage.vue'),
+      },
+    ],
+    meta: { requiresAuth: false, permissionLevel: [], roles: [] },
+  },
+  {
+    path: '/contactUs',
+    component: () => import('layouts/PublicLayoutWithHeadersFooter.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('pages/Public/Legals/ContactUsPage.vue'),
+      },
+    ],
+    meta: { requiresAuth: false, permissionLevel: [], roles: [] },
+  },
+  {
+    path: '/disclaimer',
+    component: () => import('layouts/PublicLayoutWithHeadersFooter.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('pages/Public/Legals/DisclaimerPage.vue'),
+      },
+    ],
+    meta: { requiresAuth: false, permissionLevel: [], roles: [] },
+  },
+  {
+    path: '/legalTerms',
+    component: () => import('layouts/PublicLayoutWithHeadersFooter.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('pages/Public/Legals/LegalTermsPage.vue'),
+      },
+    ],
+    meta: { requiresAuth: false, permissionLevel: [], roles: [] },
+  },
 ];
 
 export default routes;

@@ -1,24 +1,28 @@
 <template>
-  <q-page>
-    <div class="form-container flex-column-centered">
+  <!-- <q-page class="flex-column q-pa-xl"> -->
+    <div class="flex-column flex-grow-1">
 
-      <q-form @submit="submitForm" style="margin-left:auto; margin-right:auto">
+    <div class="form-container flex-column-centered q-pa-xl">
+
+      <q-form @submit="submitForm" style="margin-left:auto; margin-right:auto; gap:2rem">
         <div class="first-line-container">
 
           <q-input v-model="formData.name" label="Name" outlined dense required />
           <q-input v-model="formData.email" label="Email" type="email" outlined dense required />
         </div>
-        <div class="second-line-container">
-          <textarea v-model="formData.message" class="form-message-area" placeholder="Message" outlined dense required
-            style="background-color: transparent; width:calc(100%)" />
+        <div class="second-line-container  q-py-xl">
+          <textarea v-model="formData.message" class="form-message-area " placeholder="Message" outlined dense required
+            style="background-color: transparent; width: calc(100%)" />
         </div>
         <div class="flex-column-centered">
 
-          <q-btn type="submit" color="primary" label="Submit" class="q-mt-md" :loading="loading" />
+          <q-btn type="submit" color="secondary" label="Submit" class="q-mt-md" :loading="loading" />
         </div>
       </q-form>
     </div>
-  </q-page>
+  </div>
+
+  <!-- </q-page> -->
 </template>
 
 <script lang="ts" setup>
@@ -52,9 +56,15 @@ const submitForm = async () => {
   }
 };
 </script>
-<style lang="scss">
+<style lang="scss" scope>
 .form-container {
   margin: auto;
+  background-color: var(--primary);
+  border-radius: 1rem;
+  height: calc(100%)
+  // * {
+  //   background-color: white;
+  // }
 }
 
 .first-line-container {
@@ -69,5 +79,10 @@ const submitForm = async () => {
   border-radius: 3px;
   min-height: 20vh;
   color: $pristine-white;
+}
+
+.q-input, textarea{
+  border: 1px solid var(--secondary) !important;
+  border-radius: 0.3rem;
 }
 </style>
