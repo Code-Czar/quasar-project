@@ -133,7 +133,7 @@ export const useUserStore = defineStore('user', {
         }
 
         if (response.status !== 200) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
+          //throw new Error(`HTTP error! Status: ${response.status}`);
         }
 
         const data = response.data;

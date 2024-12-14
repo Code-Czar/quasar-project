@@ -95,7 +95,7 @@ export const checkForUpdates = async (
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to check updates: ${response.statusText}`);
+      //throw new Error(`Failed to check updates: ${response.statusText}`);
     }
 
     const { update_available, server_version: server_version_ } =
@@ -188,7 +188,7 @@ export const downloadUpdate = async (
       headers: { 'Content-Type': 'application/zip' },
     });
 
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) //throw new Error(`HTTP error! status: ${response.status}`);
 
     if (!destination) {
       destination = DOWNLOAD_DIR;
@@ -220,7 +220,7 @@ export const downloadUpdate = async (
     return filePath;
   } catch (error: any) {
     log(`Error during update download: ${error.message}`);
-    throw error;
+    //throw error;
   }
 };
 
@@ -240,7 +240,7 @@ export const extractUpdate = async (
     return extractDir;
   } catch (error: any) {
     log(`Error during extraction: ${error.message}`);
-    throw error;
+    //throw error;
   }
 };
 // Function to extract the downloaded update
@@ -257,7 +257,7 @@ export const extractSoftwareUpdate = async (
     return extractDir;
   } catch (error: any) {
     log(`Error during extraction: ${error.message}`);
-    throw error;
+    //throw error;
   }
 };
 
@@ -321,7 +321,7 @@ export const installUpdate = async (
     }, 1000);
   } catch (error: any) {
     log(`Error during installation: ${error.message}`);
-    throw error;
+    //throw error;
   }
 };
 
@@ -466,7 +466,7 @@ export const installSoftware = async (
     }
   } catch (error: any) {
     log(`Error during installation: ${error.message}`);
-    throw error;
+    //throw error;
   }
 };
 
@@ -475,7 +475,7 @@ export const getProductLauncher = async (productName: string) => {
   const productPath = path.join(appPath, productName);
 
   if (!fs.existsSync(productPath)) {
-    throw new Error(`Product folder not found: ${productPath}`);
+    //throw new Error(`Product folder not found: ${productPath}`);
   }
 
   // Find the first folder matching "0_<anyString>"
@@ -485,7 +485,7 @@ export const getProductLauncher = async (productName: string) => {
   });
 
   if (subfolders.length === 0) {
-    throw new Error(
+    //throw new Error(
       `No matching "0_<anyString>" folder found in ${productPath}`,
     );
   }
@@ -514,7 +514,7 @@ export const getProductLauncher = async (productName: string) => {
   });
 
   if (files.length === 0) {
-    throw new Error(`No executable binary found in ${appFolder}`);
+    //throw new Error(`No executable binary found in ${appFolder}`);
   }
 
   const binaryName = files[0];
@@ -570,7 +570,7 @@ export const launchSoftware = async (productName: string): Promise<void> => {
     });
   } catch (error: any) {
     log(`Error launching binary: ${error.message}`);
-    throw error;
+    //throw error;
   }
 };
 
