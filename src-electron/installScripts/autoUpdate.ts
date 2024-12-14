@@ -5,7 +5,7 @@ import { app, dialog } from 'electron';
 import { spawn } from 'child_process';
 // import { log } from 'electron-log';
 import { logger as log } from './logger';
-import { extractZip } from './utils';
+import { delay, extractZip } from './utils';
 
 const UPDATE_CHECK_URL = 'https://beniben.hopto.org/user/check-for-updates';
 const DOWNLOAD_URL = 'https://beniben.hopto.org/user/download-updates';
@@ -470,60 +470,75 @@ export const installSoftware = async (
   }
 };
 
+export const getProductLauncher = async (productName: string) => {
+  const appPath = path.dirname(app.getAppPath());
+  const productPath = path.join(appPath, productName);
+
+  if (!fs.existsSync(productPath)) {
+    throw new Error(`Product folder not found: ${productPath}`);
+  }
+
+  // Find the first folder matching "0_<anyString>"
+  const subfolders = fs.readdirSync(productPath).filter((folder) => {
+    const fullPath = path.join(productPath, folder);
+    return fs.statSync(fullPath).isDirectory() && /^0_.+/.test(folder);
+  });
+
+  if (subfolders.length === 0) {
+    throw new Error(
+      `No matching "0_<anyString>" folder found in ${productPath}`,
+    );
+  }
+
+  const appFolder = path.join(productPath, subfolders[0]);
+  log(`App folder located: ${appFolder}`);
+
+  // Find the binary file (assumes only one binary exists in the folder)
+  const files = fs.readdirSync(appFolder).filter((file) => {
+    const filePath = path.join(appFolder, file);
+    const isFile = fs.statSync(filePath).isFile();
+    const isExecutable =
+      process.platform === 'win32'
+        ? file.endsWith('.exe') ||
+          file.endsWith('.bat') ||
+          file.endsWith('.cmd') // Windows executables
+        : (() => {
+            try {
+              fs.accessSync(filePath, fs.constants.X_OK); // Check if file is executable
+              return true;
+            } catch {
+              return false;
+            }
+          })();
+    return isFile && isExecutable;
+  });
+
+  if (files.length === 0) {
+    throw new Error(`No executable binary found in ${appFolder}`);
+  }
+
+  const binaryName = files[0];
+  const binaryPath = path.join(appFolder, binaryName);
+  log(`Binary found: ${binaryPath}`);
+  return { appFolder, binaryName, binaryPath };
+};
+
 export const launchSoftware = async (productName: string): Promise<void> => {
   try {
-    const appPath = path.dirname(app.getAppPath());
-    const productPath = path.join(appPath, productName);
-
-    if (!fs.existsSync(productPath)) {
-      throw new Error(`Product folder not found: ${productPath}`);
-    }
-
-    // Find the first folder matching "0_<anyString>"
-    const subfolders = fs.readdirSync(productPath).filter((folder) => {
-      const fullPath = path.join(productPath, folder);
-      return fs.statSync(fullPath).isDirectory() && /^0_.+/.test(folder);
-    });
-
-    if (subfolders.length === 0) {
-      throw new Error(
-        `No matching "0_<anyString>" folder found in ${productPath}`,
-      );
-    }
-
-    const appFolder = path.join(productPath, subfolders[0]);
-    log(`App folder located: ${appFolder}`);
-
-    // Find the binary file (assumes only one binary exists in the folder)
-    const files = fs.readdirSync(appFolder).filter((file) => {
-      const filePath = path.join(appFolder, file);
-      const isFile = fs.statSync(filePath).isFile();
-      const isExecutable =
-        process.platform === 'win32'
-          ? file.endsWith('.exe') ||
-            file.endsWith('.bat') ||
-            file.endsWith('.cmd') // Windows executables
-          : (() => {
-              try {
-                fs.accessSync(filePath, fs.constants.X_OK); // Check if file is executable
-                return true;
-              } catch {
-                return false;
-              }
-            })();
-      return isFile && isExecutable;
-    });
-
-    if (files.length === 0) {
-      throw new Error(`No executable binary found in ${appFolder}`);
-    }
-
-    const binaryName = files[0];
-    const binaryPath = path.join(appFolder, binaryName);
+    const { appFolder, binaryPath, binaryName } =
+      await getProductLauncher(productName);
     log(`Binary found: ${binaryPath}`);
 
     // Launch the binary
     log(`Launching binary: ${binaryName} in working directory: ${appFolder}`);
+    const killing = spawn(`./${binaryName}`, ['--kill'], {
+      cwd: appFolder, // Set the working directory to appFolder
+      env: { ...process.env }, // Inherit parent process environment variables
+      detached: true, // Allows the parent process to exit without killing the child process
+      stdio: ['ignore', 'pipe', 'pipe'], // Capture output for debugging
+    });
+    await delay(3000);
+
     const child = spawn(`./${binaryName}`, [], {
       cwd: appFolder, // Set the working directory to appFolder
       env: { ...process.env }, // Inherit parent process environment variables

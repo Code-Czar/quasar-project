@@ -69,6 +69,7 @@ const launchDependencies = async () => {
 
   console.log('Launching : ', props.product.product_name);
   while(isUpdating.value){
+    console.log("🚀 ~ launchDependencies ~ isUpdating.value:", isUpdating.value)
     await delay(1000);
     
   }
