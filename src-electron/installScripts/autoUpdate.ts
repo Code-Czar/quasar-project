@@ -95,7 +95,13 @@ export const checkForUpdates = async (
     });
 
     if (!response.ok) {
-      //throw new Error(`Failed to check updates: ${response.statusText}`);
+      const message = `Error in check for updates`;
+      return {
+        update_available: false,
+        server_version: '0',
+        userResponse: 1,
+        currentVersion: null,
+      };
     }
 
     const { update_available, server_version: server_version_ } =
@@ -115,7 +121,7 @@ export const checkForUpdates = async (
       update_available && server_version_ != currentVersion,
     );
 
-    if (update_available && server_version_ != currentVersion) {
+    if (update_available && server_version_ != currentVersion && product) {
       log(`Update available: ${server_version_}`);
       userResponse = dialog.showMessageBoxSync({
         type: 'info',
@@ -127,6 +133,13 @@ export const checkForUpdates = async (
         update_available,
         server_version: server_version_,
         userResponse,
+        currentVersion,
+      };
+    } else if (update_available && server_version_ != currentVersion) {
+      return {
+        update_available,
+        server_version: server_version_,
+        userResponse: null,
         currentVersion,
       };
     } else {
@@ -188,7 +201,10 @@ export const downloadUpdate = async (
       headers: { 'Content-Type': 'application/zip' },
     });
 
-    if (!response.ok) //throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      const message = `HTTP error! status: ${response.status}`;
+      return message;
+    }
 
     if (!destination) {
       destination = DOWNLOAD_DIR;
@@ -219,8 +235,9 @@ export const downloadUpdate = async (
     log(`Update downloaded to: ${filePath}`);
     return filePath;
   } catch (error: any) {
-    log(`Error during update download: ${error.message}`);
-    //throw error;
+    const message = `Error during update download: ${error.message}`;
+    log(message);
+    return message;
   }
 };
 
@@ -239,8 +256,9 @@ export const extractUpdate = async (
     // } catch (error) {}
     return extractDir;
   } catch (error: any) {
-    log(`Error during extraction: ${error.message}`);
-    //throw error;
+    const message = `Error during extraction: ${error.message}`;
+    log(message);
+    return message;
   }
 };
 // Function to extract the downloaded update
@@ -256,8 +274,9 @@ export const extractSoftwareUpdate = async (
 
     return extractDir;
   } catch (error: any) {
-    log(`Error during extraction: ${error.message}`);
-    //throw error;
+    const message = `Error during extraction: ${error.message}`;
+    log(message);
+    return message;
   }
 };
 
@@ -318,10 +337,11 @@ export const installUpdate = async (
       log('Relaunching application...');
       app.relaunch();
       app.exit(0);
-    }, 1000);
+    }, 100);
   } catch (error: any) {
-    log(`Error during installation: ${error.message}`);
-    //throw error;
+    const message = `Error during installation: ${error.message}`;
+    log(message);
+    return message;
   }
 };
 
@@ -465,8 +485,9 @@ export const installSoftware = async (
       return null;
     }
   } catch (error: any) {
-    log(`Error during installation: ${error.message}`);
-    //throw error;
+    const message = `Error during installation: ${error.message}`;
+    log(message);
+    return message;
   }
 };
 
@@ -475,7 +496,9 @@ export const getProductLauncher = async (productName: string) => {
   const productPath = path.join(appPath, productName);
 
   if (!fs.existsSync(productPath)) {
-    //throw new Error(`Product folder not found: ${productPath}`);
+    const message = `Product folder not found: ${productPath}`;
+    log(message);
+    // return message;
   }
 
   // Find the first folder matching "0_<anyString>"
@@ -485,9 +508,10 @@ export const getProductLauncher = async (productName: string) => {
   });
 
   if (subfolders.length === 0) {
-    //throw new Error(
-      `No matching "0_<anyString>" folder found in ${productPath}`,
-    );
+    // throw new Error(
+    //   `No matching "0_<anyString>" folder found in ${productPath}`,
+    // );
+    // return '';
   }
 
   const appFolder = path.join(productPath, subfolders[0]);
@@ -514,7 +538,7 @@ export const getProductLauncher = async (productName: string) => {
   });
 
   if (files.length === 0) {
-    //throw new Error(`No executable binary found in ${appFolder}`);
+    // throw new Error(`No executable binary found in ${appFolder}`);
   }
 
   const binaryName = files[0];
@@ -523,21 +547,28 @@ export const getProductLauncher = async (productName: string) => {
   return { appFolder, binaryName, binaryPath };
 };
 
+export const killSoftware = async (productName: string): Promise<void> => {
+  const result = await getProductLauncher(productName);
+  if (!result.appFolder) {
+    return;
+  }
+  const { appFolder, binaryPath, binaryName } = result;
+
+  const killing = spawn(`./${binaryName}`, ['--kill'], {
+    cwd: appFolder, // Set the working directory to appFolder
+    env: { ...process.env }, // Inherit parent process environment variables
+    detached: true, // Allows the parent process to exit without killing the child process
+    stdio: ['ignore', 'pipe', 'pipe'], // Capture output for debugging
+  });
+  return { appFolder, binaryPath, binaryName };
+};
+
 export const launchSoftware = async (productName: string): Promise<void> => {
   try {
-    const { appFolder, binaryPath, binaryName } =
-      await getProductLauncher(productName);
-    log(`Binary found: ${binaryPath}`);
+    const { appFolder, binaryPath, binaryName } = killSoftware(productName);
 
-    // Launch the binary
-    log(`Launching binary: ${binaryName} in working directory: ${appFolder}`);
-    const killing = spawn(`./${binaryName}`, ['--kill'], {
-      cwd: appFolder, // Set the working directory to appFolder
-      env: { ...process.env }, // Inherit parent process environment variables
-      detached: true, // Allows the parent process to exit without killing the child process
-      stdio: ['ignore', 'pipe', 'pipe'], // Capture output for debugging
-    });
     await delay(3000);
+    log(`Launching binary: ${binaryName} in working directory: ${appFolder}`);
 
     const child = spawn(`./${binaryName}`, [], {
       cwd: appFolder, // Set the working directory to appFolder
@@ -569,8 +600,10 @@ export const launchSoftware = async (productName: string): Promise<void> => {
       progress: 100,
     });
   } catch (error: any) {
-    log(`Error launching binary: ${error.message}`);
-    //throw error;
+    const message = `Error launching binary: ${error.message}`;
+    log(message);
+    // return message;
+    // throw error;
   }
 };
 
@@ -640,74 +673,74 @@ export const installSoftwareUpdate = async (
     }
   });
 };
+
+export const autoUpdateInstaller = async () => {
+  // Step 1: Check for updates
+  const { currentVersion, update_available, server_version, userResponse } =
+    await checkForUpdates();
+
+  if (update_available) {
+    // User chose to download the update
+    log(
+      `User accepted update. Proceeding to download version ${server_version}...`,
+    );
+
+    mainWindow.webContents.send('update-progress', {
+      stage: 'downloading',
+      progress: 0,
+    });
+
+    // Step 2: Download the update
+    const downloadPath = await downloadUpdate(
+      DOWNLOAD_URL,
+      PRODUCT_NAME,
+      DOWNLOAD_DIR,
+    );
+    mainWindow.webContents.send('update-progress', {
+      stage: 'downloaded',
+      progress: 33,
+    });
+
+    log(`Update downloaded to: ${downloadPath}`);
+    mainWindow.webContents.send('update-progress', {
+      stage: 'extracting',
+      progress: 33,
+    });
+
+    // Step 3: Extract the downloaded update
+    const extractedPath = await extractUpdate(downloadPath, DOWNLOAD_DIR);
+    log(`Update extracted to: ${extractedPath}`);
+    mainWindow.webContents.send('update-progress', {
+      stage: 'extracted',
+      progress: 66,
+    });
+    mainWindow.webContents.send('update-progress', {
+      stage: 'installing',
+      progress: 66,
+    });
+
+    // Step 4: Install the update
+    await installUpdate(extractedPath, true);
+    log('Update installation complete.');
+    mainWindow.webContents.send('update-progress', {
+      stage: 'installed',
+      progress: 100,
+    });
+
+    // Delete the destination folder if it exists
+    // @ts-ignore
+    if (fs.existsSync(extractedPath)) {
+      log(`4) Deleting existing destination folder: ${extractedPath}`);
+      // @ts-ignore
+      fs.rmdirSync(extractedPath, { recursive: true });
+    }
+  } else if (update_available) {
+    log('User chose to delay the update.');
+  } else {
+    log('No updates available.');
+  }
+};
 export const initializeAutoUpdater = async (inputMainWindow: any) => {
   log('Custom updater initialized');
   mainWindow = inputMainWindow;
-
-  app.whenReady().then(async () => {
-    try {
-      // Step 1: Check for updates
-      const { currentVersion, update_available, server_version, userResponse } =
-        await checkForUpdates();
-
-      if (update_available && userResponse === 0) {
-        // User chose to download the update
-        log(
-          `User accepted update. Proceeding to download version ${server_version}...`,
-        );
-
-        // Step 2: Download the update
-        const downloadPath = await downloadUpdate(
-          DOWNLOAD_URL,
-          PRODUCT_NAME,
-          DOWNLOAD_DIR,
-        );
-        mainWindow.webContents.send('update-progress', {
-          stage: 'downloading',
-          progress: 50,
-        });
-
-        log(`Update downloaded to: ${downloadPath}`);
-        mainWindow.webContents.send('update-progress', {
-          stage: 'extracting',
-          progress: 50,
-        });
-
-        // Step 3: Extract the downloaded update
-        const extractedPath = await extractUpdate(downloadPath, DOWNLOAD_DIR);
-        log(`Update extracted to: ${extractedPath}`);
-        mainWindow.webContents.send('update-progress', {
-          stage: 'extracted',
-          progress: 50,
-        });
-        mainWindow.webContents.send('update-progress', {
-          stage: 'installing',
-          progress: 50,
-        });
-
-        // Step 4: Install the update
-        await installUpdate(extractedPath, true);
-        log('Update installation complete.');
-        mainWindow.webContents.send('update-progress', {
-          stage: 'installed',
-          progress: 50,
-        });
-
-        // Delete the destination folder if it exists
-        // @ts-ignore
-        if (fs.existsSync(extractedPath)) {
-          log(`4) Deleting existing destination folder: ${extractedPath}`);
-          // @ts-ignore
-          fs.rmdirSync(extractedPath, { recursive: true });
-        }
-      } else if (update_available) {
-        log('User chose to delay the update.');
-      } else {
-        log('No updates available.');
-      }
-    } catch (error: any) {
-      log(`Error during the update process: ${error.message}`);
-      mainWindow.webContents.send('update-error', { message: error.message });
-    }
-  });
 };

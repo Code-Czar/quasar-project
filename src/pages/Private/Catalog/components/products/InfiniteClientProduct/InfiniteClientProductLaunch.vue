@@ -1,5 +1,7 @@
 <template>
-  <p>{{ updateMessage }}</p>
+  <div class="flex-column flex-grow-1 justify-center align-center">
+    <p>{{ updateMessage }}</p>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -43,11 +45,7 @@ const checkForUpdates = async () => {
     const { update_available, userResponse } = await window.electronAPI.checkForUpdates(
       props.product.product_name
     );
-    // const result = await window.electronAPI.checkForUpdates(
-    //   props.product.product_name,
-    //   'mac',
-    //   'arm64'
-    // );
+    
     console.log("🚀 ~ checkForUpdates ~ result:", update_available, userResponse)
 
     if (update_available && userResponse === 0) {
@@ -55,6 +53,7 @@ const checkForUpdates = async () => {
         props.product.product_name
       );
     }else {
+      isUpdating.value = false;
       await launchDependencies()
     }
   } catch (error) {
@@ -133,6 +132,7 @@ onUnmounted(() => {
   window.electronAPI.onUpdateProgress((()=>{}));
   window.electronAPI.onUpdateComplete(()=>{});
   window.electronAPI.onUpdateError(()=>{});
+  window.electronAPI.killSoftware(props.product.product_name);
 });
 </script>
 

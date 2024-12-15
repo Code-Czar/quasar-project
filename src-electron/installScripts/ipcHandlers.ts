@@ -7,6 +7,7 @@ import {
   checkForUpdates,
   installSoftwareUpdate,
   launchSoftware,
+  autoUpdateInstaller,
 } from './autoUpdate';
 
 // const DOWNLOAD_DIR = path.dirname(app.getAppPath());
@@ -15,6 +16,9 @@ export const initializeIpcHandlers = (mainWindow: any) => {
   // console.log('Initializing IPC Handlers...');
   log("🚀 ~ initializeIpcHandlers ~ 'Initializing IPC Handlers...':");
 
+  ipcMain.handle('check-installer-updates', async (event) => {
+    await autoUpdateInstaller();
+  });
   ipcMain.handle(
     'check-for-updates',
     async (event, productName, requestPlatform, requestArch) => {
@@ -43,6 +47,11 @@ export const initializeIpcHandlers = (mainWindow: any) => {
     // console.log('🚀 ~ ipcMain.handle ~ event:', productName);
 
     await launchSoftware(productName);
+  });
+  ipcMain.handle('kill-software', async (event, productName) => {
+    // console.log('🚀 ~ ipcMain.handle ~ event:', productName);
+
+    await killSoftware(productName);
   });
 
   ipcMain.on('protocol-invoked', (event, url) => {

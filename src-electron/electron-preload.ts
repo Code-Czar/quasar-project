@@ -9,15 +9,16 @@ console.log('🚀 Architecture:', arch);
 
 // Expose Electron APIs to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
-  installDocker: (productId: string) =>
-    ipcRenderer.invoke('install-dependencies', productId),
-  checkContainers: () => ipcRenderer.invoke('check-docker-containers'),
+  checkInstallerUpdates: () => ipcRenderer.invoke('check-installer-updates'),
+
   checkForUpdates: (productName: string) =>
     ipcRenderer.invoke('check-for-updates', productName, platform, arch),
   installSoftwareUpdate: (productName: string) =>
     ipcRenderer.invoke('install-software-update', productName, platform, arch),
   launchSoftware: (productName: string) =>
     ipcRenderer.invoke('launch-software', productName),
+  killSoftware: (productName: string) =>
+    ipcRenderer.invoke('kill-software', productName),
   navigateTo: (url: string) => ipcRenderer.send('navigate-to-url', url),
   authRedirect: (url: string) => ipcRenderer.send('auth-redirect', url),
   sendFeedback: (feedbackData: any) =>

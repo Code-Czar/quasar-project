@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="flex-column flex-grow-1 justify-center align-center">
     <p v-if="loading">Checking subscription status...</p>
 
     <!-- Render the appropriate component based on the subscription status -->
@@ -107,6 +107,8 @@ const checkSubscriptionStatus = async () => {
 onMounted(() => {
   checkSubscriptionStatus();
 });
+
+
 </script>
 
 <style scoped>
