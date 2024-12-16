@@ -33,7 +33,7 @@ const isUpdating = ref<bool>(true);
 const openApp = ()=> {
   setTimeout(()=>{
     window.location.href = 'http://localhost:3001/'
-  },5000)
+  },1000)
 }
 
 // Function to check for updates
@@ -70,11 +70,11 @@ const launchDependencies = async () => {
   console.log('Launching : ', props.product.product_name);
   while(isUpdating.value){
     console.log("🚀 ~ launchDependencies ~ isUpdating.value:", isUpdating.value)
-    await delay(1000);
+    await delay(200);
     
   }
   try {
-     await delay(1000);
+    //  await delay(1000);
      await window.electronAPI.launchSoftware(
       props.product.product_name,
     );
@@ -102,6 +102,7 @@ onMounted(async () => {
 
     // Listen for update events
     window.electronAPI.onUpdateProgress((event, data) => {
+      isUpdating.value = true;
       updateMessage.value = data.stage;
       updateProgress.value = data.progress;
       if(data.progress === 100){

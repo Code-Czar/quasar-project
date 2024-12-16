@@ -559,7 +559,9 @@ export const getProductLauncher = async (productName: string) => {
 
   const binaryName = files[0];
   const binaryPath = path.join(appFolder, binaryName);
-  log(`Binary found: ${binaryPath}`);
+  log(`Binary found: ${binaryPath} `);
+  log(`App Folder: ${appFolder} `);
+  log(`Binary name: ${binaryName} `);
   return { appFolder, binaryName, binaryPath };
 };
 
@@ -569,6 +571,9 @@ export const killSoftware = async (productName: string) => {
     return;
   }
   const { appFolder, binaryPath, binaryName } = result;
+  log(`🚀 ~ killSoftware ~ binaryName: ${binaryName}`);
+  log(`🚀 ~ killSoftware ~ binaryPath: ${binaryPath}`);
+  log(`🚀 ~ killSoftware ~ appFolder: ${appFolder}`);
 
   const killing = spawn(`./${binaryName}`, ['--kill'], {
     cwd: appFolder, // Set the working directory to appFolder
@@ -584,6 +589,12 @@ export const launchSoftware = async (productName: string): Promise<void> => {
     // @ts-ignore
     const { appFolder, binaryPath, binaryName } =
       await killSoftware(productName);
+    log(`🚀 ~ launchSoftware ~ binaryName: ${binaryName}`);
+    log(`🚀 ~ launchSoftware ~ binaryPath: ${binaryPath}`);
+    log(`🚀 ~ launchSoftware ~ appFolder: ${appFolder}`);
+    // console.log("🚀 ~ launchSoftware ~ binaryName:", binaryName)
+    // console.log("🚀 ~ launchSoftware ~ binaryPath:", binaryPath)
+    // console.log("🚀 ~ launchSoftware ~ appFolder:", appFolder)
 
     await delay(3000);
     log(`Launching binary: ${binaryName} in working directory: ${appFolder}`);

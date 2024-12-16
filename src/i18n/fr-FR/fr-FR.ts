@@ -1,243 +1,386 @@
-// This is just an example,
-// so you can safely delete all default props below
 import PrivacyPolicyContent from './pages/privacyPolicy';
 import TermsOfUseContent from './pages/termsOfUse';
 import DisclaimerContent from './pages/disclaimer';
 
 export default {
-  healineTitle: 'Infinite-Opportunities',
-  failed: 'Action failed',
-  success: 'Action was successful',
-  selectedLanguage: 'English',
-  login: 'Login',
-  yes: 'Yes',
-  no: 'No',
+  healineTitle: 'Infinite-Opportunities 2',
+  failed: "Échec de l'action",
+  success: 'Action réussie',
+  selectedLanguage: 'Français',
+  login: 'Se connecter',
+  yes: 'Oui',
+  no: 'Non',
   ok: 'OK',
+
+  productName: 'Infinite-Installer',
+
+  navigationDrawer: {
+    title: 'Navigation',
+    items: {
+      one: {
+        name: 'Produits',
+      },
+    },
+  },
 
   navigationMenu: {
     homeHeader: {
-      home: 'Home',
-      ourMission: 'Our Mission',
-      roadmap: 'Roadmap',
-      features: 'Features',
-      beta: 'Beta',
-      pricing: 'Pricing',
+      home: 'Accueil',
+      ourMission: 'Notre Mission',
+      roadmap: 'Feuille de route',
+      features: 'Caractéristiques',
+      beta: 'Bêta',
+      pricing: 'Tarification',
+    },
+  },
+
+  pages: {
+    catalog: {
+      title: 'Produits Disponibles',
+    },
+    productCatalog: {
+      title: 'Catalogue de Produits',
+      loading: 'Chargement des produits...',
     },
   },
   footerWide: {
     privacyPolicy: {
-      title: 'Privacy Policy',
+      title: 'Politique de confidentialité',
       content: PrivacyPolicyContent.content,
     },
     legalTerms: {
-      title: 'Terms of use',
+      title: "Conditions d'utilisation",
       content: TermsOfUseContent.content,
     },
     disclaimer: {
-      title: 'Disclaimer',
+      title: 'Avertissement',
       content: DisclaimerContent.content,
     },
-    brandName: 'Infinite-Opportunities',
-    copyright: '©. All rights reserved',
-    contactUs: 'Contact Us',
+    brandName: 'Infinite-Solutions',
+    copyright: '©. Tous droits réservés',
+    contactUs: 'Contactez-nous',
   },
 
   buttons: {
-    login: 'Login FR',
-    discover: 'Discover',
+    login: 'Se connecter',
+    discover: 'Découvrir',
   },
 
   heroHeader: {
     slide1: {
-      header: 'Infinite-Opportunities FR',
+      header: 'Infinite-Installer',
       subtitle: {
-        line1: 'FRFR Tired of missing out opportunities ?',
-        line2: 'We bring you thousands of opportunities everyday',
+        line1: 'Installez des produits logiciels infinis',
+        line2: '',
       },
     },
     slide2: {
-      header: 'FR Infinite-Opportunities',
+      header: 'Infinite-Clients',
       subtitle: {
-        line1: 'For both non-professional and professional traders',
+        line1: {
+          text: 'Atteignez des milliers de clients depuis :',
+          align: 'center',
+        },
+        line2: 'Facebook',
+        line3: 'Instagram',
+        line4: 'TikTok',
       },
     },
   },
 
   ourMission: {
-    header:
-      'Automate Your Client Acquisition Across Facebook, Instagram, and TikTok',
-    content:
-      'To  you tools and data to make money with low investment, without spending hours staring at charts.',
+    slide1: {
+      header: `
+      <strong style="color: var(--gold-up1) !important; -webkit-text-stroke: 1px black; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+        Automatisez
+      </strong>
+      Votre <br/>
+      <strong style="color: var(--q-secondary) !important; -webkit-text-stroke: 1px black; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+        Acquisition 
+      </strong>
+      <strong style="-webkit-text-stroke: 1px black; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+        Client
+      </strong> 
+      Sur <br /><br/>
+    `,
+      content: `<q-icon name="fab fa-facebook-f"></q-icon> Facebook <br />
+      <q-icon name="fab fa-instagram"></q-icon> Instagram <br />
+      <q-icon name="fab fa-tiktok"></q-icon> TikTok <br/>
+      <br/>Développez facilement votre CRM avec des outils d'automatisation et de messagerie automatique.
+      <br/>Contactez jusqu'à 8000+ clients par mois
+      `,
+    },
   },
 
   howItWorks: {
-    header: 'How do we do that ?',
-    // subHeader: 'How do we do that ?',
-    card1: {
-      title: 'Market analysis',
-      text: 'We constantly analyze more than 300 cryptocurrencies',
-    },
-    card2: {
-      title: 'Strategy analysis',
-      text: `We use multiple indicators to define most profitable and safest strategies. \n
-      Then we test them to get the best possible strategies`,
-    },
-    card3: {
-      title: 'AI and Machine Learning',
-      text: `We use AI to :  \n
-            - test thousands of strategies and define new ones`,
-      // text: 'This is a string\\nthat spans multiple\\nlines.',
-    },
+    header: 'Comment ça fonctionne',
+    steps: [
+      {
+        icon: 'account_circle',
+        title: '<strong>Obtenez des contacts</strong>',
+        description:
+          'Obtenez des clients depuis <br/>Facebook, Instagram et TikTok',
+      },
+      {
+        icon: 'settings',
+        title: "<strong>Générez des messages d'accroche personnalisés</strong>",
+        description:
+          'En utilisant des messages personnalisés, vous augmentez considérablement la réponse des utilisateurs.',
+      },
+      {
+        icon: 'trending_up',
+        title: "<strong>Contactez automatiquement l'utilisateur</strong>",
+        description:
+          'Lancez votre automatisation sur chaque plateforme et interagissez uniquement avec les personnes engagées.',
+      },
+    ],
   },
+
   features: {
-    header: 'What can you do with our tool ?',
-    // subHeader: 'How do we do that ?',
-    card1: {
-      title: 'Highly customizable notifications',
-      text: 'Set the notifications you want ',
-    },
-    card2: {
-      title: 'Real-Time notification',
-      text: 'Get instantly notified when opportunities comes in',
-    },
-    card3: {
-      title: 'Mobile application',
-      text: 'Either use a webbrowser or mobile app to get notifications everywhere',
-    },
-    card4: {
-      title: 'Backtest your strategy',
-      text: `Use customizable, predifined strategies and backtest them on more than 300 crypto pairs, \n
-      to see if they are profitable and adjust if not.`,
-    },
+    header: 'Que pouvez-vous faire avec notre outil ?',
+    sections: [
+      {
+        sectionTitle: 'Intégration des Médias Sociaux',
+        sectionSubtitle: 'Étendez votre portée sur différentes plateformes',
+        background: 'var(--section-odd-background)',
+        list: [
+          {
+            icon: 'fab fa-facebook-f',
+            title: '<strong>Facebook</strong>',
+            description:
+              'Accédez aux <strong>Groupes</strong>, <strong>Abonnés</strong> et <strong>Amis</strong> pour développer votre CRM.',
+          },
+          {
+            icon: 'fab fa-instagram',
+            title: '<strong>Instagram</strong>',
+            description:
+              "Exploitez les <strong>Abonnés</strong>, <strong>J'aime</strong> et <strong>Commentaires</strong> (bientôt disponible).",
+          },
+          {
+            icon: 'fab fa-tiktok',
+            title: '<strong>TikTok</strong>',
+            description:
+              "Interagissez avec les <strong>Abonnés</strong> et les <strong>J'aime/Commentaires</strong> (bientôt disponible).",
+          },
+        ],
+      },
+      {
+        sectionTitle: 'Messagerie Automatisée',
+        sectionSubtitle: 'Messagerie personnalisée à grande échelle',
+        background: 'var(--section-even-background)',
+        list: [
+          {
+            icon: 'message',
+            title: '<strong>Messagerie automatique</strong>',
+            description:
+              'Envoyez des milliers de messages mensuellement avec un contenu adapté à votre audience.',
+          },
+          {
+            icon: 'chat',
+            title: '<strong>Intégration ChatGPT</strong>',
+            description:
+              "Générez facilement des <strong>variantes de messages personnalisés</strong> pour n'importe quel créneau grâce à l'<strong>IA</strong>.",
+          },
+          {
+            icon: 'library_books',
+            title: '<strong>Bibliothèque de messages</strong>',
+            description:
+              'Sauvegardez les messages fréquemment utilisés pour faciliter le processus de messagerie.',
+          },
+        ],
+      },
+    ],
   },
-  roadmap: {
-    title: 'Roadmap',
+
+  testimonials: {
+    header: 'Ce que nos clients disent',
+    list: [
+      {
+        image: '/assets/customer1.jpg',
+        quote:
+          '“Cet outil a révolutionné la gestion de mes clients. Je le recommande vivement !”',
+        rating: 5,
+        name: 'John Doe',
+        title: 'Entrepreneur',
+      },
+      {
+        image: '/assets/customer2.jpg',
+        quote:
+          "“J'étais sceptique au début, mais maintenant c'est une partie essentielle de mon flux de travail !”",
+        rating: 4,
+        name: 'Jane Smith',
+        title: 'Spécialiste en marketing',
+      },
+      {
+        image: '/assets/customer3.jpg',
+        quote:
+          "“Les fonctionnalités d'automatisation sont un vrai changement. Mon CRM n'a jamais été aussi bien.”",
+        rating: 5,
+        name: 'Alex Johnson',
+        title: 'Freelance',
+      },
+    ],
   },
   pricing: {
-    title: 'Pricing',
+    title: 'Tarification',
     cards: {
       card1: {
-        title: 'Basic',
+        title: 'Accès à vie',
         items: [
-          { title: 'Unlimited notifications', icon: 'notifications' },
-          { title: 'Backtesting Strategy', icon: 'mdi-bullseye-arrow' },
-          { title: 'Lifetime access', icon: 'mdi-check' },
+          {
+            category: 'Automatisation',
+            subcategories: [
+              {
+                title: 'Obtenez des clients depuis',
+                features: [
+                  {
+                    platform: 'Facebook',
+                    details: [
+                      "Groupes (jusqu'à 10k+ par groupe)",
+                      "Abonnés d'utilisateurs célèbres (pas de limite connue)",
+                      "Amis d'utilisateurs célèbres (pas de limite connue)",
+                    ],
+                  },
+                  {
+                    platform: 'Instagram',
+                    details: [
+                      'Compte célèbre : obtenez des abonnés (pas de limite connue)',
+                    ],
+                  },
+                  {
+                    platform: 'TikTok',
+                    details: [
+                      'Compte célèbre : obtenez des abonnés (pas de limite connue)',
+                    ],
+                  },
+                ],
+              },
+              {
+                title: 'Envoi de messages',
+                features: [
+                  {
+                    platform: 'Facebook',
+                    details: ['Entre 100 et 200 par jour : 6000 par mois'],
+                  },
+                  {
+                    platform: 'Instagram',
+                    details: ['Entre 80 et 100 par jour : 3000 par mois'],
+                  },
+                  {
+                    platform: 'TikTok',
+                    details: ['Sous test'],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            category: 'Accès à vie',
+            subcategories: [
+              {
+                title: 'Prix fixe',
+                features: {
+                  details: [
+                    'Le prix public augmentera à mesure que de nouvelles fonctionnalités sont ajoutées',
+                  ],
+                },
+              },
+              {
+                title: 'Mises à jour gratuites',
+                features: {
+                  details: ['Toutes les mises à jour incluses gratuitement'],
+                },
+              },
+            ],
+          },
+          {
+            category: 'CRM',
+            subcategories: [
+              {
+                title: 'Votre CRM',
+                features: [
+                  { details: ['Vous possédez entièrement votre CRM'] },
+                ],
+              },
+              {
+                title: 'Intégrations à venir',
+                features: [
+                  { details: ['Intégration de Monday (bientôt disponible)'] },
+                  { details: ['Intégration de Hubspot (bientôt disponible)'] },
+                ],
+              },
+            ],
+          },
         ],
-        price: '10$',
-        recurring: 'month',
+        price: '100€',
+        reductionPrice: '30€',
+        recurring: 'par mois',
       },
     },
-    buyButton: 'Buy Now',
+    buyButton: 'Accéder instantanément',
   },
-  registerBeta: {
-    header: `Interested in getting \ninvestment opportunities ?`,
-    subHeader: 'Become a beta user for free',
-    callToAction: 'Count me in !',
-    formLabels: {
-      title: 'Beta Registration Form',
-      haveTraded: 'Have you already traded in the past?',
-      featureInterests: 'What features interest you the most?',
-      knowledgeLevel:
-        'What is your estimated knowledge level in the trading field?',
-      investedAmount: 'How much money did you invest?',
-      gainedAmount: 'How much money did you gain?',
-      lostAmount: 'How much money did you lose?',
-      interestedIn: 'What are you interested in?',
-      shortTermTrading: 'Short term trading',
-      midTermTrading: 'Mid term trading',
-      longTermTrading: 'Long term trading',
-      featureInterestsLabel: 'What features interest you the most?',
-      backtesting: 'Backtesting strategy',
-      realTimeNotifications: 'Real-time notifications',
-      multipleIndicators: 'Multiple indicators usage',
-      usedTools:
-        'Are you already using trading tools? If so, can you list them?',
-      additionalFeatures:
-        'Is there any feature that you would like to see in our tools? Features that you estimate have high value for you?',
-      startingAmount: 'How much money would you like to start with?',
-      targetEarnings: 'How much money would you like to make, realistically?',
-      riskLevel: 'What is the level of risk you are ready to take?',
-      giveFeedback:
-        'Are you ready to give regular feedback to the core team to help develop the app?',
-      allowAnonymousData:
-        'Are you okay to send anonymous usage data so we can see how you behave on the app and improve user experience?',
 
-      submit: 'Submit',
-    },
-  },
-  liveBot: {
-    buttons: {
-      start: 'Start Bot',
-      stop: 'Stop Bot',
-    },
-  },
-  defaultChart: {
-    buttons: {
-      boillingerBands: 'Bollinger Bands',
-      RSI: 'RSI',
-      SMA: 'SMA',
-      EMA: 'EMA',
-      MACD: 'MACD',
-      volumes: 'Toggle Volumes',
-      support: 'Support',
-      resistance: 'Resistance',
-      rsiSignals: 'RSI Signals',
-    },
-  },
-  backtesting: {
-    strategySelector: {
-      setupTitle: 'Setup',
-      riskManagementTitle: 'Risk Manangement',
-      selectStrategyLabel: 'Select Strategy',
-      selectPairLabel: 'Select Pair',
-      selectTimeframeLabel: 'Select Timeframe',
-    },
-    buttons: {
-      runBacktest: { label: 'Run Backtest', tooltip: 'Start here' },
-      reset: 'Reset',
-      backward: 'Backward',
-      forward: 'Forward',
-      pause: 'Pause',
-    },
-    timePickers: {
-      startTime: 'Start time',
-      endTime: 'End Time',
-    },
-    positionsDiv: {
-      positionsTitle: 'Positions',
-      totalPnL: 'Total P&L',
-      open: 'Open',
-      closed: 'Closed',
-    },
-    loaders: {
-      backtestLoader: {
-        title: 'Starting Backtest',
-      },
+  registerBeta: {
+    header: `Intéressé par des opportunités d\'investissement ?`,
+    subHeader: 'Devenez un utilisateur bêta gratuitement',
+    callToAction: 'Compte-moi dedans !',
+    formLabels: {
+      title: "Formulaire d'inscription bêta",
+      haveTraded: 'Avez-vous déjà échangé dans le passé ?',
+      featureInterests: 'Quelles fonctionnalités vous intéressent le plus ?',
+      knowledgeLevel:
+        'Quel est votre niveau de connaissance dans le domaine du trading ?',
+      investedAmount: 'Combien avez-vous investi ?',
+      gainedAmount: 'Combien avez-vous gagné ?',
+      lostAmount: 'Combien avez-vous perdu ?',
+      interestedIn: "Qu'est-ce qui vous intéresse ?",
+      shortTermTrading: 'Trading à court terme',
+      midTermTrading: 'Trading à moyen terme',
+      longTermTrading: 'Trading à long terme',
+      featureInterestsLabel:
+        'Quelles fonctionnalités vous intéressent le plus ?',
+      backtesting: 'Stratégie de backtesting',
+      realTimeNotifications: 'Notifications en temps réel',
+      multipleIndicators: 'Utilisation de plusieurs indicateurs',
+      usedTools:
+        'Utilisez-vous déjà des outils de trading ? Si oui, pouvez-vous les lister ?',
+      additionalFeatures:
+        'Y a-t-il des fonctionnalités que vous aimeriez voir dans nos outils ? Des fonctionnalités que vous estimez avoir une grande valeur pour vous ?',
+      startingAmount: "Combien d'argent aimeriez-vous commencer à investir ?",
+      targetEarnings:
+        "Combien d'argent aimeriez-vous gagner, de manière réaliste ?",
+      riskLevel: 'Quel est le niveau de risque que vous êtes prêt à prendre ?',
+      giveFeedback:
+        "Êtes-vous prêt à donner des retours réguliers à l'équipe principale pour aider au développement de l'application ?",
+      allowAnonymousData:
+        "Acceptez-vous d'envoyer des données d'utilisation anonymes afin que nous puissions voir comment vous vous comportez sur l'application et améliorer l'expérience utilisateur ?",
+
+      submit: 'Soumettre',
     },
   },
   loginPage: {
-    title: 'Opportunities',
-    loginWithGoogle: 'Login with Google',
-    loginWithGithub: 'Login with Github',
+    title: 'Opportunités',
+    loginWithGoogle: 'Se connecter avec Google',
+    loginWithGithub: 'Se connecter avec Github',
   },
   userPage: {
     general: {
-      title: 'General Informations',
-      email: 'Email Address',
-      fullname: 'Full Name',
-      role: 'Role',
+      title: 'Informations générales',
+      email: 'Adresse e-mail',
+      fullname: 'Nom complet',
+      role: 'Rôle',
     },
     subscription: {
-      title: 'Subscription Informations',
-      status: 'Subscription Status',
-      cancelBtn: 'Cancel Subscription',
-      cancelConfirmation: 'Confirm Subscription Cancellation',
-      cancelText: 'Are you sure you want to cancel your subscription?',
-      not: 'No subscription',
+      title: "Informations sur l'abonnement",
+      status: "Statut de l'abonnement",
+      cancelBtn: "Annuler l'abonnement",
+      cancelConfirmation: "Confirmer l'annulation de l'abonnement",
+      cancelText: 'Êtes-vous sûr de vouloir annuler votre abonnement ?',
+      not: "Pas d'abonnement",
     },
   },
   subscriptionSuccessPage: {
-    title: 'Subscription Success!',
-    text: 'Your subscription is valid. Redirecting to main page in 3 seconds...',
+    title: 'Abonnement réussi !',
+    text: 'Votre abonnement est valide. Redirection vers la page principale dans 3 secondes...',
   },
 };

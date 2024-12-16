@@ -210,7 +210,7 @@ module.exports = configure(function (/* ctx */) {
         overwrite: true, // Overwrite previous builds
         prune: true, // Remove unnecessary files from node_modules
         out: 'dist/electron', // Output directory
-        icon: 'src-electron/icons/icon', // App icon
+        // icon: 'src-electron/icons/icon', // App icon
         appBundleId: 'com.infinityInstaller.app', // macOS app bundle ID
         appCategoryType: 'public.app-category.utilities', // macOS app category
         extendInfo: path.resolve(__dirname, 'src-electron/Info.plist'), // Include custom Info.plist
