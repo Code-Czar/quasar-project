@@ -8,6 +8,7 @@ import {
   installSoftwareUpdate,
   launchSoftware,
   autoUpdateInstaller,
+  killSoftware,
 } from './autoUpdate';
 
 // const DOWNLOAD_DIR = path.dirname(app.getAppPath());

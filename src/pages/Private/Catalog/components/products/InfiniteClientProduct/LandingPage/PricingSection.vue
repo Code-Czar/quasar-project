@@ -193,4 +193,8 @@ const pricingCards = computed<PricingCard[]>(() => {
   font-size: 0.8rem;
   color: var(--text-secondary);
 }
+h3, h4{
+  margin: unset;
+  padding: unset;
+}
 </style>

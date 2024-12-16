@@ -25,12 +25,27 @@ const setExecutablePermissionsRecursively = (dirPath: string): void => {
   for (const entry of entries) {
     const entryPath = path.join(dirPath, entry.name);
 
-    if (entry.isDirectory()) {
-      // Recurse into subdirectories
-      setExecutablePermissionsRecursively(entryPath);
-    } else if (entry.isFile()) {
-      // Set executable permissions for files
-      fs.chmodSync(entryPath, '777'); // chmod +x
+    try {
+      if (entry.isDirectory()) {
+        // Recurse into subdirectories
+        setExecutablePermissionsRecursively(entryPath);
+      } else if (entry.isFile()) {
+        // Check the file type and set executable permissions if necessary
+        const fileStats = fs.statSync(entryPath);
+        fs.chmodSync(entryPath, '755');
+        log(
+          `🚀 ~ setExecutablePermissionsRecursively ~ entryPath: ${entryPath}`,
+        );
+
+        // Only set +x if the file isn't already executable
+        // const isExecutable = (fileStats.mode & 0o111) !== 0; // Check any execute bit
+        // if (!isExecutable) {
+        //   fs.chmodSync(entryPath, 0o755); // Set execute permission for the owner, group, and others
+        //   console.log(`Set executable permissions: ${entryPath}`);
+        // }
+      }
+    } catch (error) {
+      console.error(`Error processing file: ${entryPath}`, error);
     }
   }
 };
@@ -442,8 +457,9 @@ export const installSoftware = async (
       log(`0_appLauncher folder not found: ${appLauncherPath}`);
       return null;
     }
+    log(`Target path: ${targetPath}`);
 
-    setExecutablePermissionsRecursively(appLauncherPath);
+    setExecutablePermissionsRecursively(targetPath);
 
     const launcherFiles = fs.readdirSync(appLauncherPath);
 
@@ -547,7 +563,7 @@ export const getProductLauncher = async (productName: string) => {
   return { appFolder, binaryName, binaryPath };
 };
 
-export const killSoftware = async (productName: string): Promise<void> => {
+export const killSoftware = async (productName: string) => {
   const result = await getProductLauncher(productName);
   if (!result.appFolder) {
     return;
@@ -565,7 +581,9 @@ export const killSoftware = async (productName: string): Promise<void> => {
 
 export const launchSoftware = async (productName: string): Promise<void> => {
   try {
-    const { appFolder, binaryPath, binaryName } = killSoftware(productName);
+    // @ts-ignore
+    const { appFolder, binaryPath, binaryName } =
+      await killSoftware(productName);
 
     await delay(3000);
     log(`Launching binary: ${binaryName} in working directory: ${appFolder}`);

@@ -94,5 +94,8 @@
     margin-top: auto;
     /* Push footer to the bottom */
   }
+  .q-icon{
+    margin:unset !important;
+  }
   </style>
   

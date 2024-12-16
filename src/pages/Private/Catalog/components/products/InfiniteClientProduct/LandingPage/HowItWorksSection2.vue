@@ -81,6 +81,8 @@ const handleDiscoverClick = () => {
   align-items: center;
   text-align: left;
   max-width: 300px;
+  min-width: 20rem;
+
 }
 
 .step-icon {

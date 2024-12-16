@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     checkForUpdates: (productName) => ipcRenderer.invoke('check-for-updates', productName, platform, arch),
     installSoftwareUpdate: (productName) => ipcRenderer.invoke('install-software-update', productName, platform, arch),
     launchSoftware: (productName) => ipcRenderer.invoke('launch-software', productName),
+    killSoftware: (productName) => ipcRenderer.invoke('kill-software', productName),
     navigateTo: (url) => ipcRenderer.send('navigate-to-url', url),
     authRedirect: (url) => ipcRenderer.send('auth-redirect', url),
     sendFeedback: (feedbackData) => ipcRenderer.invoke('send-feedback', feedbackData),

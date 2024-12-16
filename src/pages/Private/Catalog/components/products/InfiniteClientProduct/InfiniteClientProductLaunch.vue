@@ -1,6 +1,8 @@
 <template>
   <div class="flex-column flex-grow-1 justify-center align-center">
     <p>{{ updateMessage }}</p>
+    <q-spinner size="50px" color="secondary"  v-if="isUpdating"/>
+
   </div>
 </template>
 
@@ -30,7 +32,6 @@ const isUpdating = ref<bool>(true);
 
 const openApp = ()=> {
   setTimeout(()=>{
-
     window.location.href = 'http://localhost:3001/'
   },5000)
 }
@@ -73,6 +74,7 @@ const launchDependencies = async () => {
     
   }
   try {
+     await delay(1000);
      await window.electronAPI.launchSoftware(
       props.product.product_name,
     );

@@ -18,7 +18,7 @@
         <q-icon :name="feature.icon" class="feature-icon" />
         <div style="display:flex; flex-direction: column; justify-content: center; ">
           <h3 v-html="feature.title" style="display:flex; justify-content: center;"></h3>
-          <p v-html="feature.description"></p>
+          <p v-html="feature.description" class="text-centered"></p>
         </div>
       </div>
     </div>
@@ -68,7 +68,7 @@ console.log("🚀 ~ featureSections ~ featureSections:", locale, messages, featu
 
 .feature-icon {
   font-size: 2rem;
-  margin-right: 1rem;
+  // margin-right: 1rem;
   // color: var(--q-secondary);
   color: var(--white-pristine) !important;
 

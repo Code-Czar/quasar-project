@@ -24,15 +24,18 @@
           </div>
         </div>
 
-        <div class="overlay-content" v-else>
+        
+      </q-carousel-slide>
+      
+    </q-carousel>
+    <div class="downloading-overlay-content" v-if="isUpdating">
           <div class="loading-container">
+            <p class="loading-message">Updating, please wait few seconds :</p>
             <p class="loading-message">{{ message }}</p>
             <p class="loading-progress">{{ updateProgressPercent }}%</p>
-            <q-spinner size="50px" color="primary" />
+            <q-spinner size="50px" color="secondary" />
           </div>
         </div>
-      </q-carousel-slide>
-    </q-carousel>
   </section>
 </template>
 
@@ -135,12 +138,28 @@ onUnmounted(() => {
   flex-direction: row;
   width: 95%;
 }
+.downloading-overlay-content {
+  position: fixed;
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  justify-content: center;
+  z-index: 99;
+  top: 0;
+  left: 0;
+  // transform: translate(-50%, -50%);
+  text-align: center;
+  flex-direction: row;
+  width: 95%;
+}
 
 .loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  height:100vh;
+  width:100vw;
 }
 
 .loading-message {

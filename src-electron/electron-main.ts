@@ -104,7 +104,9 @@ export const openWindow = (windowTitle: string, url = null) => {
   console.log('🚀 ~ openWindow ~ windowTitle:', windowTitle);
   newWindow.loadURL(url || 'http://tiktok.com');
 
-  newWindow.webContents.on('did-finish-load', () => {
+  // Listen for the page title change event and override it
+  newWindow.webContents.on('page-title-updated', (event) => {
+    event.preventDefault(); // Prevent the default behavior
     newWindow.webContents
       .executeJavaScript(`document.title = ${JSON.stringify(windowTitle)};`)
       .then(() => {

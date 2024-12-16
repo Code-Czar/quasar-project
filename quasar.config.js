@@ -215,10 +215,10 @@ module.exports = configure(function (/* ctx */) {
         appCategoryType: 'public.app-category.utilities', // macOS app category
         extendInfo: path.resolve(__dirname, 'src-electron/Info.plist'), // Include custom Info.plist
         win32metadata: {
-          CompanyName: 'My Company',
-          FileDescription: 'My App',
-          OriginalFilename: 'MyApp.exe',
-          ProductName: 'MyApp',
+          CompanyName: 'InfinityInstaller',
+          FileDescription: 'Installer for Infinite Solutions ® softwares',
+          OriginalFilename: 'InfinityInstaller.exe',
+          ProductName: 'InfinityInstaller',
         },
       },
 
