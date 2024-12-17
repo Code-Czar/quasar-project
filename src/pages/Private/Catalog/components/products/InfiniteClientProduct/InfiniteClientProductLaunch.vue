@@ -30,11 +30,30 @@ const updateProgress = ref<number | null>(null);
 const updateMessage = ref<string | null>(null);
 const isUpdating = ref<bool>(true);
 
-const openApp = ()=> {
-  setTimeout(()=>{
-    window.location.href = 'http://localhost:3001/'
-  },1000)
-}
+const openApp = () => {
+  const url = 'http://localhost:3001/';
+  const retryInterval = 1000; // Retry every 1 second
+
+  const tryConnect = async () => {
+    try {
+      const response = await fetch(url, { method: 'HEAD' }); // Fast check for server availability
+      if (response.ok) {
+        console.log('✅ Connection successful! Redirecting to:', url);
+        window.location.href = url; // Redirect if server is up
+      } else {
+        console.warn('⚠️ Server responded but not ready. Retrying...');
+        setTimeout(tryConnect, retryInterval);
+      }
+    } catch (error) {
+      console.warn('❌ Unable to connect to the server. Retrying...', error.message);
+      setTimeout(tryConnect, retryInterval);
+    }
+  };
+
+  console.log(`🔄 Attempting to connect to ${url}...`);
+  tryConnect();
+};
+
 
 // Function to check for updates
 const checkForUpdates = async () => {
