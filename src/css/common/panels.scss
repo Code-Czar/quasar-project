@@ -1,27 +1,19 @@
 @import './sharedColors.scss';
 
-.q-expansion-item--expanded{
-  // padding-bottom: 2rem;
-  // margin-bottom: 2rem;
-  // padding: 2rem 0;
-  // border: unset !important;
-  
-  // border-bottom: 1px solid $gold-high2;
-}
 
-.q-virtual-scroll__content{
+.body-theme-one .q-virtual-scroll__content{
   background-color: $primary;
 }
 
-.q-expansion-item--expanded{
+.body-theme-one .q-expansion-item--expanded{
   background-color: $background;
 }
 
-.q-expansion-item .q-item{
+.body-theme-one .q-expansion-item .q-item{
   display: flex; 
   align-items: center;
 }
-.q-expansion-item button{
+.body-theme-one .q-expansion-item button{
   display: flex; 
   align-items: center;
   // padding: unset; 
@@ -29,6 +21,6 @@
 }
 
 
-.q-expansion-item__container{
+.body-theme-one .q-expansion-item__container{
   border: 1px solid transparent !important;
 }

@@ -2,18 +2,50 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { app, dialog } from 'electron';
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 // import { log } from 'electron-log';
 import { logger as log } from './logger';
 import { delay, extractZip } from './utils';
+import https from 'https';
+import http from 'http';
+import axios from 'axios';
 
 const UPDATE_CHECK_URL = 'https://beniben.hopto.org/user/check-for-updates';
 const DOWNLOAD_URL = 'https://beniben.hopto.org/user/download-updates';
 const PRODUCT_NAME = 'InfinityInstaller';
 const DOWNLOAD_DIR = path.dirname(app.getPath('userData'));
 const UPDATE_DIR = `${DOWNLOAD_DIR}/${PRODUCT_NAME}/updates`;
-
 let mainWindow: any | null = null;
+
+// Set global maximum number of concurrent sockets per agent
+https.globalAgent.maxSockets = 50;
+http.globalAgent.maxSockets = 50;
+
+let childProcesses: Map<string, ChildProcess> = new Map();
+
+// @ts-ignore
+const customHttpAgent = new http.Agent({
+  keepAlive: true,
+  maxSockets: 50,
+  timeout: 60000,
+});
+
+async function downloadApp(url: string, destinationPath: string) {
+  const writer = fs.createWriteStream(destinationPath);
+
+  const response = await axios({
+    url,
+    method: 'GET',
+    responseType: 'stream',
+  });
+
+  response.data.pipe(writer);
+
+  return new Promise((resolve, reject) => {
+    writer.on('finish', () => resolve(response)); // Resolve with the response object
+    writer.on('error', reject);
+  });
+}
 
 /**
  * Recursively sets executable permissions for all files in a directory.
@@ -104,6 +136,7 @@ export const checkForUpdates = async (
     }
 
     log(`🚀 ~ updateURL: ${updateURL}`);
+
     const response = await fetch(updateURL, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
@@ -178,6 +211,7 @@ export const checkForUpdates = async (
 };
 
 // Function to download the update
+// Function to download the update
 export const downloadUpdate = async (
   url: string,
   productName = PRODUCT_NAME,
@@ -189,6 +223,7 @@ export const downloadUpdate = async (
     log(
       `Downloading update from: ${url} ${productName} ${destination} ${requestPlatform} ${requestArch}`,
     );
+
     const urlConstructed = new URL(url);
     const params: {
       product: string;
@@ -198,6 +233,7 @@ export const downloadUpdate = async (
     } = {
       product: productName,
     };
+
     if (requestPlatform) {
       params.platform = requestPlatform;
     }
@@ -211,48 +247,40 @@ export const downloadUpdate = async (
     urlConstructed.search = new URLSearchParams(params).toString();
     log(`Params: ${urlConstructed.search}`);
 
-    const response = await fetch(urlConstructed.toString(), {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/zip' },
-    });
-
-    if (!response.ok) {
-      const message = `HTTP error! status: ${response.status}`;
-      return message;
-    }
-
-    if (!destination) {
-      destination = DOWNLOAD_DIR;
-    }
-
+    // Destination folder
     destination = path.join(destination, productName, 'updates');
 
     // Delete the destination folder if it exists
     if (fs.existsSync(destination)) {
       log(`1) Deleting existing destination folder: ${destination}`);
-      // @ts-ignore
       fs.rmdirSync(destination, { recursive: true });
     }
 
     // Recreate the destination folder
     fs.mkdirSync(destination, { recursive: true });
 
-    const fileName =
-      // @ts-ignore
-      response.headers
-        .get('content-disposition')
-        ?.match(/filename="?([^"]+)"?/)[1] || 'update.zip';
+    // Determine file path
+    const fileName = 'update.zip'; // Default filename, update this logic if needed
     const filePath = path.join(destination, fileName);
 
-    const buffer = await response.arrayBuffer();
-    await fs.promises.writeFile(filePath, Buffer.from(buffer));
+    // Download using Axios
+    const response: any = await downloadApp(
+      urlConstructed.toString(),
+      filePath,
+    );
+
+    // Check if the response was successful
+    if (response.status !== 200) {
+      const message = `HTTP error! status: ${response.status}`;
+      throw new Error(message);
+    }
 
     log(`Update downloaded to: ${filePath}`);
     return filePath;
   } catch (error: any) {
     const message = `Error during update download: ${error.message}`;
     log(message);
-    return message;
+    throw new Error(message); // Re-throw error for further handling
   }
 };
 
@@ -592,48 +620,73 @@ export const launchSoftware = async (productName: string): Promise<void> => {
     log(`🚀 ~ launchSoftware ~ binaryName: ${binaryName}`);
     log(`🚀 ~ launchSoftware ~ binaryPath: ${binaryPath}`);
     log(`🚀 ~ launchSoftware ~ appFolder: ${appFolder}`);
-    // console.log("🚀 ~ launchSoftware ~ binaryName:", binaryName)
-    // console.log("🚀 ~ launchSoftware ~ binaryPath:", binaryPath)
-    // console.log("🚀 ~ launchSoftware ~ appFolder:", appFolder)
 
     await delay(3000);
     log(`Launching binary: ${binaryName} in working directory: ${appFolder}`);
 
-    const child = spawn(`./${binaryName}`, [], {
-      cwd: appFolder, // Set the working directory to appFolder
-      env: { ...process.env }, // Inherit parent process environment variables
-      detached: true, // Allows the parent process to exit without killing the child process
-      stdio: ['ignore', 'pipe', 'pipe'], // Capture output for debugging
-    });
+    const startProcess = () => {
+      const child: ChildProcess = spawn(`./${binaryName}`, [], {
+        cwd: appFolder, // Set the working directory
+        env: { ...process.env }, // Inherit environment variables
+        stdio: ['ignore', 'pipe', 'pipe'], // Ignore stdin, pipe stdout and stderr
+        windowsHide: true, // Hide window on Windows
+      });
 
-    child.stdout?.on('data', (data) => {
-      log(`Binary stdout: ${data.toString()}`);
-    });
+      // Track the child process
+      childProcesses.set(productName, child);
 
-    child.stderr?.on('data', (data) => {
-      log(`Binary stderr: ${data.toString()}`);
-    });
+      child.stdout?.on('data', (data) => {
+        log(`Binary ${binaryName} stdout: ${data.toString().trim()}`);
+      });
 
-    child.on('error', (err) => {
-      log(`Child process error: ${err.message}`);
-    });
+      child.stderr?.on('data', (data) => {
+        log(`Binary ${binaryName} stderr: ${data.toString().trim()}`);
+      });
 
-    child.on('close', (code) => {
-      log(`Binary process exited with code: ${code}`);
-    });
+      child.on('error', (err) => {
+        log(
+          `❌ Error in binary ${binaryName}: ${err.message}\nStack: ${err.stack}`,
+        );
+      });
 
-    child.unref(); // Detach the child process
+      child.on('close', (code, signal) => {
+        log(
+          `⚠️ Binary ${binaryName} exited with code: ${code}, signal: ${signal}`,
+        );
+        childProcesses.delete(productName);
+
+        // Relaunch if the process crashed
+        if (code !== 0) {
+          log(`🔄 Relaunching ${binaryName} due to crash...`);
+          setTimeout(startProcess, 3000); // Auto-relaunch after 3 seconds
+        }
+      });
+
+      log(`✅ Binary ${binaryName} launched with PID: ${child.pid}`);
+    };
+
+    startProcess();
 
     mainWindow.webContents.send('dependencies-launch-status', {
       stage: 'Dependencies Started',
       progress: 100,
     });
   } catch (error: any) {
-    const message = `Error launching binary: ${error.message}`;
+    const message = `Error launching binary: ${error.message}\nStack: ${error.stack}`;
     log(message);
-    // return message;
-    // throw error;
   }
+};
+
+// Cleanup function to terminate all running processes
+export const cleanupProcesses = () => {
+  log('Cleaning up all running processes...');
+  childProcesses.forEach((child, productName) => {
+    if (!child.killed) {
+      log(`Terminating ${productName} (PID: ${child.pid})`);
+      child.kill('SIGTERM'); // Graceful termination
+    }
+  });
+  childProcesses.clear();
 };
 
 export const installSoftwareUpdate = async (
