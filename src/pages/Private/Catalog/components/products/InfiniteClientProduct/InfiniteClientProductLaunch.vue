@@ -41,7 +41,7 @@ const openApp = () => {
       const groups = response.data
       console.log("🚀 ~ tryConnect ~ groups:", groups)
       // const response = await fetch(url, { method: 'HEAD' }); // Fast check for server availability
-      if (response.ok && groups.length) {
+      if (groups.length) {
         console.log('✅ Connection successful! Redirecting to:', url);
         setTimeout(()=>window.location.href = url, 2*retryInterval);
         // window.location.href = url; // Redirect if server is up
