@@ -661,6 +661,7 @@ export const launchSoftware = async (productName: string): Promise<void> => {
           setTimeout(startProcess, 3000); // Auto-relaunch after 3 seconds
         }
       });
+      child.unref();
 
       log(`✅ Binary ${binaryName} launched with PID: ${child.pid}`);
     };
