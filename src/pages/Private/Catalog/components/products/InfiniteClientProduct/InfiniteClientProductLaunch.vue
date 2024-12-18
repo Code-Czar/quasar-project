@@ -9,6 +9,7 @@
 <script setup lang="ts">
 import { ref, defineProps, onMounted, onUnmounted, watch } from 'vue';
 import { Platform } from 'quasar';
+import {axios } from 'axios';
 
 const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -31,15 +32,18 @@ const updateMessage = ref<string | null>(null);
 const isUpdating = ref<bool>(true);
 
 const openApp = () => {
-  const url = 'http://localhost:3001/';
+  const url = 'http://localhost:3000/api/groups/api';
   const retryInterval = 1000; // Retry every 1 second
 
   const tryConnect = async () => {
     try {
-      const response = await fetch(url, { method: 'HEAD' }); // Fast check for server availability
-      if (response.ok) {
+      const response = await axios.get(url)
+      groups.value = response.data
+      // const response = await fetch(url, { method: 'HEAD' }); // Fast check for server availability
+      if (response.ok && groups.value.length) {
         console.log('✅ Connection successful! Redirecting to:', url);
-        window.location.href = url; // Redirect if server is up
+        setTimeout(()=>window.location.href = url, 2*retryInterval);
+        // window.location.href = url; // Redirect if server is up
       } else {
         console.warn('⚠️ Server responded but not ready. Retrying...');
         setTimeout(tryConnect, retryInterval);
