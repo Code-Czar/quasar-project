@@ -39,6 +39,7 @@ const openApp = () => {
     try {
       const response = await axios.get(url)
       const groups = response.data
+      console.log("🚀 ~ tryConnect ~ groups:", groups)
       // const response = await fetch(url, { method: 'HEAD' }); // Fast check for server availability
       if (response.ok && groups.length) {
         console.log('✅ Connection successful! Redirecting to:', url);
