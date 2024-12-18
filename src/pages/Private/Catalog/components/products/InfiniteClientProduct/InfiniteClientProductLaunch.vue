@@ -32,9 +32,10 @@ const updateMessage = ref<string | null>(null);
 const isUpdating = ref<bool>(true);
 
 const openApp = () => {
-  const url = 'http://localhost:3000/api/groups/api';
+  const url = 'http://127.0.0.1:3000/api/groups/api';
+  const mainPageURL = 'http://127.0.0.1:3001';
   const retryInterval = 1000; // Retry every 1 second
-
+  
   const tryConnect = async () => {
     try {
       const response = await axios.get(url)
@@ -43,7 +44,7 @@ const openApp = () => {
       // const response = await fetch(url, { method: 'HEAD' }); // Fast check for server availability
       if (groups.length) {
         console.log('✅ Connection successful! Redirecting to:', url);
-        setTimeout(()=>window.location.href = url, 2*retryInterval);
+        setTimeout(()=>window.location.href = mainPageURL, 2*retryInterval);
         // window.location.href = url; // Redirect if server is up
       } else {
         console.warn('⚠️ Server responded but not ready. Retrying...');
