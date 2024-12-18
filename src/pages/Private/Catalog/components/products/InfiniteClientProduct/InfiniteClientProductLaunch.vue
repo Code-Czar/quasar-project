@@ -9,7 +9,7 @@
 <script setup lang="ts">
 import { ref, defineProps, onMounted, onUnmounted, watch } from 'vue';
 import { Platform } from 'quasar';
-import {axios } from 'axios';
+import axios  from 'axios';
 
 const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -38,9 +38,9 @@ const openApp = () => {
   const tryConnect = async () => {
     try {
       const response = await axios.get(url)
-      groups.value = response.data
+      const groups = response.data
       // const response = await fetch(url, { method: 'HEAD' }); // Fast check for server availability
-      if (response.ok && groups.value.length) {
+      if (response.ok && groups.length) {
         console.log('✅ Connection successful! Redirecting to:', url);
         setTimeout(()=>window.location.href = url, 2*retryInterval);
         // window.location.href = url; // Redirect if server is up
