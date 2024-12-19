@@ -5,8 +5,25 @@ import { sendFeedback } from '../sendFeedback';
 // import { logger } from './utils';
 // @ts-ignore
 let wss: Server<typeof WebSocket, typeof IncomingMessage> = null;
+let openWindow: Function | null = null;
 
-export const initWebSocket = (openWindowCallback: any) => {
+export const setWindowCallback = (openWindowCallback: any) => {
+  if (!openWindowCallback) {
+    openWindow = openWindowCallback;
+  }
+};
+
+export const initWebSocket = (openWindowCallback: any = openWindow) => {
+  if (!wss) {
+    try {
+      wss = new WebSocket.Server({ port: 8766, host: '0.0.0.0' });
+      // initWebSocket();
+      // console.log('🚀 ~ createWindow ~ wss:', wss);
+    } catch (error) {
+      log(`ERROR ${error}`);
+    }
+  }
+
   // @ts-ignore
   wss?.on('connection', (ws) => {
     log('Client connected');
@@ -42,13 +59,3 @@ export const initWebSocket = (openWindowCallback: any) => {
     });
   });
 };
-
-if (!wss) {
-  try {
-    wss = new WebSocket.Server({ port: 8766, host: '0.0.0.0' });
-    // initWebSocket();
-    // console.log('🚀 ~ createWindow ~ wss:', wss);
-  } catch (error) {
-    log(`ERROR ${error}`);
-  }
-}

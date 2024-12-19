@@ -9,6 +9,7 @@ console.log('🚀 Architecture:', arch);
 
 // Expose Electron APIs to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
+  initWebSocket: () => ipcRenderer.invoke('init-websocket'),
   checkInstallerUpdates: () => ipcRenderer.invoke('check-installer-updates'),
 
   checkForUpdates: (productName: string) =>

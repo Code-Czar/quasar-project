@@ -9,7 +9,7 @@ import fs from 'fs';
 // Dynamically resolve paths using __dirname (or app.getAppPath() if needed)
 import { initializeAutoUpdater } from './installScripts/autoUpdate';
 import { initializeIpcHandlers } from './installScripts/ipcHandlers';
-import { initWebSocket } from './installScripts/websocket';
+import { setWindowCallback } from './installScripts/websocket';
 
 import { logger as log } from './installScripts/logger';
 // import { isDevMode } from './installScripts/utils';
@@ -142,7 +142,7 @@ function createMainWindow() {
 
   mainWindow.loadURL(mainURL);
   try {
-    initWebSocket(openWindow);
+    setWindowCallback(openWindow);
   } catch (error) {}
 }
 

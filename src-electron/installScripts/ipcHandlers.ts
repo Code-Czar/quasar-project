@@ -11,11 +11,17 @@ import {
   killSoftware,
 } from './autoUpdate';
 
+import { initWebSocket } from './websocket';
+
 // const DOWNLOAD_DIR = path.dirname(app.getAppPath());
 
 export const initializeIpcHandlers = (mainWindow: any) => {
   // console.log('Initializing IPC Handlers...');
   log("🚀 ~ initializeIpcHandlers ~ 'Initializing IPC Handlers...':");
+
+  ipcMain.handle('init-websocket', async (event) => {
+    initWebSocket();
+  });
 
   ipcMain.handle('check-installer-updates', async (event) => {
     await autoUpdateInstaller();
