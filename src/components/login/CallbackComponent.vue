@@ -7,9 +7,8 @@ import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { createClient } from "@supabase/supabase-js";
 import { useUserStore } from 'src/stores/userStore';
-// import { ipcRenderer } from 'electron';  // Import this
 
-// import { SUPABASE_URL } from 'trading-shared';
+
 const SUPABASE_URL= "https://yhotbknfiebbflhovpws.supabase.co"
 const SUPABASE_ANON_KEY= "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlob3Ria25maWViYmZsaG92cHdzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY5NDg3MTkxMSwiZXhwIjoyMDEwNDQ3OTExfQ.5dn2ZC9cedTT7vZyvhK7Qxzo71FEtVe1JkAho6FV_7A"
 

@@ -8,7 +8,7 @@ let wss: Server<typeof WebSocket, typeof IncomingMessage> = null;
 let openWindow: Function | null = null;
 
 export const setWindowCallback = (openWindowCallback: any) => {
-  if (!openWindowCallback) {
+  if (!openWindow) {
     openWindow = openWindowCallback;
   }
 };

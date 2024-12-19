@@ -124,7 +124,7 @@ function createMainWindow() {
         : 'http://localhost:9300';
     exports.mainWindow.loadURL(mainURL);
     try {
-        (0, websocket_1.initWebSocket)(exports.openWindow);
+        (0, websocket_1.setWindowCallback)(exports.openWindow);
     }
     catch (error) { }
 }
