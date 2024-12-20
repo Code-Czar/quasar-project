@@ -61,7 +61,12 @@ const handleNavigation = (url: string) => {
       const queryParams = new URL(url).searchParams;
       const routePath = '/auth';
       const accessToken = queryParams.get('access_token');
-      console.log('🚀 Auth Navigation Params:', { queryParams, accessToken });
+      console.log('🚀 Auth Navigation Params:', {
+        queryParams,
+        accessToken,
+        url,
+        eventDetails,
+      });
 
       window.dispatchEvent(new CustomEvent('navigate-to-url', eventDetails));
     } else {

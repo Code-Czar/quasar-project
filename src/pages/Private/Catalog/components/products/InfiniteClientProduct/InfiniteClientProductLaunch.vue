@@ -1,18 +1,28 @@
 <template>
-  <div class="flex-column flex-grow-1 justify-center align-center">
-    <p>{{ updateMessage }}</p>
-    <q-spinner size="50px" color="secondary"  v-if="isUpdating"/>
-
+  <div class="flex-column justify-center align-center">
+    <div
+      v-if="isUpdating"
+      class="flex-column flex-grow-1 justify-center align-center"
+    >
+      <p>{{ updateMessage }}</p>
+      <q-spinner size="50px" color="secondary" />
+    </div>
+    <div
+      v-else-if="isLaunching"
+      class="flex-column flex-grow-1 justify-center align-center"
+    >
+      <p>Launching software</p>
+      <q-spinner size="50px" color="secondary" />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, defineProps, onMounted, onUnmounted, watch } from 'vue';
 import { Platform } from 'quasar';
-import axios  from 'axios';
+import axios from 'axios';
 
-const delay = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // Props
 const props = defineProps({
   productId: {
@@ -30,28 +40,36 @@ const updateStage = ref<string | null>(null);
 const updateProgress = ref<number | null>(null);
 const updateMessage = ref<string | null>(null);
 const isUpdating = ref<bool>(true);
+const isLaunching = ref<bool>(false);
 
 const openApp = () => {
   const url = 'http://127.0.0.1:3000/api/groups/api';
   const mainPageURL = 'http://127.0.0.1:3001';
   const retryInterval = 1000; // Retry every 1 second
-  
+
   const tryConnect = async () => {
     try {
-      const response = await axios.get(url)
-      const groups = response.data
-      console.log("🚀 ~ tryConnect ~ groups:", groups)
+      const response = await axios.get(url);
+      const groups = response.data;
+      console.log('🚀 ~ tryConnect ~ groups:', groups);
       // const response = await fetch(url, { method: 'HEAD' }); // Fast check for server availability
       if (groups.length) {
         console.log('✅ Connection successful! Redirecting to:', url);
-        setTimeout(()=>window.location.href = mainPageURL, 2*retryInterval);
+        isLaunching.value = false;
+        setTimeout(
+          () => (window.location.href = mainPageURL),
+          2 * retryInterval,
+        );
         // window.location.href = url; // Redirect if server is up
       } else {
         console.warn('⚠️ Server responded but not ready. Retrying...');
         setTimeout(tryConnect, retryInterval);
       }
     } catch (error) {
-      console.warn('❌ Unable to connect to the server. Retrying...', error.message);
+      console.warn(
+        '❌ Unable to connect to the server. Retrying...',
+        error.message,
+      );
       setTimeout(tryConnect, retryInterval);
     }
   };
@@ -60,83 +78,91 @@ const openApp = () => {
   tryConnect();
 };
 
-
 // Function to check for updates
 const checkForUpdates = async () => {
   console.log('PRODUCT ID', props.productId);
   console.log('PRODUCT value', props.product);
   isUpdating.value = true;
   try {
-    console.log("🚀 ~ checkForUpdates ~ window.electronAPI:", window.electronAPI)
-    const { update_available, userResponse } = await window.electronAPI.checkForUpdates(
-      props.product.product_name
+    console.log(
+      '🚀 ~ checkForUpdates ~ window.electronAPI:',
+      window.electronAPI,
     );
-    
-    console.log("🚀 ~ checkForUpdates ~ result:", update_available, userResponse)
+    const { update_available, userResponse } =
+      await window.electronAPI.checkForUpdates(props.product.product_name);
+
+    console.log(
+      '🚀 ~ checkForUpdates ~ result:',
+      update_available,
+      userResponse,
+    );
 
     if (update_available && userResponse === 0) {
       await window.electronAPI.installSoftwareUpdate(
-        props.product.product_name
+        props.product.product_name,
       );
-    }else {
+    } else {
       isUpdating.value = false;
-      await launchDependencies()
+
+      await launchDependencies();
     }
   } catch (error) {
     console.error('Update check failed:', error);
     updateMessage.value = `Failed to check for updates  ${error}`;
-  }finally{
+  } finally {
     isUpdating.value = false;
   }
-  
 };
 const launchDependencies = async () => {
-
   console.log('Launching : ', props.product.product_name);
-  while(isUpdating.value){
-    console.log("🚀 ~ launchDependencies ~ isUpdating.value:", isUpdating.value)
+  isLaunching.value = true;
+
+  while (isUpdating.value) {
+    console.log(
+      '🚀 ~ launchDependencies ~ isUpdating.value:',
+      isUpdating.value,
+    );
     await delay(200);
-    
   }
   try {
     //  await delay(1000);
-     await window.electronAPI.launchSoftware(
-      props.product.product_name,
-    );
-    console.log("🚀 ~ launchSoftware ~ delay:")
+    await window.electronAPI.launchSoftware(props.product.product_name);
+    console.log('🚀 ~ launchSoftware ~ delay:');
     await delay(1000);
-  
   } catch (error) {
     console.error('Launch failed:', error);
     updateMessage.value = 'Launch failed';
   }
- 
 };
 
-watch(isUpdating.value, async (newValue)=>{
-  if(newValue.value === false){
-    await launchDependencies();
-    openApp()
-  }
-}, {deep:true})
+watch(
+  isUpdating.value,
+  async (newValue) => {
+    if (newValue.value === false) {
+      await launchDependencies();
+      openApp();
+    }
+  },
+  { deep: true },
+);
 
 // Trigger actions on component mount
 onMounted(async () => {
   if (isElectron) {
-    console.log("ElectronAPI methods: ", window.electronAPI);
+    console.log('ElectronAPI methods: ', window.electronAPI);
 
     // Listen for update events
     window.electronAPI.onUpdateProgress((event, data) => {
       isUpdating.value = true;
       updateMessage.value = data.stage;
       updateProgress.value = data.progress;
-      if(data.progress === 100){
+      if (data.progress === 100) {
         isUpdating.value = false;
       }
     });
     // Listen for update events
     window.electronAPI.onDependenciesLaunchStatus((event, data) => {
-      openApp()
+      openApp();
     });
 
     window.electronAPI.onUpdateComplete((event, data) => {
@@ -157,11 +183,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
   // Clean up listeners
-  window.electronAPI.onUpdateProgress((()=>{}));
-  window.electronAPI.onUpdateComplete(()=>{});
-  window.electronAPI.onUpdateError(()=>{});
+  window.electronAPI.onUpdateProgress(() => {});
+  window.electronAPI.onUpdateComplete(() => {});
+  window.electronAPI.onUpdateError(() => {});
   window.electronAPI.killSoftware(props.product.product_name);
 });
 </script>
-
-

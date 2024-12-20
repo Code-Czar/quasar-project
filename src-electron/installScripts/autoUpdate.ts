@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { app, dialog } from 'electron';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, exec, ChildProcess } from 'child_process';
 // import { log } from 'electron-log';
 import { logger as log } from './logger';
 import { delay, extractZip } from './utils';
@@ -615,8 +615,14 @@ export const killSoftware = async (productName: string) => {
 export const launchSoftware = async (productName: string): Promise<void> => {
   try {
     // @ts-ignore
-    const { appFolder, binaryPath, binaryName } =
-      await killSoftware(productName);
+    // const { appFolder, binaryPath, binaryName } =
+    //   await killSoftware(productName);
+    const result = await getProductLauncher(productName);
+    if (!result.appFolder) {
+      return;
+    }
+    const { appFolder, binaryPath, binaryName } = result;
+
     log(`🚀 ~ launchSoftware ~ binaryName: ${binaryName}`);
     log(`🚀 ~ launchSoftware ~ binaryPath: ${binaryPath}`);
     log(`🚀 ~ launchSoftware ~ appFolder: ${appFolder}`);
@@ -625,15 +631,21 @@ export const launchSoftware = async (productName: string): Promise<void> => {
     log(`Launching binary: ${binaryName} in working directory: ${appFolder}`);
 
     const startProcess = () => {
+      if (childProcesses.has(productName)) {
+        log(`⚠️ Binary ${binaryName} is already running. Skipping launch.`);
+        return; // Prevent duplicate launches
+      }
+
       const child: ChildProcess = spawn(`./${binaryName}`, [], {
-        cwd: appFolder, // Set the working directory
-        env: { ...process.env }, // Inherit environment variables
-        stdio: ['ignore', 'pipe', 'pipe'], // Ignore stdin, pipe stdout and stderr
-        windowsHide: true, // Hide window on Windows
+        cwd: appFolder,
+        env: { ...process.env },
+        stdio: ['ignore', 'pipe', 'pipe'],
+        detached: true, // Run launcher in its own process group
+
+        windowsHide: true,
       });
 
-      // Track the child process
-      childProcesses.set(productName, child);
+      childProcesses.set(productName, child); // Track child process
 
       child.stdout?.on('data', (data) => {
         log(`Binary ${binaryName} stdout: ${data.toString().trim()}`);
@@ -644,24 +656,19 @@ export const launchSoftware = async (productName: string): Promise<void> => {
       });
 
       child.on('error', (err) => {
-        log(
-          `❌ Error in binary ${binaryName}: ${err.message}\nStack: ${err.stack}`,
-        );
+        log(`❌ Error in binary ${binaryName}: ${err.message}`);
       });
 
       child.on('close', (code, signal) => {
         log(
           `⚠️ Binary ${binaryName} exited with code: ${code}, signal: ${signal}`,
         );
-        childProcesses.delete(productName);
-
-        // Relaunch if the process crashed
+        childProcesses.delete(productName); // Remove from tracking
         if (code !== 0) {
-          log(`🔄 Relaunching ${binaryName} due to crash...`);
-          setTimeout(startProcess, 3000); // Auto-relaunch after 3 seconds
+          log(`🔄 Relaunching ${binaryName}...`);
+          setTimeout(startProcess, 0);
         }
       });
-      child.unref();
 
       log(`✅ Binary ${binaryName} launched with PID: ${child.pid}`);
     };
@@ -675,6 +682,33 @@ export const launchSoftware = async (productName: string): Promise<void> => {
   } catch (error: any) {
     const message = `Error launching binary: ${error.message}\nStack: ${error.stack}`;
     log(message);
+  } finally {
+    // Ensure all child processes are killed
+    app.on('before-quit', () => {
+      console.log('Shutting down Electron app...');
+
+      childProcesses.forEach((child, productName) => {
+        console.log(
+          `Terminating launcher for ${productName} with PID: ${child.pid}`,
+        );
+
+        if (process.platform === 'win32') {
+          // Use taskkill on Windows
+          exec(`taskkill /PID ${child.pid} /T /F`, (err) => {
+            if (err) {
+              console.error(`Failed to kill process ${child.pid}:`, err);
+            }
+          });
+        } else {
+          // Send SIGTERM to the process group on Unix
+          if (child.pid) {
+            process.kill(-child.pid);
+          }
+        }
+
+        childProcesses.delete(productName);
+      });
+    });
   }
 };
 
