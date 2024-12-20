@@ -10,6 +10,7 @@
       :is-updating="isUpdating"
       :message="updateMessage"
       :update-progress-percent="updateProgress"
+      ref="carouselLoginHeaderRef"
     />
     <PublicFooterWide v-if="!isUpdating"/>
   </q-page>
@@ -33,6 +34,7 @@ const section = ref(useRoute().query.section);
 const isUpdating = ref(false);
 const updateMessage = ref('');
 const updateProgress = ref(0);
+const carouselLoginHeaderRef = ref(null);
 
 onMounted(async () => {
   window.electronAPI.onUpdateProgress((event, data) => {
@@ -52,6 +54,11 @@ onMounted(async () => {
   const { update_available, userResponse } =
   await window.electronAPI.checkInstallerUpdates();
   console.log("🚀 ~ onMounted ~ update_available:", update_available)
+
+
+  if(!update_available){
+    carouselLoginHeaderRef?.value?.loginComponentRef?.value?.login()
+  }
 
   
 });

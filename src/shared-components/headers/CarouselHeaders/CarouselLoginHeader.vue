@@ -1,8 +1,25 @@
 <template>
   <section class="video-section" style="padding: unset">
-    <q-carousel class="video-carousel-header" v-model="slide" animated infinite height="calc(100%)">
-      <q-carousel-slide v-for="(item, index) in carouselData" :key="index" :name="index">
-        <video :id="'videoBg' + index" autoplay loop muted playsinline width="250">
+    <q-carousel
+      class="video-carousel-header"
+      v-model="slide"
+      animated
+      infinite
+      height="calc(100%)"
+    >
+      <q-carousel-slide
+        v-for="(item, index) in carouselData"
+        :key="index"
+        :name="index"
+      >
+        <video
+          :id="'videoBg' + index"
+          autoplay
+          loop
+          muted
+          playsinline
+          width="250"
+        >
           <source :src="item.videoSrc" type="video/webm" />
           Your browser does not support the video tag.
         </video>
@@ -11,8 +28,11 @@
         <div class="overlay-content" v-if="!isUpdating">
           <div class="two-third">
             <h1 class="text-h2 text-white">{{ item.headline }}</h1>
-            <div class="flex-column justify-center" style="align-items: center;">
-              <div class="flex-column flex-grow-1" style="display:flex; flex-grow:1">
+            <div class="flex-column justify-center" style="align-items: center">
+              <div
+                class="flex-column flex-grow-1"
+                style="display: flex; flex-grow: 1"
+              >
                 <div v-for="line in Object.values(item.text)" :key="line">
                   {{ line }}
                 </div>
@@ -20,40 +40,49 @@
             </div>
           </div>
           <div class="one-third">
-            <LoginComponent />
+            <LoginComponent ref="loginComponentRef" />
           </div>
         </div>
-
-        
       </q-carousel-slide>
-      
     </q-carousel>
     <div class="downloading-overlay-content" v-if="isUpdating">
-          <div class="loading-container">
-            <p class="loading-message">Updating, please wait few seconds :</p>
-            <p class="loading-message">{{ message }}</p>
-            <p class="loading-progress">{{ updateProgressPercent }}%</p>
-            <q-spinner size="50px" color="secondary" />
-          </div>
-        </div>
+      <div class="loading-container">
+        <p class="loading-message">Updating, please wait few seconds :</p>
+        <p class="loading-message">{{ message }}</p>
+        <p class="loading-progress">{{ updateProgressPercent }}%</p>
+        <q-spinner size="50px" color="secondary" />
+      </div>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, defineProps } from "vue";
-import { useRouter } from "vue-router";
+import {
+  computed,
+  ref,
+  onMounted,
+  onUnmounted,
+  defineProps,
+  defineExpose,
+} from 'vue';
+import { useRouter } from 'vue-router';
 import { LoginComponent } from 'src/shared-components';
-import { useI18n } from "vue-i18n";
+import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const router = useRouter();
+const loginComponentRef = ref(null);
+
+defineExpose({
+  loginComponentRef,
+});
 
 // Props
 defineProps({
   isUpdating: Boolean,
   message: {
     type: String,
-    default: "Loading...",
+    default: 'Loading...',
   },
   updateProgressPercent: {
     type: Number,
@@ -91,7 +120,7 @@ const advanceSlide = () => {
 };
 
 const goToApp = () => {
-  router.push("/app");
+  router.push('/app');
 };
 
 onMounted(() => {
@@ -158,8 +187,8 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height:100vh;
-  width:100vw;
+  height: 100vh;
+  width: 100vw;
 }
 
 .loading-message {

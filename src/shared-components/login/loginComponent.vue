@@ -1,7 +1,7 @@
 <template>
-  <div class="col-md-4 col-xs-12 login-card">
+  <!-- <div class="col-md-4 col-xs-12 login-card"> -->
     <q-card
-      class="q-ma-md w-100"
+      class="q-pa-md w-100"
       style="
         display: flex;
         flex-direction: column;
@@ -40,11 +40,12 @@
         </div>
       </q-card-section>
     </q-card>
-  </div>
+  <!-- </div> -->
 </template>
 
 <script lang="ts" setup>
 import { Platform } from 'quasar';
+import { defineExpose } from 'vue';
 
 import { createClient } from '@supabase/supabase-js';
 import { useUserStore } from 'src/stores/userStore';
@@ -90,7 +91,7 @@ const definePostLoginRedirection = (enableAppRedirect = false) => {
   return redirectUri;
 };
 
-const login = async (provider: 'google' | 'github') => {
+const login = async (provider: 'google' | 'github'= "google") => {
   const redirectUri = definePostLoginRedirection();
   console.log('🚀 ~ LOGIN ~ redirectUri:', redirectUri, window.location);
 
@@ -116,6 +117,11 @@ const login = async (provider: 'google' | 'github') => {
     console.error('Unexpected error during login:', err);
   }
 };
+
+defineExpose({
+  login
+})
+
 </script>
 
 <style lang="scss" scoped>
