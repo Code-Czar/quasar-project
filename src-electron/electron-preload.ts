@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, BrowserWindow } = require('electron');
 const os = require('os');
 
 const platform = os.platform();
@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   killSoftware: (productName: string) =>
     ipcRenderer.invoke('kill-software', productName),
   navigateTo: (url: string) => ipcRenderer.send('navigate-to-url', url),
-  authRedirect: (url: string) => ipcRenderer.send('auth-redirect', url),
+  authRedirect: (url: string) => ipcRenderer.invoke('handle-auth', url),
   sendFeedback: (feedbackData: any) =>
     ipcRenderer.invoke('send-feedback', feedbackData),
   onUpdateProgress: (callback: any) =>
@@ -67,8 +67,13 @@ const handleNavigation = (url: string) => {
         url,
         eventDetails,
       });
+      ipcRenderer.invoke('handle-auth', {
+        action: 'redirect',
+        redirectUrl: '/auth',
+        url,
+      });
 
-      window.dispatchEvent(new CustomEvent('navigate-to-url', eventDetails));
+      // window.dispatchEvent(new CustomEvent('navigate-to-auth', eventDetails));
     } else {
       window.location.href = url;
     }
@@ -80,3 +85,43 @@ const handleNavigation = (url: string) => {
 // Listen for navigation-related events
 ipcRenderer.on('navigate-to-url', (event, url) => handleNavigation(url));
 ipcRenderer.on('protocol-invoked', (event, url) => handleNavigation(url));
+// Alternatively, directly listen for the IPC event and dispatch the DOM event
+// ipcRenderer.on('navigate-to-auth', (event, url) => {
+//   const customEvent = new CustomEvent('navigate-to-auth', { detail: url });
+//   console.log('🚀 ~ ipcRenderer.on ~ customEvent:', customEvent);
+
+//   // Get all open Electron windows
+//   const allWindows = BrowserWindow.getAllWindows();
+
+//   // Identify the main window (assuming it's the first one or by custom logic)
+//   const mainWindow = allWindows[0]; // Adjust logic if needed to identify the main window
+
+//   if (mainWindow) {
+//     // Dispatch event to the main window
+//     mainWindow.webContents.executeJavaScript(`
+//       const event = new CustomEvent('navigate-to-auth', { detail: '${url}' });
+//       window.dispatchEvent(event);
+//     `);
+//     console.log('🚀 Event dispatched to the main window');
+//   } else {
+//     console.error('No main window found to dispatch the event');
+//   }
+
+//   // Close all other windows except the main window
+//   allWindows.forEach((win) => {
+//     if (win !== mainWindow) {
+//       win.close();
+//       console.log(`🚪 Closed window with ID: ${win.id}`);
+//     }
+//   });
+// });
+ipcRenderer.on('navigate-to-auth', (event, url) => {
+  const customEvent = new CustomEvent('navigate-to-auth', { detail: url });
+  console.log(
+    '🚀 ~ ipcRenderer.on ~ navigate-to-auth ~ customEvent:',
+    customEvent,
+  );
+
+  // Dispatch the event as a DOM event to the renderer window
+  window.dispatchEvent(customEvent);
+});

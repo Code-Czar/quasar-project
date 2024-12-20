@@ -16,17 +16,6 @@ onMounted(() => {
   window.addEventListener('navigate-to-url', (event) => {
     const url = event.detail;
     console.log('🚀 Vue component received navigate-to-url:', url);
-    if (url.startsWith('infinityinstaller://') && url.includes('/auth')) {
-      const queryParams = url.split('#')[1].split('&');
-      const routePath = '/auth';
-      const access_token = queryParams.find((e) => e.includes('access_token')).split('=')[1]
-      const token_type = queryParams.find((e) => e.includes('token_type')).split('=')[1]
-      const expires_at = queryParams.find((e) => e.includes('expires_at')).split('=')[1]
-      router.push({ 
-        path: routePath, 
-        query: { access_token, token_type, expires_at }, 
-        params: { access_token, token_type, expires_at } });
-    }
     if (url.startsWith('infinityinstaller://')&& url.includes('subscription_success')) {
     const queryParams = new URL(url).searchParams;
     const routePath = '/subscription_success'; // Adjust as needed
@@ -42,6 +31,22 @@ onMounted(() => {
       console.error('Invalid URL or parameters:', url);
     }
   }
+  });
+
+  window.addEventListener('navigate-to-auth', (event) => {
+    const url = event.detail.url;
+    console.log('🚀 Vue component received navigate-to-auth:', url);
+    if ( url.includes('/auth')) {
+      const queryParams = url.split('#')[1].split('&');
+      const routePath = '/auth';
+      const access_token = queryParams.find((e) => e.includes('access_token')).split('=')[1]
+      const token_type = queryParams.find((e) => e.includes('token_type')).split('=')[1]
+      const expires_at = queryParams.find((e) => e.includes('expires_at')).split('=')[1]
+      router.push({ 
+        path: routePath, 
+        query: { access_token, token_type, expires_at }, 
+        params: { access_token, token_type, expires_at } });
+    }
   });
 });
 </script>

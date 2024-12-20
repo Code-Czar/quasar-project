@@ -22,10 +22,10 @@ const isElectron = () => {
 
 onMounted(() => {
 
-    if (window?.electronAPI) {
-        window.electronAPI.authRedirect(window.location.href)
-        // ipcRenderer.send('auth-redirect', window.location.href);
-    }
+    // if (window?.electronAPI) {
+    //     window.electronAPI.authRedirect(window.location.href)
+    //     // ipcRenderer.send('auth-redirect', window.location.href);
+    // }
 
 
     console.log("🚀 ~ file: CallbackComponent.vue:79 ~ onMounted ~ window.location:", window.location);

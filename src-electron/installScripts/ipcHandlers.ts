@@ -127,4 +127,39 @@ export const initializeIpcHandlers = (mainWindow: any) => {
       log('Stripe window closed.');
     }
   });
+  ipcMain.handle('handle-auth', (event, details) => {
+    console.log('🚀 ~ ipcMain.on ~ navigate-to-auth ~ url:', details);
+
+    // Get all open Electron windows
+    const allWindows = BrowserWindow.getAllWindows();
+
+    // Identify the main window (you can adjust this logic if needed)
+    const mainWindow = allWindows[0];
+
+    if (mainWindow) {
+      const routePath = '/auth'; // The desired route
+      const queryParams = details.url.split('#')[1]; // Extract the fragment part (if needed)
+
+      // Construct the full URL for the route
+
+      const fullUrl = `file://${path.join(
+        app.getAppPath(),
+        'index.html',
+      )}#/auth?${queryParams}`;
+      log(`Navigating main window to: ${fullUrl}`);
+
+      // Set the URL of the main window
+      mainWindow.loadURL(fullUrl);
+    } else {
+      log(`No main window found to navigate`);
+    }
+
+    // Close all other windows except the main window
+    allWindows.forEach((win) => {
+      if (win !== mainWindow) {
+        win.close();
+        log(`🚪 Closed window with ID: ${win.id}`);
+      }
+    });
+  });
 };

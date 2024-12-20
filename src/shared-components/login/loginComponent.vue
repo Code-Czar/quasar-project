@@ -1,7 +1,7 @@
 <template>
   <!-- <div class="col-md-4 col-xs-12 login-card"> -->
     <q-card
-      class="q-pa-md w-100"
+      class="q-pa-md w-100 login-card"
       style="
         display: flex;
         flex-direction: column;
@@ -111,7 +111,7 @@ const login = async (provider: 'google' | 'github'= "google") => {
       // Set user credentials if needed
       // @ts-expect-error ignore
       console.log('🚀 ~ login ~ data:', data);
-      await useUserStore().setUserCredentials(data.user, data.session);
+      // await useUserStore().setUserCredentials(data.user, data.session);
     }
   } catch (err) {
     console.error('Unexpected error during login:', err);
@@ -172,12 +172,12 @@ defineExpose({
 }
 
 .login-card {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  //display: flex;
+  //flex-direction: column;
+  //height: 100%;
   background-color: $background;
-  margin: 0;
-  opacity: 0.9;
-  height: 20rem;
+  //margin: 0;
+  //opacity: 0.9;
+  //height: 20rem;
 }
 </style>

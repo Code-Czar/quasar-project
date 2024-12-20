@@ -50,15 +50,18 @@ onMounted(async () => {
   });
 
 
-
-  const { update_available, userResponse } =
-  await window.electronAPI.checkInstallerUpdates();
-  console.log("🚀 ~ onMounted ~ update_available:", update_available)
+  const response = await window.electronAPI.checkInstallerUpdates();
+  
 
 
-  if(!update_available){
+  if(!response?.update_available){
     carouselLoginHeaderRef?.value?.loginComponentRef?.value?.login()
+    return;
   }
+
+  const { update_available, userResponse } = response
+  
+  console.log("🚀 ~ onMounted ~ update_available:", update_available)
 
   
 });
