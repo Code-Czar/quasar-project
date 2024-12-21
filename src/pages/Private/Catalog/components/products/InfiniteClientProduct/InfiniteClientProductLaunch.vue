@@ -110,7 +110,7 @@ const checkForUpdates = async () => {
     console.error('Update check failed:', error);
     updateMessage.value = `Failed to check for updates  ${error}`;
   } finally {
-    isUpdating.value = false;
+    // isUpdating.value = false;
   }
 };
 const launchDependencies = async () => {

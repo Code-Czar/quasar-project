@@ -736,7 +736,7 @@ export const installSoftwareUpdate = async (
       );
       mainWindow.webContents.send('update-progress', {
         stage: 'Downloading update ...',
-        progress: 50,
+        progress: 10,
       });
       const downloadPath = await downloadUpdate(
         DOWNLOAD_URL,
