@@ -429,7 +429,9 @@ export const installSoftware = async (
 
       const sqliteFiles = fs
         .readdirSync(targetPath)
-        .filter((file) => file.endsWith('.sqlite'));
+        .filter(
+          (file) => file.endsWith('.sqlite') || file.endsWith('.sqlite3'),
+        );
 
       for (const sqliteFile of sqliteFiles) {
         const src = path.join(targetPath, sqliteFile);
@@ -451,7 +453,10 @@ export const installSoftware = async (
     const tempFiles = fs.readdirSync(tempPath);
     for (const file of tempFiles) {
       // Skip SQLite files that existed in the old version
-      if (file.endsWith('.sqlite') && existingSqliteFiles.has(file)) {
+      if (
+        (file.endsWith('.sqlite') || file.endsWith('.sqlite3')) &&
+        existingSqliteFiles.has(file)
+      ) {
         log(`Skipping new SQLite file to preserve existing data: ${file}`);
         continue;
       }
@@ -477,7 +482,9 @@ export const installSoftware = async (
       log(`Restoring .sqlite files to: ${targetPath}`);
       const backupFiles = fs
         .readdirSync(backupPath)
-        .filter((file) => file.endsWith('.sqlite'));
+        .filter(
+          (file) => file.endsWith('.sqlite') || file.endsWith('.sqlite3'),
+        );
 
       for (const backupFile of backupFiles) {
         const src = path.join(backupPath, backupFile);
