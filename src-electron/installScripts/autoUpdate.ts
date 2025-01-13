@@ -397,13 +397,29 @@ export const installSoftware = async (
     const appPath = path.dirname(app.getAppPath());
     const targetPath = path.join(appPath, productName);
     const backupPath = path.join(appPath, 'sqlite_backup');
+    const tempPath = path.join(appPath, `${productName}_temp`);
 
     // Log installation start
     if (!isUpdate) {
       log(`Installing software... Extracted Path: ${extractedPath}`);
     }
 
-    // Backup .sqlite files if they exist in the target path
+    // Step 1: Create temp directory for new files
+    if (fs.existsSync(tempPath)) {
+      fs.rmSync(tempPath, { recursive: true, force: true });
+    }
+    fs.mkdirSync(tempPath, { recursive: true });
+
+    // Step 2: Move extracted files to temp directory first
+    const files = fs.readdirSync(extractedPath);
+    for (const file of files) {
+      const src = path.join(extractedPath, file);
+      const dest = path.join(tempPath, file);
+      fs.renameSync(src, dest);
+    }
+
+    // Step 3: Backup existing SQLite files if target exists
+    const existingSqliteFiles = new Set<string>();
     if (fs.existsSync(targetPath)) {
       log(`Backing up .sqlite files from: ${targetPath}`);
 
@@ -419,50 +435,46 @@ export const installSoftware = async (
         const src = path.join(targetPath, sqliteFile);
         const dest = path.join(backupPath, sqliteFile);
         fs.copyFileSync(src, dest);
+        existingSqliteFiles.add(sqliteFile);
         log(`Backed up: ${src} -> ${dest}`);
       }
     }
 
-    // Ensure the target path is cleaned before extracting
+    // Step 4: Clean target directory
     if (fs.existsSync(targetPath)) {
       log(`Cleaning up target path: ${targetPath}`);
       fs.rmSync(targetPath, { recursive: true, force: true });
-      log(`Target path cleaned: ${targetPath}`);
     }
-
-    // Recreate the target path
     fs.mkdirSync(targetPath, { recursive: true });
-    log(`Recreated target path: ${targetPath}`);
 
-    // Move all extracted files to the target path
-    const files = fs.readdirSync(extractedPath);
-    for (const file of files) {
-      const src = path.join(extractedPath, file);
+    // Step 5: Move new files from temp to target, excluding SQLite files that existed before
+    const tempFiles = fs.readdirSync(tempPath);
+    for (const file of tempFiles) {
+      // Skip SQLite files that existed in the old version
+      if (file.endsWith('.sqlite') && existingSqliteFiles.has(file)) {
+        log(`Skipping new SQLite file to preserve existing data: ${file}`);
+        continue;
+      }
+      const src = path.join(tempPath, file);
       const dest = path.join(targetPath, file);
-      log(`Moving: ${src} -> ${dest}`);
       fs.renameSync(src, dest);
     }
 
-    // Extract ZIP files in the target path
+    // Step 6: Extract any ZIP files in the target path
     const zipFiles = fs
       .readdirSync(targetPath)
       .filter((file) => file.endsWith('.zip'));
     for (const zipFile of zipFiles) {
       const zipPath = path.join(targetPath, zipFile);
-
       log(`Extracting ZIP file: ${zipPath}`);
-      await extractZip(zipPath, targetPath); // Use extractZip to extract the file
-      log(`Extracted ZIP file: ${zipPath}`);
-
-      // Optionally delete the ZIP file after extraction
+      await extractZip(zipPath, targetPath);
       fs.unlinkSync(zipPath);
       log(`Deleted ZIP file: ${zipPath}`);
     }
 
-    // Restore backed-up .sqlite files
+    // Step 7: Restore backed-up SQLite files
     if (fs.existsSync(backupPath)) {
       log(`Restoring .sqlite files to: ${targetPath}`);
-
       const backupFiles = fs
         .readdirSync(backupPath)
         .filter((file) => file.endsWith('.sqlite'));
@@ -474,9 +486,15 @@ export const installSoftware = async (
         log(`Restored: ${src} -> ${dest}`);
       }
 
-      // Optionally clean up backup files
+      // Clean up backup directory
       fs.rmSync(backupPath, { recursive: true, force: true });
       log(`Cleaned up backup path: ${backupPath}`);
+    }
+
+    // Step 8: Clean up temp directory
+    if (fs.existsSync(tempPath)) {
+      fs.rmSync(tempPath, { recursive: true, force: true });
+      log(`Cleaned up temp path: ${tempPath}`);
     }
 
     // Find the binary inside 0_appLauncher
@@ -522,7 +540,6 @@ export const installSoftware = async (
       }
 
       log(`Launcher is ready: ${binaryPath}`);
-
       return binaryPath;
     } else {
       log('No binary file found in 0_appLauncher.');
