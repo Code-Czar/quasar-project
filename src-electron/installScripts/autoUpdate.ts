@@ -388,6 +388,28 @@ export const installUpdate = async (
   }
 };
 
+// Add this helper function at the top level
+const findSqliteFilesRecursively = (dir: string): string[] => {
+  let results: string[] = [];
+  const files = fs.readdirSync(dir);
+
+  for (const file of files) {
+    const fullPath = path.join(dir, file);
+    const relativePath = path.relative(dir, fullPath);
+
+    if (fs.statSync(fullPath).isDirectory()) {
+      const subResults = findSqliteFilesRecursively(fullPath);
+      results = results.concat(
+        subResults.map((subPath) => path.join(relativePath, subPath)),
+      );
+    } else if (file.endsWith('.sqlite') || file.endsWith('.sqlite3')) {
+      results.push(relativePath);
+    }
+  }
+
+  return results;
+};
+
 export const installSoftware = async (
   extractedPath: string,
   productName: string,
@@ -427,15 +449,16 @@ export const installSoftware = async (
         fs.mkdirSync(backupPath, { recursive: true });
       }
 
-      const sqliteFiles = fs
-        .readdirSync(targetPath)
-        .filter(
-          (file) => file.endsWith('.sqlite') || file.endsWith('.sqlite3'),
-        );
+      // Find all SQLite files recursively
+      const sqliteFiles = findSqliteFilesRecursively(targetPath);
 
       for (const sqliteFile of sqliteFiles) {
         const src = path.join(targetPath, sqliteFile);
         const dest = path.join(backupPath, sqliteFile);
+
+        // Ensure the destination directory exists
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+
         fs.copyFileSync(src, dest);
         existingSqliteFiles.add(sqliteFile);
         log(`Backed up: ${src} -> ${dest}`);
@@ -480,15 +503,17 @@ export const installSoftware = async (
     // Step 7: Restore backed-up SQLite files
     if (fs.existsSync(backupPath)) {
       log(`Restoring .sqlite files to: ${targetPath}`);
-      const backupFiles = fs
-        .readdirSync(backupPath)
-        .filter(
-          (file) => file.endsWith('.sqlite') || file.endsWith('.sqlite3'),
-        );
+
+      // Find all SQLite files recursively in backup
+      const backupFiles = findSqliteFilesRecursively(backupPath);
 
       for (const backupFile of backupFiles) {
         const src = path.join(backupPath, backupFile);
         const dest = path.join(targetPath, backupFile);
+
+        // Ensure the destination directory exists
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+
         fs.copyFileSync(src, dest);
         log(`Restored: ${src} -> ${dest}`);
       }
