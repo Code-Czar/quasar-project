@@ -5,6 +5,17 @@ const platform = os.platform();
 const arch = os.arch();
 console.log('🚀 Platform:', platform);
 console.log('🚀 Architecture:', arch);
+// Instead of exposing navigator directly, we'll extend the existing navigator object
+contextBridge.exposeInMainWorld('customNavigator', {
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    userAgentData: {
+        brands: [
+            { brand: 'Google Chrome', version: '119' },
+            { brand: 'Chromium', version: '119' },
+        ],
+        mobile: false,
+    },
+});
 // Expose Electron APIs to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
     initWebSocket: () => ipcRenderer.invoke('init-websocket'),

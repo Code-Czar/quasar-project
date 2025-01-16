@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol, screen } from 'electron';
+import { app, BrowserWindow, protocol, screen, session } from 'electron';
 // import { log } from 'electron-log';
 import { execSync } from 'child_process';
 
@@ -85,21 +85,37 @@ if (process.platform === 'win32') {
 //   app.quit(); // Exit the second instance immediately
 // }
 
+const getPreloadPath = () => {
+  const preloadFileName = 'electron-preload.js';
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'app.asar', preloadFileName)
+    : path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD);
+};
+
 export const openWindow = (windowTitle: string, url = null) => {
   const newWindow = new BrowserWindow({
     width: screen.getPrimaryDisplay().workAreaSize.width,
     height: screen.getPrimaryDisplay().workAreaSize.height,
-    frame: true, // Makes the window borderless
-    resizable: true, // Allow the window to be resized
+    frame: true,
+    resizable: true,
     webPreferences: {
       contextIsolation: true,
       sandbox: false,
-      preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD),
-      devTools: true, // Ensure DevTools are enabled
-
-      // devTools: true, // Ensure DevTools are enabled
+      preload: getPreloadPath(),
+      devTools: true,
+      partition: 'persist:main',
     },
   });
+
+  // Configure session only for this new window
+  const sess = newWindow.webContents.session;
+  sess.webRequest.onBeforeSendHeaders((details, callback) => {
+    details.requestHeaders['User-Agent'] =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36';
+    delete details.requestHeaders['Electron'];
+    callback({ requestHeaders: details.requestHeaders });
+  });
+
   console.log('🚀 ~ openWindow ~ url:', url);
   console.log('🚀 ~ openWindow ~ windowTitle:', windowTitle);
   newWindow.loadURL(url || 'http://tiktok.com');
@@ -127,9 +143,10 @@ function createMainWindow() {
     webPreferences: {
       contextIsolation: true,
       sandbox: false,
-      preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD),
+      preload: getPreloadPath(),
       devTools: true, // Ensure DevTools are enabled
       webSecurity: false, // Disable web security to allow file:// URLs
+      partition: 'persist:main',
     },
   });
   mainWindow.webContents.session.clearCache().then(() => {
@@ -162,11 +179,8 @@ app.whenReady().then(() => {
   }
 
   createMainWindow();
-  // log(`Location origin : ${mainWindow.origin.location}`);
-
   initializeIpcHandlers(mainWindow);
   initializeAutoUpdater(mainWindow);
-  // app.commandLine.appendSwitch('remote-debugging-port', '9222');
 });
 
 if (!app.requestSingleInstanceLock()) {
