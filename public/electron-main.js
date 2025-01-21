@@ -15,7 +15,7 @@ const autoUpdate_1 = require("./installScripts/autoUpdate");
 const ipcHandlers_1 = require("./installScripts/ipcHandlers");
 const websocket_1 = require("./installScripts/websocket");
 const logger_1 = require("./installScripts/logger");
-// import { isDevMode } from './installScripts/utils';
+const utils_1 = require("./installScripts/utils");
 // Extension IDs and filenames
 const EXTENSIONS = {
     UBLOCK: {
@@ -27,12 +27,140 @@ const EXTENSIONS = {
         zipName: 'ghostery-chromium-10.4.23.zip',
     },
 };
+// Add required command line switches at the top, after imports
+electron_1.app.commandLine.appendSwitch('no-sandbox');
+electron_1.app.commandLine.appendSwitch('disable-site-isolation-trials');
+electron_1.app.commandLine.appendSwitch('ignore-certificate-errors');
+electron_1.app.commandLine.appendSwitch('enable-extensions');
+electron_1.app.commandLine.appendSwitch('load-extension', electron_1.app.isPackaged
+    ? path_1.default.join(process.resourcesPath, 'extensions', 'uBlock0_1.62.1b1.chromium') +
+        ',' +
+        path_1.default.join(process.resourcesPath, 'extensions', 'ghostery-chromium-10.4.23')
+    : path_1.default.join(__dirname, '..', 'extensions', 'uBlock0_1.62.1b1.chromium') +
+        ',' +
+        path_1.default.join(__dirname, '..', 'extensions', 'ghostery-chromium-10.4.23'));
+// Function to extract zip if needed
+const extractZipIfNeeded = async (extensionsDir, extInfo) => {
+    const zipPath = path_1.default.join(extensionsDir, extInfo.zipName);
+    const extPath = path_1.default.join(extensionsDir, extInfo.id);
+    // If extension directory doesn't exist but zip does, extract it
+    if (!fs_1.default.existsSync(extPath) && fs_1.default.existsSync(zipPath)) {
+        console.log(`Extracting ${extInfo.zipName}...`);
+        try {
+            await (0, utils_1.extractZip)(zipPath, extPath);
+            console.log(`Successfully extracted ${extInfo.zipName} to ${extPath}`);
+        }
+        catch (e) {
+            console.error(`Failed to extract ${extInfo.zipName}:`, e);
+            return false;
+        }
+    }
+    return fs_1.default.existsSync(extPath);
+};
+// Function to find manifest in directory or subdirectories
+const findManifestPath = (dirPath) => {
+    // First check direct path
+    const directManifest = path_1.default.join(dirPath, 'manifest.json');
+    if (fs_1.default.existsSync(directManifest)) {
+        return directManifest;
+    }
+    // Check immediate subdirectories
+    const items = fs_1.default.readdirSync(dirPath);
+    for (const item of items) {
+        const itemPath = path_1.default.join(dirPath, item);
+        if (fs_1.default.statSync(itemPath).isDirectory()) {
+            const subManifest = path_1.default.join(itemPath, 'manifest.json');
+            if (fs_1.default.existsSync(subManifest)) {
+                // Found manifest in subdirectory, move all files up one level
+                console.log(`Found manifest in subdirectory: ${itemPath}`);
+                const files = fs_1.default.readdirSync(itemPath);
+                files.forEach((file) => {
+                    const srcPath = path_1.default.join(itemPath, file);
+                    const destPath = path_1.default.join(dirPath, file);
+                    if (!fs_1.default.existsSync(destPath)) {
+                        fs_1.default.renameSync(srcPath, destPath);
+                    }
+                });
+                fs_1.default.rmdirSync(itemPath);
+                return path_1.default.join(dirPath, 'manifest.json');
+            }
+        }
+    }
+    return null;
+};
 // Function to load extensions
 async function loadExtensions(browserWindow) {
     const extensionsDir = electron_1.app.isPackaged
         ? path_1.default.join(process.resourcesPath, 'extensions')
         : path_1.default.join(__dirname, '..', 'extensions');
     console.log('Loading extensions from:', extensionsDir);
+    console.log('Is packaged:', electron_1.app.isPackaged);
+    console.log('Extension paths:', {
+        ublock: path_1.default.join(extensionsDir, EXTENSIONS.UBLOCK.id),
+        ghostery: path_1.default.join(extensionsDir, EXTENSIONS.GHOSTERY.id),
+    });
+    // Create extensions directory if it doesn't exist
+    if (!fs_1.default.existsSync(extensionsDir)) {
+        fs_1.default.mkdirSync(extensionsDir, { recursive: true });
+    }
+    // Check if extensions are unzipped
+    const checkAndLoadExtension = async (extInfo) => {
+        // Try to extract if needed
+        const isExtracted = await extractZipIfNeeded(extensionsDir, extInfo);
+        if (!isExtracted) {
+            console.error(`Extension ${extInfo.id} is not available and couldn't be extracted`);
+            return;
+        }
+        const extPath = path_1.default.join(extensionsDir, extInfo.id);
+        console.log('Checking extension path:', extPath);
+        console.log('Directory exists:', fs_1.default.existsSync(extPath));
+        if (fs_1.default.existsSync(extPath)) {
+            console.log('Directory contents:', fs_1.default.readdirSync(extPath));
+        }
+        // Find and fix manifest location
+        const manifestPath = findManifestPath(extPath);
+        if (!manifestPath) {
+            console.error(`Manifest not found for ${extInfo.id}`);
+            return;
+        }
+        try {
+            // Try loading in both sessions
+            const extension = await electron_1.session.defaultSession.loadExtension(extPath, {
+                allowFileAccess: true,
+            });
+            console.log(`${extInfo.id} loaded in default session:`, {
+                name: extension.name,
+                version: extension.version,
+                id: extension.id,
+                path: extPath,
+            });
+            const windowExtension = await browserWindow.webContents.session.loadExtension(extPath, {
+                allowFileAccess: true,
+            });
+            console.log(`${extInfo.id} loaded in window session:`, {
+                name: windowExtension.name,
+                version: windowExtension.version,
+                id: windowExtension.id,
+                path: extPath,
+            });
+            // Verify extensions are loaded
+            const defaultSessionExts = electron_1.session.defaultSession.getAllExtensions();
+            const windowSessionExts = browserWindow.webContents.session.getAllExtensions();
+            console.log('Default session extensions:', defaultSessionExts);
+            console.log('Window session extensions:', windowSessionExts);
+        }
+        catch (e) {
+            console.error(`Failed to load ${extInfo.id}:`, e);
+            console.error('Extension path:', extPath);
+            console.error('Manifest path:', manifestPath);
+            if (e instanceof Error) {
+                console.error('Error details:', e.message, e.stack);
+            }
+        }
+    };
+    // Load both extensions
+    await checkAndLoadExtension(EXTENSIONS.UBLOCK);
+    await checkAndLoadExtension(EXTENSIONS.GHOSTERY);
     // Add keyboard shortcut to check extensions
     browserWindow.webContents.on('before-input-event', (event, input) => {
         if ((input.control || input.meta) &&
@@ -81,30 +209,6 @@ async function loadExtensions(browserWindow) {
             extensionsWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
         }
     });
-    // Check if extensions are unzipped
-    const checkAndLoadExtension = async (extInfo) => {
-        const extPath = path_1.default.join(extensionsDir, extInfo.id);
-        if (!fs_1.default.existsSync(extPath)) {
-            console.error(`Extension directory not found: ${extPath}`);
-            return;
-        }
-        try {
-            const extension = await browserWindow.webContents.session.loadExtension(extPath, {
-                allowFileAccess: true,
-            });
-            console.log(`${extInfo.id} loaded successfully:`, {
-                name: extension.name,
-                version: extension.version,
-                id: extension.id,
-            });
-        }
-        catch (e) {
-            console.error(`Failed to load ${extInfo.id}:`, e);
-        }
-    };
-    // Load both extensions
-    await checkAndLoadExtension(EXTENSIONS.UBLOCK);
-    await checkAndLoadExtension(EXTENSIONS.GHOSTERY);
 }
 exports.appUrl = 'http://localhost:9000';
 const mainURL = electron_1.app.isPackaged

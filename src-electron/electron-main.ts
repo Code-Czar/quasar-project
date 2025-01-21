@@ -14,6 +14,9 @@ import { setWindowCallback } from './installScripts/websocket';
 import { logger as log } from './installScripts/logger';
 // import { isDevMode } from './installScripts/utils';
 
+import AdmZip from 'adm-zip';
+import { extractZip } from './installScripts/utils';
+
 // Extension IDs and filenames
 const EXTENSIONS = {
   UBLOCK: {
@@ -26,6 +29,85 @@ const EXTENSIONS = {
   },
 };
 
+// Add required command line switches at the top, after imports
+app.commandLine.appendSwitch('no-sandbox');
+app.commandLine.appendSwitch('disable-site-isolation-trials');
+app.commandLine.appendSwitch('ignore-certificate-errors');
+app.commandLine.appendSwitch('enable-extensions');
+app.commandLine.appendSwitch(
+  'load-extension',
+  app.isPackaged
+    ? path.join(
+        process.resourcesPath,
+        'extensions',
+        'uBlock0_1.62.1b1.chromium',
+      ) +
+        ',' +
+        path.join(
+          process.resourcesPath,
+          'extensions',
+          'ghostery-chromium-10.4.23',
+        )
+    : path.join(__dirname, '..', 'extensions', 'uBlock0_1.62.1b1.chromium') +
+        ',' +
+        path.join(__dirname, '..', 'extensions', 'ghostery-chromium-10.4.23'),
+);
+
+// Function to extract zip if needed
+const extractZipIfNeeded = async (
+  extensionsDir: string,
+  extInfo: { id: string; zipName: string },
+) => {
+  const zipPath = path.join(extensionsDir, extInfo.zipName);
+  const extPath = path.join(extensionsDir, extInfo.id);
+
+  // If extension directory doesn't exist but zip does, extract it
+  if (!fs.existsSync(extPath) && fs.existsSync(zipPath)) {
+    console.log(`Extracting ${extInfo.zipName}...`);
+    try {
+      await extractZip(zipPath, extPath);
+      console.log(`Successfully extracted ${extInfo.zipName} to ${extPath}`);
+    } catch (e) {
+      console.error(`Failed to extract ${extInfo.zipName}:`, e);
+      return false;
+    }
+  }
+  return fs.existsSync(extPath);
+};
+
+// Function to find manifest in directory or subdirectories
+const findManifestPath = (dirPath: string): string | null => {
+  // First check direct path
+  const directManifest = path.join(dirPath, 'manifest.json');
+  if (fs.existsSync(directManifest)) {
+    return directManifest;
+  }
+
+  // Check immediate subdirectories
+  const items = fs.readdirSync(dirPath);
+  for (const item of items) {
+    const itemPath = path.join(dirPath, item);
+    if (fs.statSync(itemPath).isDirectory()) {
+      const subManifest = path.join(itemPath, 'manifest.json');
+      if (fs.existsSync(subManifest)) {
+        // Found manifest in subdirectory, move all files up one level
+        console.log(`Found manifest in subdirectory: ${itemPath}`);
+        const files = fs.readdirSync(itemPath);
+        files.forEach((file) => {
+          const srcPath = path.join(itemPath, file);
+          const destPath = path.join(dirPath, file);
+          if (!fs.existsSync(destPath)) {
+            fs.renameSync(srcPath, destPath);
+          }
+        });
+        fs.rmdirSync(itemPath);
+        return path.join(dirPath, 'manifest.json');
+      }
+    }
+  }
+  return null;
+};
+
 // Function to load extensions
 async function loadExtensions(browserWindow: BrowserWindow) {
   const extensionsDir = app.isPackaged
@@ -33,6 +115,87 @@ async function loadExtensions(browserWindow: BrowserWindow) {
     : path.join(__dirname, '..', 'extensions');
 
   console.log('Loading extensions from:', extensionsDir);
+  console.log('Is packaged:', app.isPackaged);
+  console.log('Extension paths:', {
+    ublock: path.join(extensionsDir, EXTENSIONS.UBLOCK.id),
+    ghostery: path.join(extensionsDir, EXTENSIONS.GHOSTERY.id),
+  });
+
+  // Create extensions directory if it doesn't exist
+  if (!fs.existsSync(extensionsDir)) {
+    fs.mkdirSync(extensionsDir, { recursive: true });
+  }
+
+  // Check if extensions are unzipped
+  const checkAndLoadExtension = async (extInfo: {
+    id: string;
+    zipName: string;
+  }) => {
+    // Try to extract if needed
+    const isExtracted = await extractZipIfNeeded(extensionsDir, extInfo);
+    if (!isExtracted) {
+      console.error(
+        `Extension ${extInfo.id} is not available and couldn't be extracted`,
+      );
+      return;
+    }
+
+    const extPath = path.join(extensionsDir, extInfo.id);
+    console.log('Checking extension path:', extPath);
+    console.log('Directory exists:', fs.existsSync(extPath));
+    if (fs.existsSync(extPath)) {
+      console.log('Directory contents:', fs.readdirSync(extPath));
+    }
+
+    // Find and fix manifest location
+    const manifestPath = findManifestPath(extPath);
+    if (!manifestPath) {
+      console.error(`Manifest not found for ${extInfo.id}`);
+      return;
+    }
+
+    try {
+      // Try loading in both sessions
+      const extension = await session.defaultSession.loadExtension(extPath, {
+        allowFileAccess: true,
+      });
+      console.log(`${extInfo.id} loaded in default session:`, {
+        name: extension.name,
+        version: extension.version,
+        id: extension.id,
+        path: extPath,
+      });
+
+      const windowExtension =
+        await browserWindow.webContents.session.loadExtension(extPath, {
+          allowFileAccess: true,
+        });
+      console.log(`${extInfo.id} loaded in window session:`, {
+        name: windowExtension.name,
+        version: windowExtension.version,
+        id: windowExtension.id,
+        path: extPath,
+      });
+
+      // Verify extensions are loaded
+      const defaultSessionExts = session.defaultSession.getAllExtensions();
+      const windowSessionExts =
+        browserWindow.webContents.session.getAllExtensions();
+      console.log('Default session extensions:', defaultSessionExts);
+      console.log('Window session extensions:', windowSessionExts);
+    } catch (e) {
+      console.error(`Failed to load ${extInfo.id}:`, e);
+      console.error('Extension path:', extPath);
+      console.error('Manifest path:', manifestPath);
+      if (e instanceof Error) {
+        console.error('Error details:', e.message, e.stack);
+      }
+    }
+  };
+
+  // Load both extensions
+  await checkAndLoadExtension(EXTENSIONS.UBLOCK);
+  await checkAndLoadExtension(EXTENSIONS.GHOSTERY);
 
   // Add keyboard shortcut to check extensions
   browserWindow.webContents.on(
@@ -96,39 +259,6 @@ async function loadExtensions(browserWindow: BrowserWindow) {
       }
     },
   );
-
-  // Check if extensions are unzipped
-  const checkAndLoadExtension = async (extInfo: {
-    id: string;
-    zipName: string;
-  }) => {
-    const extPath = path.join(extensionsDir, extInfo.id);
-
-    if (!fs.existsSync(extPath)) {
-      console.error(`Extension directory not found: ${extPath}`);
-      return;
-    }
-
-    try {
-      const extension = await browserWindow.webContents.session.loadExtension(
-        extPath,
-        {
-          allowFileAccess: true,
-        },
-      );
-      console.log(`${extInfo.id} loaded successfully:`, {
-        name: extension.name,
-        version: extension.version,
-        id: extension.id,
-      });
-    } catch (e) {
-      console.error(`Failed to load ${extInfo.id}:`, e);
-    }
-  };
-
-  // Load both extensions
-  await checkAndLoadExtension(EXTENSIONS.UBLOCK);
-  await checkAndLoadExtension(EXTENSIONS.GHOSTERY);
 }
 
 // fixPath();
