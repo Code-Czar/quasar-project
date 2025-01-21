@@ -21,28 +21,74 @@ const EXTENSIONS = {
     UBLOCK: {
         id: 'uBlock0_1.62.1b1.chromium',
         zipName: 'uBlock0_1.62.1b1.chromium.zip',
+        downloadUrl: 'https://github.com/gorhill/uBlock/releases/download/1.62.1b1/uBlock0_1.62.1b1.chromium.zip',
     },
     GHOSTERY: {
         id: 'ghostery-chromium-10.4.23',
         zipName: 'ghostery-chromium-10.4.23.zip',
+        downloadUrl: 'https://github.com/ghostery/ghostery-extension/releases/download/v10.4.23/ghostery-chromium-10.4.23.zip',
     },
 };
-// Add required command line switches at the top, after imports
+// Add command line switches before anything else
 electron_1.app.commandLine.appendSwitch('no-sandbox');
 electron_1.app.commandLine.appendSwitch('disable-site-isolation-trials');
 electron_1.app.commandLine.appendSwitch('ignore-certificate-errors');
 electron_1.app.commandLine.appendSwitch('enable-extensions');
-electron_1.app.commandLine.appendSwitch('load-extension', electron_1.app.isPackaged
-    ? path_1.default.join(process.resourcesPath, 'extensions', 'uBlock0_1.62.1b1.chromium') +
-        ',' +
-        path_1.default.join(process.resourcesPath, 'extensions', 'ghostery-chromium-10.4.23')
-    : path_1.default.join(__dirname, '..', 'extensions', 'uBlock0_1.62.1b1.chromium') +
-        ',' +
-        path_1.default.join(__dirname, '..', 'extensions', 'ghostery-chromium-10.4.23'));
+electron_1.app.commandLine.appendSwitch('remote-debugging-port', '9222');
+// Function to get extension paths
+const getExtensionPaths = () => {
+    const extensionsDir = electron_1.app.isPackaged
+        ? path_1.default.join(process.resourcesPath, 'extensions')
+        : path_1.default.join(__dirname, '..', 'extensions');
+    return {
+        ublock: path_1.default.join(extensionsDir, EXTENSIONS.UBLOCK.id),
+        ghostery: path_1.default.join(extensionsDir, EXTENSIONS.GHOSTERY.id),
+    };
+};
+// Only add load-extension switch if the extensions exist
+const paths = getExtensionPaths();
+if (fs_1.default.existsSync(paths.ublock) || fs_1.default.existsSync(paths.ghostery)) {
+    const existingPaths = [
+        fs_1.default.existsSync(paths.ublock) ? paths.ublock : '',
+        fs_1.default.existsSync(paths.ghostery) ? paths.ghostery : '',
+    ].filter(Boolean);
+    if (existingPaths.length > 0) {
+        electron_1.app.commandLine.appendSwitch('load-extension', existingPaths.join(','));
+    }
+}
+// Function to download file
+async function downloadFile(url, destinationPath) {
+    try {
+        const response = await electron_1.net.fetch(url);
+        if (!response.ok)
+            throw new Error(`HTTP error! status: ${response.status}`);
+        const buffer = await response.arrayBuffer();
+        // Write to a temporary file first
+        const tempPath = `${destinationPath}.tmp`;
+        fs_1.default.writeFileSync(tempPath, Buffer.from(buffer));
+        // Then rename it to the final destination
+        fs_1.default.renameSync(tempPath, destinationPath);
+        console.log(`Successfully downloaded: ${destinationPath}`);
+        return true;
+    }
+    catch (error) {
+        console.error(`Failed to download ${url}:`, error);
+        return false;
+    }
+}
 // Function to extract zip if needed
 const extractZipIfNeeded = async (extensionsDir, extInfo) => {
     const zipPath = path_1.default.join(extensionsDir, extInfo.zipName);
     const extPath = path_1.default.join(extensionsDir, extInfo.id);
+    // If zip doesn't exist, try to download it
+    if (!fs_1.default.existsSync(zipPath)) {
+        console.log(`Extension zip not found, downloading from ${extInfo.downloadUrl}...`);
+        const downloaded = await downloadFile(extInfo.downloadUrl, zipPath);
+        if (!downloaded) {
+            console.error(`Failed to download ${extInfo.zipName}`);
+            return false;
+        }
+    }
     // If extension directory doesn't exist but zip does, extract it
     if (!fs_1.default.existsSync(extPath) && fs_1.default.existsSync(zipPath)) {
         console.log(`Extracting ${extInfo.zipName}...`);
@@ -95,120 +141,47 @@ async function loadExtensions(browserWindow) {
         : path_1.default.join(__dirname, '..', 'extensions');
     console.log('Loading extensions from:', extensionsDir);
     console.log('Is packaged:', electron_1.app.isPackaged);
-    console.log('Extension paths:', {
-        ublock: path_1.default.join(extensionsDir, EXTENSIONS.UBLOCK.id),
-        ghostery: path_1.default.join(extensionsDir, EXTENSIONS.GHOSTERY.id),
-    });
     // Create extensions directory if it doesn't exist
     if (!fs_1.default.existsSync(extensionsDir)) {
         fs_1.default.mkdirSync(extensionsDir, { recursive: true });
+        console.log('Created extensions directory:', extensionsDir);
     }
     // Check if extensions are unzipped
     const checkAndLoadExtension = async (extInfo) => {
-        // Try to extract if needed
-        const isExtracted = await extractZipIfNeeded(extensionsDir, extInfo);
-        if (!isExtracted) {
-            console.error(`Extension ${extInfo.id} is not available and couldn't be extracted`);
-            return;
-        }
         const extPath = path_1.default.join(extensionsDir, extInfo.id);
-        console.log('Checking extension path:', extPath);
-        console.log('Directory exists:', fs_1.default.existsSync(extPath));
-        if (fs_1.default.existsSync(extPath)) {
-            console.log('Directory contents:', fs_1.default.readdirSync(extPath));
-        }
-        // Find and fix manifest location
-        const manifestPath = findManifestPath(extPath);
-        if (!manifestPath) {
-            console.error(`Manifest not found for ${extInfo.id}`);
-            return;
-        }
+        console.log(`Processing extension ${extInfo.id}...`);
         try {
-            // Try loading in both sessions
-            const extension = await electron_1.session.defaultSession.loadExtension(extPath, {
-                allowFileAccess: true,
-            });
-            console.log(`${extInfo.id} loaded in default session:`, {
-                name: extension.name,
-                version: extension.version,
-                id: extension.id,
-                path: extPath,
-            });
-            const windowExtension = await browserWindow.webContents.session.loadExtension(extPath, {
-                allowFileAccess: true,
-            });
-            console.log(`${extInfo.id} loaded in window session:`, {
-                name: windowExtension.name,
-                version: windowExtension.version,
-                id: windowExtension.id,
-                path: extPath,
-            });
-            // Verify extensions are loaded
-            const defaultSessionExts = electron_1.session.defaultSession.getAllExtensions();
-            const windowSessionExts = browserWindow.webContents.session.getAllExtensions();
-            console.log('Default session extensions:', defaultSessionExts);
-            console.log('Window session extensions:', windowSessionExts);
+            // Try to extract if needed
+            const isExtracted = await extractZipIfNeeded(extensionsDir, extInfo);
+            if (!isExtracted) {
+                console.error(`Extension ${extInfo.id} is not available and couldn't be extracted`);
+                return;
+            }
+            // Only try to load if we're not packaged (in dev mode)
+            // In packaged mode, extensions are loaded via command line switch
+            if (!electron_1.app.isPackaged) {
+                const manifestPath = findManifestPath(extPath);
+                if (!manifestPath) {
+                    console.error(`Manifest not found for ${extInfo.id}`);
+                    return;
+                }
+                await electron_1.session.defaultSession.loadExtension(extPath, {
+                    allowFileAccess: true,
+                });
+            }
         }
         catch (e) {
             console.error(`Failed to load ${extInfo.id}:`, e);
-            console.error('Extension path:', extPath);
-            console.error('Manifest path:', manifestPath);
-            if (e instanceof Error) {
-                console.error('Error details:', e.message, e.stack);
-            }
         }
     };
-    // Load both extensions
-    await checkAndLoadExtension(EXTENSIONS.UBLOCK);
-    await checkAndLoadExtension(EXTENSIONS.GHOSTERY);
-    // Add keyboard shortcut to check extensions
-    browserWindow.webContents.on('before-input-event', (event, input) => {
-        if ((input.control || input.meta) &&
-            input.shift &&
-            input.key.toLowerCase() === 'e') {
-            const extensions = browserWindow.webContents.session.getAllExtensions();
-            console.log('Currently loaded extensions:', extensions);
-            // Create a simple HTML page to show extensions status
-            const html = `
-          <html>
-            <head>
-              <title>Extensions Status</title>
-              <style>
-                body { font-family: Arial; padding: 20px; background: #f5f5f5; }
-                .extension { background: white; padding: 15px; margin: 10px 0; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-              </style>
-            </head>
-            <body>
-              <h2>Loaded Extensions</h2>
-              ${extensions.length
-                ? extensions
-                    .map((ext) => `
-                <div class="extension">
-                  <h3>${ext.name}</h3>
-                  <p>Version: ${ext.version}</p>
-                  <p>ID: ${ext.id}</p>
-                </div>
-              `)
-                    .join('')
-                : '<p>No extensions loaded</p>'}
-              <hr>
-              <h3>Extensions Directory</h3>
-              <p>${extensionsDir}</p>
-            </body>
-          </html>
-        `;
-            // Create a new window to display extensions info
-            const extensionsWindow = new electron_1.BrowserWindow({
-                width: 600,
-                height: 400,
-                webPreferences: {
-                    nodeIntegration: false,
-                    contextIsolation: true,
-                },
-            });
-            extensionsWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
-        }
-    });
+    // Load extensions sequentially
+    try {
+        await checkAndLoadExtension(EXTENSIONS.UBLOCK);
+        await checkAndLoadExtension(EXTENSIONS.GHOSTERY);
+    }
+    catch (error) {
+        console.error('Error during extension loading:', error);
+    }
 }
 exports.appUrl = 'http://localhost:9000';
 const mainURL = electron_1.app.isPackaged
@@ -239,7 +212,6 @@ Windows Registry Editor Version 5.00
 [HKEY_CURRENT_USER\\Software\\Classes\\${protocolName}\\shell\\open\\command]
 @="${command}"
 `;
-electron_1.app.commandLine.appendSwitch('remote-debugging-port', '9222');
 if (!electron_1.app.isDefaultProtocolClient(protocolName)) {
     const success = electron_1.app.setAsDefaultProtocolClient(protocolName);
     if (success) {
