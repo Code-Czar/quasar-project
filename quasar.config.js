@@ -204,16 +204,16 @@ module.exports = configure(function (/* ctx */) {
       },
       bundler: 'packager', // Use electron-packager
       packager: {
-        platform: 'win32,darwin', // Build for Windows (win32) and macOS (darwin)
-        arch: 'arm64,x64', // Target architectures: arm64 and x64
-        asar: true, // Package into app.asar
-        overwrite: true, // Overwrite previous builds
-        prune: true, // Remove unnecessary files from node_modules
-        out: 'dist/electron', // Output directory
-        // icon: 'src-electron/icons/icon', // App icon
-        appBundleId: 'com.infinityInstaller.app', // macOS app bundle ID
-        appCategoryType: 'public.app-category.utilities', // macOS app category
-        extendInfo: path.resolve(__dirname, 'src-electron/Info.plist'), // Include custom Info.plist
+        platform: 'win32,darwin',
+        arch: 'arm64,x64',
+        asar: true,
+        overwrite: true,
+        prune: true,
+        out: 'dist/electron',
+        appBundleId: 'com.infinityInstaller.app',
+        appCategoryType: 'public.app-category.utilities',
+        extendInfo: path.resolve(__dirname, 'src-electron/Info.plist'),
+        extraResource: [path.resolve(__dirname, 'src-electron/extensions')],
         win32metadata: {
           CompanyName: 'InfinityInstaller',
           FileDescription: 'Installer for Infinite Solutions ® softwares',
@@ -223,22 +223,22 @@ module.exports = configure(function (/* ctx */) {
       },
 
       builder: {
-        appId: 'com.infinityInstaller.app', // Define your app ID here
-        productName: 'InfinityInstaller', // Optional, name for the packaged app
+        appId: 'com.infinityInstaller.app',
+        productName: 'InfinityInstaller',
         directories: {
-          output: 'dist/electron', // This is where the packaged files should go
+          output: 'dist/electron',
         },
         extraResources: [
           {
-            from: path.resolve(__dirname, 'dist-electron/installScripts'), // Absolute path
-            to: 'installScripts', // Adjusted path within app resources
-            filter: ['**/*'], // Include all files
+            from: path.resolve(__dirname, 'dist-electron/installScripts'),
+            to: 'installScripts',
+            filter: ['**/*'],
           },
-          // {
-          //   from: path.resolve(__dirname, 'dist-electron/'), // Absolute path
-          //   to: '/', // Adjusted path within app resources
-          //   filter: ['**/*.js'], // Include all files
-          // },
+          {
+            from: path.resolve(__dirname, 'src-electron/extensions'),
+            to: 'extensions',
+            filter: ['**/*'],
+          },
         ],
         afterPack: async (context) => {
           const fs = require('fs');
@@ -314,6 +314,11 @@ module.exports = configure(function (/* ctx */) {
         extraResources: [
           {
             from: './src-electron/installScripts',
+            to: 'extraResources',
+            filter: ['**/*'],
+          },
+          {
+            from: './src-electron/extensions',
             to: 'extraResources',
             filter: ['**/*'],
           },

@@ -15,6 +15,97 @@ const autoUpdate_1 = require("./installScripts/autoUpdate");
 const ipcHandlers_1 = require("./installScripts/ipcHandlers");
 const websocket_1 = require("./installScripts/websocket");
 const logger_1 = require("./installScripts/logger");
+// import { isDevMode } from './installScripts/utils';
+// Extension IDs and filenames
+const EXTENSIONS = {
+    UBLOCK: {
+        id: 'uBlock0_1.62.1b1.chromium',
+        zipName: 'uBlock0_1.62.1b1.chromium.zip',
+    },
+    GHOSTERY: {
+        id: 'ghostery-chromium-10.4.23',
+        zipName: 'ghostery-chromium-10.4.23.zip',
+    },
+};
+// Function to load extensions
+async function loadExtensions(browserWindow) {
+    const extensionsDir = electron_1.app.isPackaged
+        ? path_1.default.join(process.resourcesPath, 'extensions')
+        : path_1.default.join(__dirname, '..', 'extensions');
+    console.log('Loading extensions from:', extensionsDir);
+    // Add keyboard shortcut to check extensions
+    browserWindow.webContents.on('before-input-event', (event, input) => {
+        if ((input.control || input.meta) &&
+            input.shift &&
+            input.key.toLowerCase() === 'e') {
+            const extensions = browserWindow.webContents.session.getAllExtensions();
+            console.log('Currently loaded extensions:', extensions);
+            // Create a simple HTML page to show extensions status
+            const html = `
+          <html>
+            <head>
+              <title>Extensions Status</title>
+              <style>
+                body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+                .extension { background: white; padding: 15px; margin: 10px 0; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+              </style>
+            </head>
+            <body>
+              <h2>Loaded Extensions</h2>
+              ${extensions.length
+                ? extensions
+                    .map((ext) => `
+                <div class="extension">
+                  <h3>${ext.name}</h3>
+                  <p>Version: ${ext.version}</p>
+                  <p>ID: ${ext.id}</p>
+                </div>
+              `)
+                    .join('')
+                : '<p>No extensions loaded</p>'}
+              <hr>
+              <h3>Extensions Directory</h3>
+              <p>${extensionsDir}</p>
+            </body>
+          </html>
+        `;
+            // Create a new window to display extensions info
+            const extensionsWindow = new electron_1.BrowserWindow({
+                width: 600,
+                height: 400,
+                webPreferences: {
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                },
+            });
+            extensionsWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+        }
+    });
+    // Check if extensions are unzipped
+    const checkAndLoadExtension = async (extInfo) => {
+        const extPath = path_1.default.join(extensionsDir, extInfo.id);
+        if (!fs_1.default.existsSync(extPath)) {
+            console.error(`Extension directory not found: ${extPath}`);
+            return;
+        }
+        try {
+            const extension = await browserWindow.webContents.session.loadExtension(extPath, {
+                allowFileAccess: true,
+            });
+            console.log(`${extInfo.id} loaded successfully:`, {
+                name: extension.name,
+                version: extension.version,
+                id: extension.id,
+            });
+        }
+        catch (e) {
+            console.error(`Failed to load ${extInfo.id}:`, e);
+        }
+    };
+    // Load both extensions
+    await checkAndLoadExtension(EXTENSIONS.UBLOCK);
+    await checkAndLoadExtension(EXTENSIONS.GHOSTERY);
+}
 exports.appUrl = 'http://localhost:9000';
 const mainURL = electron_1.app.isPackaged
     ? `file://${path_1.default.join(__dirname, 'index.html')}`
@@ -78,7 +169,7 @@ const getPreloadPath = () => {
         ? path_1.default.join(process.resourcesPath, 'app.asar', preloadFileName)
         : path_1.default.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD);
 };
-const openWindow = (windowTitle, url = null) => {
+const openWindow = async (windowTitle, url = null) => {
     const newWindow = new electron_1.BrowserWindow({
         width: electron_1.screen.getPrimaryDisplay().workAreaSize.width,
         height: electron_1.screen.getPrimaryDisplay().workAreaSize.height,
@@ -90,7 +181,27 @@ const openWindow = (windowTitle, url = null) => {
             preload: getPreloadPath(),
             devTools: true,
             partition: 'persist:main',
+            // Enable Chrome extensions
+            nodeIntegration: true,
+            webviewTag: true,
         },
+    });
+    // Load extensions before configuring session
+    await loadExtensions(newWindow);
+    // Add keyboard shortcut to directly check extensions
+    newWindow.webContents.on('before-input-event', (event, input) => {
+        // Ctrl+Shift+E or Cmd+Shift+E to check extensions
+        if ((input.control || input.meta) &&
+            input.shift &&
+            input.key.toLowerCase() === 'e') {
+            newWindow.webContents
+                .executeJavaScript(`
+        chrome.management.getAll((extensions) => {
+          console.log('Loaded Extensions:', extensions);
+        });
+      `)
+                .catch((err) => console.error('Failed to check extensions:', err));
+        }
     });
     // Configure session only for this new window
     const sess = newWindow.webContents.session;
@@ -117,20 +228,40 @@ const openWindow = (windowTitle, url = null) => {
     });
 };
 exports.openWindow = openWindow;
-function createMainWindow() {
+async function createMainWindow() {
     exports.mainWindow = new electron_1.BrowserWindow({
         width: electron_1.screen.getPrimaryDisplay().workAreaSize.width,
         height: electron_1.screen.getPrimaryDisplay().workAreaSize.height,
-        frame: false, // Makes the window borderless
+        frame: false,
         webPreferences: {
             contextIsolation: true,
             sandbox: false,
             preload: getPreloadPath(),
-            devTools: true, // Ensure DevTools are enabled
-            webSecurity: false, // Disable web security to allow file:// URLs
+            devTools: true,
+            webSecurity: false,
             partition: 'persist:main',
+            // Enable Chrome extensions
+            nodeIntegration: true,
+            webviewTag: true,
         },
     });
+    // Add keyboard shortcut to directly check extensions
+    exports.mainWindow.webContents.on('before-input-event', (event, input) => {
+        // Ctrl+Shift+E or Cmd+Shift+E to check extensions
+        if ((input.control || input.meta) &&
+            input.shift &&
+            input.key.toLowerCase() === 'e') {
+            exports.mainWindow.webContents
+                .executeJavaScript(`
+          chrome.management.getAll((extensions) => {
+            console.log('Loaded Extensions:', extensions);
+          });
+        `)
+                .catch((err) => console.error('Failed to check extensions:', err));
+        }
+    });
+    // Load extensions before loading the URL
+    await loadExtensions(exports.mainWindow);
     exports.mainWindow.webContents.session.clearCache().then(() => {
         (0, logger_1.logger)('Cache cleared successfully.');
     });
@@ -157,6 +288,17 @@ electron_1.app.whenReady().then(() => {
         const redirectUri = 'http://localhost/auth/callback';
         const filter = { urls: [`${redirectUri}*`] };
     }
+    // Register chrome-extension protocol without interfering with Supabase
+    electron_1.protocol.handle('chrome-extension', (request) => {
+        const url = request.url.substring('chrome-extension://'.length);
+        const extensionParts = url.split('/');
+        const extensionId = extensionParts[0];
+        const extensionPath = electron_1.app.isPackaged
+            ? path_1.default.join(process.resourcesPath, 'extensions', extensionId)
+            : path_1.default.join(__dirname, '..', 'extensions', extensionId);
+        const filePath = path_1.default.join(extensionPath, ...extensionParts.slice(1));
+        return electron_1.net.fetch(`file://${filePath}`);
+    });
     createMainWindow();
     (0, ipcHandlers_1.initializeIpcHandlers)(exports.mainWindow);
     (0, autoUpdate_1.initializeAutoUpdater)(exports.mainWindow);
