@@ -153,6 +153,7 @@ async function loadExtensions(browserWindow) {
     const checkAndLoadExtension = async (extInfo) => {
         const extPath = path_1.default.join(extensionsDir, extInfo.id);
         console.log(`Processing extension ${extInfo.id}...`);
+        console.log('Extension path:', extPath);
         try {
             // Try to extract if needed
             const isExtracted = await extractZipIfNeeded(extensionsDir, extInfo);
@@ -160,24 +161,27 @@ async function loadExtensions(browserWindow) {
                 console.error(`Extension ${extInfo.id} is not available and couldn't be extracted`);
                 return false;
             }
-            // Only try to load if we're not packaged (in dev mode)
-            // In packaged mode, extensions are loaded via command line switch
-            if (!electron_1.app.isPackaged) {
-                const manifestPath = findManifestPath(extPath);
-                if (!manifestPath) {
-                    console.error(`Manifest not found for ${extInfo.id}`);
-                    return false;
-                }
+            const manifestPath = findManifestPath(extPath);
+            if (!manifestPath) {
+                console.error(`Manifest not found for ${extInfo.id}`);
+                return false;
+            }
+            console.log(`Found manifest for ${extInfo.id} at:`, manifestPath);
+            // Load extension regardless of packaged state
+            try {
                 const extension = await electron_1.session.defaultSession.loadExtension(extPath, {
                     allowFileAccess: true,
                 });
                 console.log(`Successfully loaded extension: ${extension.name}`);
                 return true;
             }
-            return true;
+            catch (loadError) {
+                console.error(`Failed to load extension ${extInfo.id}:`, loadError);
+                return false;
+            }
         }
         catch (e) {
-            console.error(`Failed to load ${extInfo.id}:`, e);
+            console.error(`Failed to process ${extInfo.id}:`, e);
             return false;
         }
     };
@@ -190,13 +194,9 @@ async function loadExtensions(browserWindow) {
         // Log overall status
         const loadedCount = results.filter(Boolean).length;
         console.log(`Successfully loaded ${loadedCount} out of ${results.length} extensions`);
-        // Send status to renderer process
-        browserWindow.webContents.on('did-finish-load', () => {
-            browserWindow.webContents.send('extensions-status', {
-                total: results.length,
-                loaded: loadedCount,
-            });
-        });
+        // List all loaded extensions
+        const loadedExtensions = electron_1.session.defaultSession.getAllExtensions();
+        console.log('Currently loaded extensions:', loadedExtensions);
         return loadedCount > 0;
     }
     catch (error) {
@@ -233,6 +233,29 @@ async function verifyLoadedExtensions(browserWindow) {
             console.error('Failed to verify extensions:', error);
             resolve([]);
         });
+    });
+}
+function setupExtensionIPC() {
+    electron_1.ipcMain.handle('get-extensions', async () => {
+        try {
+            const extensions = electron_1.session.defaultSession.getAllExtensions();
+            console.log('Found extensions:', extensions);
+            // Create a serializable version of the extensions
+            const serializableExtensions = extensions.map((ext) => ({
+                id: ext.id || '',
+                name: ext.name || '',
+                version: ext.manifest?.version || '',
+                description: ext.manifest?.description || '',
+                enabled: true,
+                hostPermissions: ext.manifest?.host_permissions || [],
+            }));
+            console.log('Serialized extensions:', serializableExtensions);
+            return serializableExtensions;
+        }
+        catch (error) {
+            console.error('Error getting extensions:', error);
+            return [];
+        }
     });
 }
 function createExtensionStatusWindow() {
@@ -289,20 +312,20 @@ function createExtensionStatusWindow() {
       // Initialize management API if not available
       if (!chrome.management) {
         chrome.management = {
-          getAll: function(callback) {
-            // Request extension list from main process
-            window.postMessage({ type: 'GET_EXTENSIONS' }, '*');
-            window.addEventListener('message', function(event) {
-              if (event.data.type === 'EXTENSIONS_LIST') {
-                callback(event.data.extensions);
-              }
-            });
+          getAll: async function(callback) {
+            try {
+              const { ipcRenderer } = require('electron');
+              const extensions = await ipcRenderer.invoke('get-extensions');
+              callback(extensions);
+            } catch (error) {
+              console.error('Failed to get extensions:', error);
+              callback([]);
+            }
           }
         };
       }
     `);
     });
-    // Move the HTML template to a separate string to avoid TypeScript parsing issues
     const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -359,12 +382,14 @@ function createExtensionStatusWindow() {
             <h1>Extension Status</h1>
             <button onclick="checkExtensions()">Refresh Status</button>
             <button onclick="checkChromeAPIs()">Check Chrome APIs</button>
+            <button onclick="checkDirectExtensions()">Check Extensions Directly</button>
           </div>
           <div id="status">Loading...</div>
         </div>
 
         <script>
           const statusDiv = document.getElementById('status');
+          const { ipcRenderer } = require('electron');
 
           async function checkChromeAPIs() {
             const apis = {
@@ -378,33 +403,35 @@ function createExtensionStatusWindow() {
               '<pre>' + JSON.stringify(apis, null, 2) + '</pre>';
           }
 
-          async function checkExtensions() {
+          async function checkDirectExtensions() {
             try {
-              if (!chrome?.management?.getAll) {
-                statusDiv.innerHTML = '<div class="extension-card disabled">Chrome Management API not available</div>';
+              const extensions = await ipcRenderer.invoke('get-extensions');
+              console.log('Received extensions:', extensions);
+              
+              if (!extensions || extensions.length === 0) {
+                statusDiv.innerHTML = '<div class="extension-card disabled">No extensions found via direct check</div>';
                 return;
               }
 
-              chrome.management.getAll((extensions) => {
-                const html = extensions.map(ext => \`
-                  <div class="extension-card \${ext.enabled ? 'enabled' : 'disabled'}">
-                    <h3>
-                      \${ext.name} v\${ext.version}
-                      <span class="status-badge \${ext.enabled ? 'enabled' : 'disabled'}">
-                        \${ext.enabled ? 'Enabled' : 'Disabled'}
-                      </span>
-                    </h3>
-                    <p><strong>ID:</strong> \${ext.id}</p>
-                    <p><strong>Description:</strong> \${ext.description || 'No description'}</p>
-                    \${ext.hostPermissions?.length ? \`
-                      <p><strong>Host Permissions:</strong> \${ext.hostPermissions.join(', ')}</p>
-                    \` : ''}
-                  </div>
-                \`).join('');
+              const html = extensions.map(ext => \`
+                <div class="extension-card \${ext.enabled ? 'enabled' : 'disabled'}">
+                  <h3>
+                    \${ext.name} v\${ext.version}
+                    <span class="status-badge \${ext.enabled ? 'enabled' : 'disabled'}">
+                      \${ext.enabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </h3>
+                  <p><strong>ID:</strong> \${ext.id}</p>
+                  <p><strong>Description:</strong> \${ext.description || 'No description'}</p>
+                  \${ext.hostPermissions?.length ? \`
+                    <p><strong>Host Permissions:</strong> \${ext.hostPermissions.join(', ')}</p>
+                  \` : ''}
+                </div>
+              \`).join('');
 
-                statusDiv.innerHTML = html || '<div class="extension-card disabled">No extensions found</div>';
-              });
+              statusDiv.innerHTML = html;
             } catch (error) {
+              console.error('Error checking extensions directly:', error);
               statusDiv.innerHTML = \`
                 <div class="extension-card disabled">
                   <h3>Error Checking Extensions</h3>
@@ -414,8 +441,8 @@ function createExtensionStatusWindow() {
             }
           }
 
-          // Initial check
-          checkExtensions();
+          // Initial check using direct method
+          checkDirectExtensions();
         </script>
       </body>
     </html>
@@ -670,6 +697,8 @@ electron_1.app.whenReady().then(() => {
         const filePath = path_1.default.join(extensionPath, ...extensionParts.slice(1));
         return electron_1.net.fetch(`file://${filePath}`);
     });
+    // Setup extension IPC handlers
+    setupExtensionIPC();
     createMainWindow();
     (0, ipcHandlers_1.initializeIpcHandlers)(exports.mainWindow);
     (0, autoUpdate_1.initializeAutoUpdater)(exports.mainWindow);
