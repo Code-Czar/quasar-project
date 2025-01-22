@@ -14,7 +14,6 @@ import { setWindowCallback } from './installScripts/websocket';
 import { logger as log } from './installScripts/logger';
 // import { isDevMode } from './installScripts/utils';
 
-import AdmZip from 'adm-zip';
 import { extractZip } from './installScripts/utils';
 
 // Extension IDs and filenames
@@ -39,6 +38,11 @@ app.commandLine.appendSwitch('disable-site-isolation-trials');
 app.commandLine.appendSwitch('ignore-certificate-errors');
 app.commandLine.appendSwitch('enable-extensions');
 app.commandLine.appendSwitch('remote-debugging-port', '9222');
+app.commandLine.appendSwitch(
+  'enable-features',
+  'ExtensionsToolbarMenu,ChromeExtensionAPI',
+);
+app.commandLine.appendSwitch('enable-api', 'runtime');
 
 // Function to get extension paths
 const getExtensionPaths = () => {
@@ -187,7 +191,7 @@ async function loadExtensions(browserWindow: BrowserWindow) {
         console.error(
           `Extension ${extInfo.id} is not available and couldn't be extracted`,
         );
-        return;
+        return false;
       }
 
       // Only try to load if we're not packaged (in dev mode)
@@ -196,25 +200,305 @@ async function loadExtensions(browserWindow: BrowserWindow) {
         const manifestPath = findManifestPath(extPath);
         if (!manifestPath) {
           console.error(`Manifest not found for ${extInfo.id}`);
-          return;
+          return false;
         }
 
-        await session.defaultSession.loadExtension(extPath, {
+        const extension = await session.defaultSession.loadExtension(extPath, {
           allowFileAccess: true,
         });
+
+        console.log(`Successfully loaded extension: ${extension.name}`);
+        return true;
       }
+      return true;
     } catch (e) {
       console.error(`Failed to load ${extInfo.id}:`, e);
+      return false;
     }
   };
 
-  // Load extensions sequentially
+  // Load extensions sequentially and track results
   try {
-    await checkAndLoadExtension(EXTENSIONS.UBLOCK);
-    await checkAndLoadExtension(EXTENSIONS.GHOSTERY);
+    const results = await Promise.all([
+      checkAndLoadExtension(EXTENSIONS.UBLOCK),
+      checkAndLoadExtension(EXTENSIONS.GHOSTERY),
+    ]);
+
+    // Log overall status
+    const loadedCount = results.filter(Boolean).length;
+    console.log(
+      `Successfully loaded ${loadedCount} out of ${results.length} extensions`,
+    );
+
+    // Send status to renderer process
+    browserWindow.webContents.on('did-finish-load', () => {
+      browserWindow.webContents.send('extensions-status', {
+        total: results.length,
+        loaded: loadedCount,
+      });
+    });
+
+    return loadedCount > 0;
   } catch (error) {
     console.error('Error during extension loading:', error);
+    return false;
   }
+}
+
+// Add this function after loadExtensions
+async function verifyLoadedExtensions(browserWindow: BrowserWindow) {
+  return new Promise((resolve) => {
+    browserWindow.webContents
+      .executeJavaScript(
+        `
+      new Promise((resolve) => {
+        if (typeof chrome !== 'undefined' && chrome.management && chrome.management.getAll) {
+          chrome.management.getAll((extensions) => {
+            resolve(extensions);
+          });
+        } else {
+          resolve([]);
+        }
+      })
+    `,
+      )
+      .then((extensions: any[]) => {
+        if (extensions.length > 0) {
+          console.log(
+            'Verified loaded extensions:',
+            extensions.map((ext) => ext.name).join(', '),
+          );
+          browserWindow.webContents.send('extensions-loaded', extensions);
+        } else {
+          console.log('No extensions were verified as loaded');
+        }
+        resolve(extensions);
+      })
+      .catch((error) => {
+        console.error('Failed to verify extensions:', error);
+        resolve([]);
+      });
+  });
+}
+
+// Add this interface before createExtensionStatusWindow
+interface ChromeExtension {
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+  enabled: boolean;
+  hostPermissions?: string[];
+}
+
+function createExtensionStatusWindow() {
+  const statusWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      contextIsolation: false,
+      nodeIntegration: true,
+      webSecurity: false,
+      partition: 'persist:main',
+      additionalArguments: [
+        '--enable-features=ExtensionsToolbarMenu,ChromeExtensionAPI',
+        '--enable-api=runtime',
+      ],
+    },
+  });
+
+  // Enable required permissions for the window's session
+  statusWindow.webContents.session.setPermissionRequestHandler(
+    (
+      webContents: Electron.WebContents,
+      permission: string,
+      callback: (granted: boolean) => void,
+    ) => {
+      callback(true);
+    },
+  );
+
+  // Enable Chrome extension APIs
+  statusWindow.webContents.session.setPermissionCheckHandler(
+    (
+      webContents: Electron.WebContents | null,
+      permission: string,
+      requestingOrigin: string,
+      details: Electron.PermissionCheckHandlerHandlerDetails,
+    ) => {
+      return true;
+    },
+  );
+
+  // Wait for window to be ready and inject required permissions
+  statusWindow.webContents.on('did-finish-load', () => {
+    statusWindow.webContents.executeJavaScript(`
+      // Ensure chrome namespace exists
+      if (typeof chrome === 'undefined') {
+        window.chrome = {};
+      }
+
+      // Initialize runtime API if not available
+      if (!chrome.runtime) {
+        chrome.runtime = {
+          id: 'extension-status',
+          getManifest: () => ({}),
+          getURL: (path) => path,
+          connect: () => ({
+            onMessage: { addListener: () => {} },
+            postMessage: () => {},
+            disconnect: () => {}
+          }),
+          sendMessage: () => {},
+          onMessage: {
+            addListener: () => {},
+            removeListener: () => {},
+            hasListener: () => false
+          }
+        };
+      }
+
+      // Initialize management API if not available
+      if (!chrome.management) {
+        chrome.management = {
+          getAll: function(callback) {
+            // Request extension list from main process
+            window.postMessage({ type: 'GET_EXTENSIONS' }, '*');
+            window.addEventListener('message', function(event) {
+              if (event.data.type === 'EXTENSIONS_LIST') {
+                callback(event.data.extensions);
+              }
+            });
+          }
+        };
+      }
+    `);
+  });
+
+  // Move the HTML template to a separate string to avoid TypeScript parsing issues
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Extension Status</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background: #1e1e1e;
+            color: #fff;
+          }
+          .container { max-width: 800px; margin: 0 auto; }
+          .header { margin-bottom: 20px; }
+          .extension-card {
+            background: #2d2d2d;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #0078d4;
+          }
+          .extension-card.enabled { border-left-color: #4CAF50; }
+          .extension-card.disabled { border-left-color: #f44336; }
+          button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+          }
+          button:hover { background: #106ebe; }
+          .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+          }
+          .status-badge.enabled { background: #4CAF50; }
+          .status-badge.disabled { background: #f44336; }
+          pre {
+            background: #000;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Extension Status</h1>
+            <button onclick="checkExtensions()">Refresh Status</button>
+            <button onclick="checkChromeAPIs()">Check Chrome APIs</button>
+          </div>
+          <div id="status">Loading...</div>
+        </div>
+
+        <script>
+          const statusDiv = document.getElementById('status');
+
+          async function checkChromeAPIs() {
+            const apis = {
+              chrome: typeof chrome !== 'undefined',
+              management: typeof chrome !== 'undefined' && !!chrome.management,
+              runtime: typeof chrome !== 'undefined' && !!chrome.runtime,
+              getAll: typeof chrome !== 'undefined' && !!chrome.management?.getAll
+            };
+
+            statusDiv.innerHTML = '<h2>Chrome APIs Status</h2>' +
+              '<pre>' + JSON.stringify(apis, null, 2) + '</pre>';
+          }
+
+          async function checkExtensions() {
+            try {
+              if (!chrome?.management?.getAll) {
+                statusDiv.innerHTML = '<div class="extension-card disabled">Chrome Management API not available</div>';
+                return;
+              }
+
+              chrome.management.getAll((extensions) => {
+                const html = extensions.map(ext => \`
+                  <div class="extension-card \${ext.enabled ? 'enabled' : 'disabled'}">
+                    <h3>
+                      \${ext.name} v\${ext.version}
+                      <span class="status-badge \${ext.enabled ? 'enabled' : 'disabled'}">
+                        \${ext.enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </h3>
+                    <p><strong>ID:</strong> \${ext.id}</p>
+                    <p><strong>Description:</strong> \${ext.description || 'No description'}</p>
+                    \${ext.hostPermissions?.length ? \`
+                      <p><strong>Host Permissions:</strong> \${ext.hostPermissions.join(', ')}</p>
+                    \` : ''}
+                  </div>
+                \`).join('');
+
+                statusDiv.innerHTML = html || '<div class="extension-card disabled">No extensions found</div>';
+              });
+            } catch (error) {
+              statusDiv.innerHTML = \`
+                <div class="extension-card disabled">
+                  <h3>Error Checking Extensions</h3>
+                  <pre>\${error.message}</pre>
+                </div>
+              \`;
+            }
+          }
+
+          // Initial check
+          checkExtensions();
+        </script>
+      </body>
+    </html>
+  `;
+
+  statusWindow.loadURL(
+    `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`,
+  );
+
+  return statusWindow;
 }
 
 // fixPath();
@@ -373,39 +657,97 @@ async function createMainWindow() {
       devTools: true,
       webSecurity: false,
       partition: 'persist:main',
-      // Enable Chrome extensions
       nodeIntegration: true,
       webviewTag: true,
+      additionalArguments: [
+        '--enable-features=ExtensionsToolbarMenu,ChromeExtensionAPI',
+        '--enable-api=runtime',
+      ],
     },
   });
 
-  // Add keyboard shortcut to directly check extensions
+  // Enable Chrome APIs for the main window
+  mainWindow.webContents.session.setPermissionRequestHandler(
+    (
+      webContents: Electron.WebContents,
+      permission: string,
+      callback: (granted: boolean) => void,
+    ) => {
+      callback(true);
+    },
+  );
+
+  mainWindow.webContents.session.setPermissionCheckHandler(
+    (
+      webContents: Electron.WebContents | null,
+      permission: string,
+      requestingOrigin: string,
+      details: Electron.PermissionCheckHandlerHandlerDetails,
+    ) => {
+      return true;
+    },
+  );
+
+  // Add keyboard shortcuts for extension management with proper type annotations
   mainWindow.webContents.on(
     'before-input-event',
     (event: Electron.Event, input: Electron.Input) => {
-      // Ctrl+Shift+E or Cmd+Shift+E to check extensions
+      // Ctrl+Shift+E (or Cmd+Shift+E on macOS) to open extension status
       if (
         (input.control || input.meta) &&
         input.shift &&
         input.key.toLowerCase() === 'e'
       ) {
-        mainWindow.webContents
-          .executeJavaScript(
-            `
-          chrome.management.getAll((extensions) => {
-            console.log('Loaded Extensions:', extensions);
-          });
-        `,
-          )
-          .catch((err: Error) =>
-            console.error('Failed to check extensions:', err),
-          );
+        createExtensionStatusWindow();
       }
     },
   );
 
   // Load extensions before loading the URL
-  await loadExtensions(mainWindow);
+  const extensionsLoaded = await loadExtensions(mainWindow);
+
+  // Initialize extension APIs
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript(`
+      if (typeof chrome === 'undefined') {
+        window.chrome = {};
+      }
+
+      // Initialize runtime API
+      if (!chrome.runtime) {
+        chrome.runtime = {
+          id: 'main-window',
+          getManifest: () => ({}),
+          getURL: (path) => path,
+          connect: () => ({
+            onMessage: { addListener: () => {} },
+            postMessage: () => {},
+            disconnect: () => {}
+          }),
+          sendMessage: () => {},
+          onMessage: {
+            addListener: () => {},
+            removeListener: () => {},
+            hasListener: () => false
+          }
+        };
+      }
+
+      // Initialize management API
+      if (!chrome.management) {
+        chrome.management = {
+          getAll: function(callback) {
+            window.postMessage({ type: 'GET_EXTENSIONS' }, '*');
+            window.addEventListener('message', function(event) {
+              if (event.data.type === 'EXTENSIONS_LIST') {
+                callback(event.data.extensions);
+              }
+            });
+          }
+        };
+      }
+    `);
+  });
 
   mainWindow.webContents.session.clearCache().then(() => {
     log('Cache cleared successfully.');
@@ -415,10 +757,21 @@ async function createMainWindow() {
     ? `file://${path.join(__dirname, 'index.html')}`
     : 'http://localhost:9300';
 
-  mainWindow.loadURL(mainURL);
+  await mainWindow.loadURL(mainURL);
+
+  // Verify extensions after page load
+  mainWindow.webContents.on('did-finish-load', async () => {
+    // Wait a bit to ensure extensions are fully initialized
+    setTimeout(async () => {
+      await verifyLoadedExtensions(mainWindow);
+    }, 2000);
+  });
+
   try {
     setWindowCallback(openWindow);
-  } catch (error) {}
+  } catch (error) {
+    console.error('Failed to set window callback:', error);
+  }
 }
 
 app.whenReady().then(() => {
