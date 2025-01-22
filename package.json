@@ -14,6 +14,18 @@
       ]
     }
   },
+  "mac": {
+    "entitlements": "src-electron/entitlements.mac.plist",
+    "entitlementsInherit": "src-electron/entitlements.mac.plist",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "extendInfo": {
+      "NSAppleEventsUsageDescription": "Required for URL scheme handling",
+      "LSApplicationQueriesSchemes": [
+        "infinityinstaller"
+      ]
+    }
+  },
   "scripts": {
     "lint": "eslint --ext .js,.ts,.vue ./",
     "format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",

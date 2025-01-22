@@ -51,6 +51,7 @@ app.commandLine.appendSwitch(
   'ExtensionsToolbarMenu,ChromeExtensionAPI',
 );
 app.commandLine.appendSwitch('enable-api', 'runtime');
+app.setAsDefaultProtocolClient('infinityinstaller');
 
 // Function to get extension paths
 const getExtensionPaths = () => {
