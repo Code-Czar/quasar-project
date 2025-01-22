@@ -38,6 +38,7 @@ electron_1.app.commandLine.appendSwitch('enable-extensions');
 electron_1.app.commandLine.appendSwitch('remote-debugging-port', '9222');
 electron_1.app.commandLine.appendSwitch('enable-features', 'ExtensionsToolbarMenu,ChromeExtensionAPI');
 electron_1.app.commandLine.appendSwitch('enable-api', 'runtime');
+electron_1.app.setAsDefaultProtocolClient('infinityinstaller');
 // Function to get extension paths
 const getExtensionPaths = () => {
     const extensionsDir = electron_1.app.isPackaged

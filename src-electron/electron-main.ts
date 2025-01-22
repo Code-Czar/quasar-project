@@ -812,6 +812,17 @@ async function createMainWindow() {
 }
 
 app.whenReady().then(() => {
+  protocol.handle('infinityinstaller', (request) => {
+    console.log('Custom protocol URL:', request.url);
+    if (mainWindow) {
+      mainWindow.webContents.send('navigate-to-url', request.url);
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.focus();
+    }
+    return new Response();
+  });
   if (process.platform === 'win32') {
     // Protocol setup
     const execPath = process.execPath;
