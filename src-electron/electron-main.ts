@@ -802,14 +802,14 @@ function createAuthCallbackServer(mainWindow: BrowserWindow) {
                     console.log('Auth data found:', authData ? 'yes' : 'no');
                     
                     if (authData) {
-                      // Construct the redirect URL
+                      // Construct the redirect URL based on environment
                       const baseUrl = ${
                         app.isPackaged
-                          ? `'file://${path.join(__dirname, 'index.html')}/#/auth'`
-                          : "'http://localhost:9300/#/auth'"
+                          ? `'file://' + path.join(__dirname, 'index.html')`
+                          : "'http://localhost:9300'"
                       };
                       // Pass the entire auth data as hash to preserve all parameters
-                      const redirectUrl = baseUrl + '#' + authData;
+                      const redirectUrl = baseUrl + '/#/auth?' + authData;
                       console.log('Redirecting to:', redirectUrl);
                       window.location.href = redirectUrl;
                     }
@@ -849,6 +849,7 @@ function createAuthCallbackServer(mainWindow: BrowserWindow) {
       // Handle server errors
       server.on('error', (err) => {
         console.error('Auth server error:', err);
+        //@ts-ignore
         if (err.code === 'EADDRINUSE') {
           console.log('Port in use, trying another port...');
           server?.close();
@@ -937,14 +938,14 @@ async function createMainWindow() {
   const extensionsLoaded = await loadExtensions(mainWindow);
 
   // Add temporary logging for navigation events
-  mainWindow.webContents.on('did-start-navigation', (event, url) => {
+  mainWindow.webContents.on('did-start-navigation', (event: any, url: any) => {
     console.log('Main window - Navigation started:', {
       url,
       currentURL: mainWindow.webContents.getURL(),
     });
   });
 
-  mainWindow.webContents.on('did-navigate', (event, url) => {
+  mainWindow.webContents.on('did-navigate', (event: any, url: any) => {
     console.log('Main window - Navigation completed:', {
       url,
       currentURL: mainWindow.webContents.getURL(),
@@ -953,7 +954,7 @@ async function createMainWindow() {
 
   mainWindow.webContents.on(
     'did-fail-load',
-    (event, errorCode, errorDescription) => {
+    (event: any, errorCode: any, errorDescription: any) => {
       console.error('Main window - Failed to load:', {
         errorCode,
         errorDescription,
@@ -993,7 +994,7 @@ async function createMainWindow() {
   }
 
   // Create the auth callback server
-  // const authServer = createAuthCallbackServer(mainWindow);
+  const authServer = createAuthCallbackServer(mainWindow);
 
   // Clean up server when window is closed
   mainWindow.on('closed', () => {
@@ -1021,7 +1022,17 @@ function handleAuthWindow(url: string): Promise<string> {
       console.log('Auth window redirecting to:', newUrl);
       if (newUrl.includes('/auth/callback')) {
         event.preventDefault();
-        resolve(newUrl);
+        // Convert http callback to custom protocol
+        if (app.isPackaged && newUrl.startsWith('http://localhost')) {
+          const callbackUrl = new URL(newUrl);
+          // Preserve the entire hash/search with proper encoding
+          const authData = callbackUrl.hash || callbackUrl.search;
+          const customUrl = `infinityinstaller://auth/callback${authData}`;
+          console.log('Converting to custom protocol:', customUrl);
+          resolve(customUrl);
+        } else {
+          resolve(newUrl);
+        }
         authWindow.close();
       }
     });
@@ -1030,7 +1041,17 @@ function handleAuthWindow(url: string): Promise<string> {
     authWindow.webContents.on('did-navigate', (event, newUrl) => {
       console.log('Auth window navigated to:', newUrl);
       if (newUrl.includes('/auth/callback')) {
-        resolve(newUrl);
+        // Convert http callback to custom protocol
+        if (app.isPackaged && newUrl.startsWith('http://localhost')) {
+          const callbackUrl = new URL(newUrl);
+          // Preserve the entire hash/search with proper encoding
+          const authData = callbackUrl.hash || callbackUrl.search;
+          const customUrl = `infinityinstaller://auth/callback${authData}`;
+          console.log('Converting to custom protocol:', customUrl);
+          resolve(customUrl);
+        } else {
+          resolve(newUrl);
+        }
         authWindow.close();
       }
     });
@@ -1053,12 +1074,44 @@ function handleAuthWindow(url: string): Promise<string> {
 app.whenReady().then(() => {
   protocol.handle('infinityinstaller', (request) => {
     console.log('Custom protocol URL:', request.url);
-    if (mainWindow) {
-      mainWindow.webContents.send('navigate-to-url', request.url);
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
+
+    try {
+      // Parse the URL and handle encoding
+      const parsedUrl = new URL(request.url);
+      console.log('Parsed protocol URL:', parsedUrl);
+
+      // Handle auth callback
+      if (parsedUrl.pathname.includes('/auth/callback')) {
+        // Get the hash or search params from the URL
+        const authData = parsedUrl.hash || parsedUrl.search;
+        console.log('Auth data from protocol:', authData);
+
+        // Construct the app URL with the auth data
+        const appUrl = app.isPackaged
+          ? `file://${path.join(__dirname, 'index.html')}/#/auth${authData}`
+          : `http://localhost:9300/#/auth${authData}`;
+
+        console.log('Redirecting to app URL:', appUrl);
+
+        if (mainWindow) {
+          mainWindow.loadURL(appUrl);
+          if (mainWindow.isMinimized()) {
+            mainWindow.restore();
+          }
+          mainWindow.focus();
+        }
+      } else {
+        // Handle other protocol URLs
+        if (mainWindow) {
+          mainWindow.webContents.send('navigate-to-url', request.url);
+          if (mainWindow.isMinimized()) {
+            mainWindow.restore();
+          }
+          mainWindow.focus();
+        }
       }
-      mainWindow.focus();
+    } catch (error) {
+      console.error('Error handling protocol URL:', error);
     }
     return new Response();
   });

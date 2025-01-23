@@ -76,9 +76,9 @@ const definePostLoginRedirection = (enableAppRedirect = false) => {
   }
   
   // In production electron app
-  if (window.location.protocol === 'file:') {
-    // Use a local http server in electron for auth callback
-    return 'http://localhost:9301/auth/callback';
+  if (window.location.href.startsWith('file')) {
+    // Use custom protocol scheme for auth callback
+    return 'infinityinstaller://auth';
   }
   
   // Fallback for web
@@ -149,7 +149,6 @@ const login = async (provider: 'google' | 'github'= "google") => {
           } else {
             console.error('Unexpected URL format:', result);
           }
-          // window.open(result, '_self');
         } catch (error) {
           console.error('Auth window error:', error);
         }
