@@ -875,7 +875,7 @@ function createAuthCallbackServer(mainWindow: BrowserWindow) {
   };
 }
 
-// Modify createMainWindow to include the auth server
+// Update createMainWindow to remove auth window references
 async function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: screen.getPrimaryDisplay().workAreaSize.width,
@@ -897,46 +897,6 @@ async function createMainWindow() {
     },
   });
 
-  // Enable Chrome APIs for the main window
-  mainWindow.webContents.session.setPermissionRequestHandler(
-    (
-      webContents: Electron.WebContents,
-      permission: string,
-      callback: (granted: boolean) => void,
-    ) => {
-      callback(true);
-    },
-  );
-
-  mainWindow.webContents.session.setPermissionCheckHandler(
-    (
-      webContents: Electron.WebContents | null,
-      permission: string,
-      requestingOrigin: string,
-      details: Electron.PermissionCheckHandlerHandlerDetails,
-    ) => {
-      return true;
-    },
-  );
-
-  // Add keyboard shortcuts for extension management with proper type annotations
-  mainWindow.webContents.on(
-    'before-input-event',
-    (event: Electron.Event, input: Electron.Input) => {
-      // Ctrl+Shift+E (or Cmd+Shift+E on macOS) to open extension status
-      if (
-        (input.control || input.meta) &&
-        input.shift &&
-        input.key.toLowerCase() === 'e'
-      ) {
-        createExtensionStatusWindow();
-      }
-    },
-  );
-
-  // Load extensions before loading the URL
-  const extensionsLoaded = await loadExtensions(mainWindow);
-
   // Add temporary logging for navigation events
   mainWindow.webContents.on('did-start-navigation', (event: any, url: any) => {
     console.log('Main window - Navigation started:', {
@@ -952,20 +912,6 @@ async function createMainWindow() {
     });
   });
 
-  mainWindow.webContents.on(
-    'did-fail-load',
-    (event: any, errorCode: any, errorDescription: any) => {
-      console.error('Main window - Failed to load:', {
-        errorCode,
-        errorDescription,
-        currentURL: mainWindow.webContents.getURL(),
-      });
-    },
-  );
-
-  // Clear cache before loading
-  await mainWindow.webContents.session.clearCache();
-
   // Load the app
   const mainURL = app.isPackaged
     ? `file://${path.join(__dirname, 'index.html')}`
@@ -979,98 +925,14 @@ async function createMainWindow() {
     mainWindow.webContents.openDevTools();
   }
 
-  // Verify extensions after page load
-  mainWindow.webContents.on('did-finish-load', async () => {
-    // Wait a bit to ensure extensions are fully initialized
-    setTimeout(async () => {
-      await verifyLoadedExtensions(mainWindow);
-    }, 2000);
-  });
-
   try {
     setWindowCallback(openWindow);
   } catch (error) {
     console.error('Failed to set window callback:', error);
   }
-
-  // Create the auth callback server
-  const authServer = createAuthCallbackServer(mainWindow);
-
-  // Clean up server when window is closed
-  mainWindow.on('closed', () => {
-    if (authServer && typeof authServer.close === 'function') {
-      authServer.close();
-    }
-  });
 }
 
-// Modify the handleAuthWindow function
-function handleAuthWindow(url: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const authWindow = new BrowserWindow({
-      width: 800,
-      height: 600,
-      webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true,
-      },
-      show: true, // Show the window by default
-    });
-
-    // Track redirects
-    authWindow.webContents.on('will-redirect', (event, newUrl) => {
-      console.log('Auth window redirecting to:', newUrl);
-      if (newUrl.includes('/auth/callback')) {
-        event.preventDefault();
-        // Convert http callback to custom protocol
-        if (app.isPackaged && newUrl.startsWith('http://localhost')) {
-          const callbackUrl = new URL(newUrl);
-          // Preserve the entire hash/search with proper encoding
-          const authData = callbackUrl.hash || callbackUrl.search;
-          const customUrl = `infinityinstaller://auth/callback${authData}`;
-          console.log('Converting to custom protocol:', customUrl);
-          resolve(customUrl);
-        } else {
-          resolve(newUrl);
-        }
-        authWindow.close();
-      }
-    });
-
-    // Also track navigation events for hash changes
-    authWindow.webContents.on('did-navigate', (event, newUrl) => {
-      console.log('Auth window navigated to:', newUrl);
-      if (newUrl.includes('/auth/callback')) {
-        // Convert http callback to custom protocol
-        if (app.isPackaged && newUrl.startsWith('http://localhost')) {
-          const callbackUrl = new URL(newUrl);
-          // Preserve the entire hash/search with proper encoding
-          const authData = callbackUrl.hash || callbackUrl.search;
-          const customUrl = `infinityinstaller://auth/callback${authData}`;
-          console.log('Converting to custom protocol:', customUrl);
-          resolve(customUrl);
-        } else {
-          resolve(newUrl);
-        }
-        authWindow.close();
-      }
-    });
-
-    // Handle if the window is closed
-    authWindow.on('closed', () => {
-      reject(new Error('Auth window was closed'));
-    });
-
-    // Load the auth URL
-    authWindow.loadURL(url).catch(reject);
-
-    // Show DevTools in development
-    if (!app.isPackaged) {
-      authWindow.webContents.openDevTools();
-    }
-  });
-}
-
+// Keep the protocol handler as is since it's working
 app.whenReady().then(() => {
   protocol.handle('infinityinstaller', (request) => {
     console.log('Custom protocol URL:', request.url);
@@ -1088,7 +950,7 @@ app.whenReady().then(() => {
 
         // Construct the app URL with the auth data
         const appUrl = app.isPackaged
-          ? `file://${path.join(__dirname, 'index.html')}/#/auth${authData}`
+          ? `file://${path.join(__dirname, 'index.html')}#/auth${authData}`
           : `http://localhost:9300/#/auth${authData}`;
 
         console.log('Redirecting to app URL:', appUrl);
@@ -1100,77 +962,16 @@ app.whenReady().then(() => {
           }
           mainWindow.focus();
         }
-      } else {
-        // Handle other protocol URLs
-        if (mainWindow) {
-          mainWindow.webContents.send('navigate-to-url', request.url);
-          if (mainWindow.isMinimized()) {
-            mainWindow.restore();
-          }
-          mainWindow.focus();
-        }
       }
     } catch (error) {
       console.error('Error handling protocol URL:', error);
     }
     return new Response();
   });
-  if (process.platform === 'win32') {
-    // Protocol setup
-    const execPath = process.execPath;
-    const escapedExecPath = execPath
-      .replace(/\\/g, '\\\\')
-      .replace(/"/g, '\\"');
-    const command = `"${escapedExecPath}" "%1"`;
-  }
-  if (app.isPackaged) {
-    // Define the Supabase redirect URI
-    const redirectUri = 'http://localhost/auth/callback';
-    const filter = { urls: [`${redirectUri}*`] };
-  }
-
-  // Register chrome-extension protocol without interfering with Supabase
-  protocol.handle('chrome-extension', (request) => {
-    const url = request.url.substring('chrome-extension://'.length);
-    const extensionParts = url.split('/');
-    const extensionId = extensionParts[0];
-    const extensionPath = app.isPackaged
-      ? path.join(process.resourcesPath, 'extensions', extensionId)
-      : path.join(__dirname, '..', 'extensions', extensionId);
-
-    const filePath = path.join(extensionPath, ...extensionParts.slice(1));
-    return net.fetch(`file://${filePath}`);
-  });
-
-  // Setup extension IPC handlers
-  setupExtensionIPC();
 
   createMainWindow();
   initializeIpcHandlers(mainWindow);
   initializeAutoUpdater(mainWindow);
-
-  // Add this in app.whenReady() after other ipcMain handlers
-  ipcMain.handle('open-auth-window', async (event, url) => {
-    try {
-      const resultUrl = await handleAuthWindow(url);
-      console.log('Auth completed with URL:', resultUrl);
-
-      // Parse the URL to get token
-      const urlObj = new URL(resultUrl);
-      const params = new URLSearchParams(urlObj.search);
-      const hash = urlObj.hash;
-
-      console.log('Auth URL params:', params.toString());
-      console.log('Auth URL hash:', hash);
-
-      // Return the full URL so the renderer can extract what it needs
-      // mainWindow.webContents.send('navigate-to-url', resultUrl);
-      return resultUrl;
-    } catch (error) {
-      console.error('Auth window error:', error);
-      throw error;
-    }
-  });
 });
 
 if (!app.requestSingleInstanceLock()) {

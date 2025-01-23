@@ -108,54 +108,8 @@ const login = async (provider: 'google' | 'github'= "google") => {
 
     if (url) {
       console.log('Opening auth URL:', url);
-      
-      if (window?.electronAPI?.openAuthWindow) {
-        // Use the main process to handle the auth window
-        try {
-          const result = await window.electronAPI.openAuthWindow(url);
-          console.log('Auth result:', result);
-          
-          // Extract token from URL
-          const urlObj = new URL(result);
-          const pathname = urlObj.pathname;
-          const searchParams = new URLSearchParams(urlObj.hash.substring(1)); // Remove the '#' character
-
-          // Check if we're on the auth path
-          if (pathname.includes('/auth')) {
-            // Try to get token from search params
-            let accessToken = searchParams.get('access_token');
-            console.log("🚀 ~ login ~ accessToken:", accessToken)
-            let refreshToken = searchParams.get('refresh_token');
-            console.log("🚀 ~ login ~ refreshToken:", refreshToken)
-            
-            if (accessToken) {
-              // Set the session in Supabase
-              const { data: { session }, error: sessionError } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken || ''
-              });
-
-              if (sessionError) {
-                console.error('Session error:', sessionError);
-                return;
-              }
-
-              if (session?.user) {
-                await store.setUserCredentials(session.user, accessToken);
-                await store.pushUserToBackend(session.user);
-                router.push({ name: 'catalog' });
-              }
-            }
-          } else {
-            console.error('Unexpected URL format:', result);
-          }
-        } catch (error) {
-          console.error('Auth window error:', error);
-        }
-      } else {
-        // Fallback to regular window.open for non-electron environments
-        window.open(url, '_self');
-      }
+      // Navigate directly in the main window
+      window.location.href = url;
     }
   } catch (err) {
     console.error('Unexpected error during login:', err);
