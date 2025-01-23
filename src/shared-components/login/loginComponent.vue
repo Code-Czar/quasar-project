@@ -46,72 +46,117 @@
 <script lang="ts" setup>
 import { Platform } from 'quasar';
 import { defineExpose } from 'vue';
-
 import { createClient } from '@supabase/supabase-js';
 import { useUserStore } from 'src/stores/userStore';
+import { useRouter } from 'vue-router';
+
+// Add window type definition
+declare global {
+  interface Window {
+    electronAPI?: {
+      openAuthWindow: (url: string) => Promise<string>;
+    };
+  }
+}
 
 const SUPABASE_URL = 'https://yhotbknfiebbflhovpws.supabase.co';
 const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlob3Ria25maWViYmZsaG92cHdzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY5NDg3MTkxMSwiZXhwIjoyMDEwNDQ3OTExfQ.5dn2ZC9cedTT7vZyvhK7Qxzo71FEtVe1JkAho6FV_7A';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const router = useRouter();
+const store = useUserStore();
 console.log('🚀 ~ window:', window);
 
 const mobileURLScheme = 'opportunities://auth';
 const definePostLoginRedirection = (enableAppRedirect = false) => {
-  console.log(
-    '🚀 ~ definePostLoginRedirection ~  window.location.origin:',
-    window.location.origin,
-  );
-  console.log(
-    '🚀 ~ definePostLoginRedirection ~  window.location.href:',
-    window.location.href,
-  );
-
-  let redirectUri: string | null = null;
-
-  if (Platform.is.android && enableAppRedirect) {
-    redirectUri = mobileURLScheme;
-  } else if (
-    window.location.origin.includes('localhost') ||
-    window.location.origin.includes('127.0.0.1')
-  ) {
-    redirectUri = 'http://localhost:9300/#/auth';
-    console.log(
-      '🚀 ~ file: LoginPage.vue:62 ~ redirectUri:',
-      window.location.origin,
-      redirectUri,
-    );
-  } else if (window.location.href.startsWith('file')) {
-    redirectUri = 'infinityinstaller://auth';
+  // In development, use localhost
+  if (process.env.DEV) {
+    return 'http://localhost:9300/auth/callback';
   }
-  else {
-    redirectUri = window.location.origin + 'auth';
+  
+  // In production electron app
+  if (window.location.protocol === 'file:') {
+    // Use a local http server in electron for auth callback
+    return 'http://localhost:9301/auth/callback';
   }
-  return redirectUri;
+  
+  // Fallback for web
+  return window.location.origin + '/auth/callback';
 };
 
 const login = async (provider: 'google' | 'github'= "google") => {
   const redirectUri = definePostLoginRedirection();
-  console.log('🚀 ~ LOGIN ~ redirectUri:', redirectUri, window.location);
+  console.log('🚀 ~ LOGIN ~ redirectUri:', redirectUri);
 
   try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    // First, get the authorization URL
+    const { data: { url }, error: urlError } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: redirectUri },
+      options: { 
+        redirectTo: redirectUri,
+        queryParams: {
+          app_source: 'electron'
+        }
+      },
     });
 
-    if (error) {
-      console.error('Login error:', error.message);
+    if (urlError) {
+      console.error('Login URL error:', urlError.message);
       return;
     }
 
-    if (data) {
-      console.log('Login successful:', data);
-      // Set user credentials if needed
-      // @ts-expect-error ignore
-      console.log('🚀 ~ login ~ data:', data);
-      // await useUserStore().setUserCredentials(data.user, data.session);
+    if (url) {
+      console.log('Opening auth URL:', url);
+      
+      if (window?.electronAPI?.openAuthWindow) {
+        // Use the main process to handle the auth window
+        try {
+          const result = await window.electronAPI.openAuthWindow(url);
+          console.log('Auth result:', result);
+          
+          // Extract token from URL
+          const urlObj = new URL(result);
+          const pathname = urlObj.pathname;
+          const searchParams = new URLSearchParams(urlObj.hash.substring(1)); // Remove the '#' character
+
+          // Check if we're on the auth path
+          if (pathname.includes('/auth')) {
+            // Try to get token from search params
+            let accessToken = searchParams.get('access_token');
+            console.log("🚀 ~ login ~ accessToken:", accessToken)
+            let refreshToken = searchParams.get('refresh_token');
+            console.log("🚀 ~ login ~ refreshToken:", refreshToken)
+            
+            if (accessToken) {
+              // Set the session in Supabase
+              const { data: { session }, error: sessionError } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken || ''
+              });
+
+              if (sessionError) {
+                console.error('Session error:', sessionError);
+                return;
+              }
+
+              if (session?.user) {
+                await store.setUserCredentials(session.user, accessToken);
+                await store.pushUserToBackend(session.user);
+                router.push({ name: 'catalog' });
+              }
+            }
+          } else {
+            console.error('Unexpected URL format:', result);
+          }
+          // window.open(result, '_self');
+        } catch (error) {
+          console.error('Auth window error:', error);
+        }
+      } else {
+        // Fallback to regular window.open for non-electron environments
+        window.open(url, '_self');
+      }
     }
   } catch (err) {
     console.error('Unexpected error during login:', err);

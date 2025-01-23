@@ -24,6 +24,9 @@ import { logger as log } from './installScripts/logger';
 
 import { extractZip } from './installScripts/utils';
 
+import http from 'http';
+import url from 'url';
+
 // Extension IDs and filenames
 const EXTENSIONS = {
   UBLOCK: {
@@ -682,6 +685,196 @@ export const openWindow = async (windowTitle: string, url = null) => {
   });
 };
 
+// Add this function at the top level
+function findAvailablePort(
+  startPort: number,
+  endPort: number,
+): Promise<number> {
+  return new Promise((resolve, reject) => {
+    function tryPort(port: number) {
+      if (port > endPort) {
+        reject(new Error('No available ports found'));
+        return;
+      }
+
+      const testServer = http.createServer();
+      testServer.once('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+          tryPort(port + 1);
+        } else {
+          reject(err);
+        }
+      });
+
+      testServer.once('listening', () => {
+        testServer.close(() => resolve(port));
+      });
+
+      testServer.listen(port, 'localhost');
+    }
+
+    tryPort(startPort);
+  });
+}
+
+// Modify the createAuthCallbackServer function
+function createAuthCallbackServer(mainWindow: BrowserWindow) {
+  let server: http.Server | null = null;
+
+  async function startServer() {
+    try {
+      // Find an available port in a range
+      const basePort = app.isPackaged ? 9301 : 9300;
+      const port = await findAvailablePort(basePort, basePort + 10);
+
+      server = http.createServer((req, res) => {
+        const parsedUrl = url.parse(req.url || '', true);
+        console.log('Incoming request URL:', req.url);
+        console.log('Parsed URL:', parsedUrl);
+
+        // Handle auth callback
+        if (parsedUrl.pathname === '/auth/callback') {
+          // Get the full URL including hash fragment
+          const fullUrl = req.url || '';
+          console.log('Auth callback received. Full URL:', fullUrl);
+
+          // Send a simple HTML page that will pass the token back to the main window
+          const html = `
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <style>
+                  body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                    background-color: #f5f5f5;
+                  }
+                  .message {
+                    text-align: center;
+                    padding: 20px;
+                    background: white;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                  }
+                </style>
+              </head>
+              <body>
+                <div class="message">
+                  <h3>Authentication successful!</h3>
+                  <p>Redirecting back to app...</p>
+                </div>
+                <script>
+                  function init() {
+                    console.log('Auth callback init');
+                    // Function to parse URL parameters including hash
+                    function parseUrlParams() {
+                      const params = new URLSearchParams(window.location.search);
+                      const hash = window.location.hash;
+                      console.log('URL Search:', window.location.search);
+                      console.log('URL Hash:', hash);
+                      
+                      // Try to get token from hash first (remove the leading #)
+                      if (hash) {
+                        const hashParams = new URLSearchParams(hash.substring(1));
+                        const accessToken = hashParams.get('access_token');
+                        const refreshToken = hashParams.get('refresh_token');
+                        if (accessToken) {
+                          return hash.substring(1); // Return the entire hash content without the #
+                        }
+                      }
+                      
+                      // Fallback to search params
+                      const accessToken = params.get('access_token');
+                      const refreshToken = params.get('refresh_token');
+                      if (accessToken) {
+                        return \`access_token=\${accessToken}\${refreshToken ? '&refresh_token=' + refreshToken : ''}\`;
+                      }
+                      
+                      return null;
+                    }
+                    
+                    // Get the auth data
+                    const authData = parseUrlParams();
+                    console.log('Auth data found:', authData ? 'yes' : 'no');
+                    
+                    if (authData) {
+                      // Construct the redirect URL
+                      const baseUrl = ${
+                        app.isPackaged
+                          ? `'file://${path.join(__dirname, 'index.html')}/#/auth'`
+                          : "'http://localhost:9300/#/auth'"
+                      };
+                      // Pass the entire auth data as hash to preserve all parameters
+                      const redirectUrl = baseUrl + '#' + authData;
+                      console.log('Redirecting to:', redirectUrl);
+                      window.location.href = redirectUrl;
+                    }
+                  }
+
+                  // Run init when the page loads
+                  if (document.readyState === 'complete') {
+                    init();
+                  } else {
+                    window.addEventListener('load', init);
+                  }
+                </script>
+              </body>
+            </html>
+          `;
+
+          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.end(html);
+
+          // Focus the main window
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            if (mainWindow.isMinimized()) {
+              mainWindow.restore();
+            }
+            mainWindow.focus();
+          }
+        } else {
+          res.writeHead(404);
+          res.end();
+        }
+      });
+
+      server.listen(port, 'localhost', () => {
+        console.log(`Auth callback server listening on port ${port}`);
+      });
+
+      // Handle server errors
+      server.on('error', (err) => {
+        console.error('Auth server error:', err);
+        if (err.code === 'EADDRINUSE') {
+          console.log('Port in use, trying another port...');
+          server?.close();
+          startServer(); // Try again with next port
+        }
+      });
+    } catch (error) {
+      console.error('Failed to start auth server:', error);
+    }
+  }
+
+  // Start the server
+  startServer();
+
+  // Return an object with cleanup method
+  return {
+    close: () => {
+      if (server) {
+        server.close();
+        server = null;
+      }
+    },
+  };
+}
+
+// Modify createMainWindow to include the auth server
 async function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: screen.getPrimaryDisplay().workAreaSize.width,
@@ -743,58 +936,47 @@ async function createMainWindow() {
   // Load extensions before loading the URL
   const extensionsLoaded = await loadExtensions(mainWindow);
 
-  // Initialize extension APIs
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.executeJavaScript(`
-      if (typeof chrome === 'undefined') {
-        window.chrome = {};
-      }
-
-      // Initialize runtime API
-      if (!chrome.runtime) {
-        chrome.runtime = {
-          id: 'main-window',
-          getManifest: () => ({}),
-          getURL: (path) => path,
-          connect: () => ({
-            onMessage: { addListener: () => {} },
-            postMessage: () => {},
-            disconnect: () => {}
-          }),
-          sendMessage: () => {},
-          onMessage: {
-            addListener: () => {},
-            removeListener: () => {},
-            hasListener: () => false
-          }
-        };
-      }
-
-      // Initialize management API
-      if (!chrome.management) {
-        chrome.management = {
-          getAll: function(callback) {
-            window.postMessage({ type: 'GET_EXTENSIONS' }, '*');
-            window.addEventListener('message', function(event) {
-              if (event.data.type === 'EXTENSIONS_LIST') {
-                callback(event.data.extensions);
-              }
-            });
-          }
-        };
-      }
-    `);
+  // Add temporary logging for navigation events
+  mainWindow.webContents.on('did-start-navigation', (event, url) => {
+    console.log('Main window - Navigation started:', {
+      url,
+      currentURL: mainWindow.webContents.getURL(),
+    });
   });
 
-  mainWindow.webContents.session.clearCache().then(() => {
-    log('Cache cleared successfully.');
+  mainWindow.webContents.on('did-navigate', (event, url) => {
+    console.log('Main window - Navigation completed:', {
+      url,
+      currentURL: mainWindow.webContents.getURL(),
+    });
   });
 
+  mainWindow.webContents.on(
+    'did-fail-load',
+    (event, errorCode, errorDescription) => {
+      console.error('Main window - Failed to load:', {
+        errorCode,
+        errorDescription,
+        currentURL: mainWindow.webContents.getURL(),
+      });
+    },
+  );
+
+  // Clear cache before loading
+  await mainWindow.webContents.session.clearCache();
+
+  // Load the app
   const mainURL = app.isPackaged
     ? `file://${path.join(__dirname, 'index.html')}`
     : 'http://localhost:9300';
 
+  console.log('Loading main URL:', mainURL);
   await mainWindow.loadURL(mainURL);
+
+  // Show dev tools in development
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools();
+  }
 
   // Verify extensions after page load
   mainWindow.webContents.on('did-finish-load', async () => {
@@ -809,6 +991,63 @@ async function createMainWindow() {
   } catch (error) {
     console.error('Failed to set window callback:', error);
   }
+
+  // Create the auth callback server
+  // const authServer = createAuthCallbackServer(mainWindow);
+
+  // Clean up server when window is closed
+  mainWindow.on('closed', () => {
+    if (authServer && typeof authServer.close === 'function') {
+      authServer.close();
+    }
+  });
+}
+
+// Modify the handleAuthWindow function
+function handleAuthWindow(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const authWindow = new BrowserWindow({
+      width: 800,
+      height: 600,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+      show: true, // Show the window by default
+    });
+
+    // Track redirects
+    authWindow.webContents.on('will-redirect', (event, newUrl) => {
+      console.log('Auth window redirecting to:', newUrl);
+      if (newUrl.includes('/auth/callback')) {
+        event.preventDefault();
+        resolve(newUrl);
+        authWindow.close();
+      }
+    });
+
+    // Also track navigation events for hash changes
+    authWindow.webContents.on('did-navigate', (event, newUrl) => {
+      console.log('Auth window navigated to:', newUrl);
+      if (newUrl.includes('/auth/callback')) {
+        resolve(newUrl);
+        authWindow.close();
+      }
+    });
+
+    // Handle if the window is closed
+    authWindow.on('closed', () => {
+      reject(new Error('Auth window was closed'));
+    });
+
+    // Load the auth URL
+    authWindow.loadURL(url).catch(reject);
+
+    // Show DevTools in development
+    if (!app.isPackaged) {
+      authWindow.webContents.openDevTools();
+    }
+  });
 }
 
 app.whenReady().then(() => {
@@ -856,6 +1095,29 @@ app.whenReady().then(() => {
   createMainWindow();
   initializeIpcHandlers(mainWindow);
   initializeAutoUpdater(mainWindow);
+
+  // Add this in app.whenReady() after other ipcMain handlers
+  ipcMain.handle('open-auth-window', async (event, url) => {
+    try {
+      const resultUrl = await handleAuthWindow(url);
+      console.log('Auth completed with URL:', resultUrl);
+
+      // Parse the URL to get token
+      const urlObj = new URL(resultUrl);
+      const params = new URLSearchParams(urlObj.search);
+      const hash = urlObj.hash;
+
+      console.log('Auth URL params:', params.toString());
+      console.log('Auth URL hash:', hash);
+
+      // Return the full URL so the renderer can extract what it needs
+      // mainWindow.webContents.send('navigate-to-url', resultUrl);
+      return resultUrl;
+    } catch (error) {
+      console.error('Auth window error:', error);
+      throw error;
+    }
+  });
 });
 
 if (!app.requestSingleInstanceLock()) {

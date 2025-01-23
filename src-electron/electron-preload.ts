@@ -46,6 +46,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onUpdateError: (callback: any) => ipcRenderer.on('update-error', callback),
   handleStripe: (action: string, redirectUrl: string) =>
     ipcRenderer.invoke('handle-stripe', { action, redirectUrl }),
+  onAuthCallback: (callback: (data: any) => void) =>
+    ipcRenderer.on('auth-callback', (_event, data) => callback(data)),
+  openAuthWindow: (url: string) => ipcRenderer.invoke('open-auth-window', url),
 });
 
 // Helper function for navigating
