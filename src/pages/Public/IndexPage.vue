@@ -49,7 +49,9 @@ onMounted(async () => {
     }
   });
 
-
+  if (process.env.DEV) {
+    return;
+  }
   const response = await window.electronAPI.checkInstallerUpdates();
   
 

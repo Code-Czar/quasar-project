@@ -16,7 +16,7 @@ export const setWindowCallback = (openWindowCallback: any) => {
 export const initWebSocket = (openWindowCallback: any = openWindow) => {
   if (!wss) {
     try {
-      wss = new WebSocket.Server({ port: 8766, host: '0.0.0.0' });
+      wss = new WebSocket.Server({ port: 8766, host: '127.0.0.1' });
       // initWebSocket();
       // console.log('🚀 ~ createWindow ~ wss:', wss);
     } catch (error) {

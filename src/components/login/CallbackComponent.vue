@@ -31,7 +31,7 @@ const tryGetToken = () => {
     console.log('Found hash:', window.location.hash);
     
     // Remove the leading # and any /auth prefix
-    const hashContent = window.location.hash.substring(1).replace(/^\/auth\??/, '');
+    const hashContent = window.location.hash.substring(1).replace(/^\/auth\/callback\??/, '').replace('#', '');
     console.log('Hash content:', hashContent);
     
     const hashParams = new URLSearchParams(hashContent);
@@ -64,7 +64,7 @@ onMounted(async () => {
     const isCallback = window.location.pathname.includes('/auth/callback') || 
                       window.location.hash.includes('/auth/callback');
     
-    if (isCallback) {
+    if (isCallback && !process.env.DEV) {
       console.log('On callback route, waiting for redirect...');
       return; // Let the callback server handle the redirect
     }
@@ -105,13 +105,16 @@ onMounted(async () => {
     }, accessToken);
     console.log('Store updated, redirecting to catalog...');
     loading.value = false;
+    
     router.push({ name: 'catalog' });
+
+
   } catch (err: any) {
     console.error('Auth callback error:', err);
     error.value = err.message || 'Authentication failed';
     // Wait a bit before redirecting on error
     setTimeout(() => {
-      router.push({ name: 'catalog' }); // Redirect to catalog even on error
+      // router.push({ name: 'catalog' }); // Redirect to catalog even on error
     }, 3000);
   }
 });

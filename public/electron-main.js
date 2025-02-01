@@ -17,6 +17,8 @@ const websocket_1 = require("./installScripts/websocket");
 const logger_1 = require("./installScripts/logger");
 // import { isDevMode } from './installScripts/utils';
 const utils_1 = require("./installScripts/utils");
+const http_1 = __importDefault(require("http"));
+const url_1 = __importDefault(require("url"));
 // Extension IDs and filenames
 const EXTENSIONS = {
     UBLOCK: {
@@ -572,6 +574,179 @@ const openWindow = async (windowTitle, url = null) => {
     });
 };
 exports.openWindow = openWindow;
+// Add this function at the top level
+function findAvailablePort(startPort, endPort) {
+    return new Promise((resolve, reject) => {
+        function tryPort(port) {
+            if (port > endPort) {
+                reject(new Error('No available ports found'));
+                return;
+            }
+            const testServer = http_1.default.createServer();
+            testServer.once('error', (err) => {
+                if (err.code === 'EADDRINUSE') {
+                    tryPort(port + 1);
+                }
+                else {
+                    reject(err);
+                }
+            });
+            testServer.once('listening', () => {
+                testServer.close(() => resolve(port));
+            });
+            testServer.listen(port, 'localhost');
+        }
+        tryPort(startPort);
+    });
+}
+// Modify the createAuthCallbackServer function
+function createAuthCallbackServer(mainWindow) {
+    let server = null;
+    async function startServer() {
+        try {
+            // Find an available port in a range
+            const basePort = electron_1.app.isPackaged ? 9301 : 9300;
+            const port = await findAvailablePort(basePort, basePort + 10);
+            server = http_1.default.createServer((req, res) => {
+                const parsedUrl = url_1.default.parse(req.url || '', true);
+                console.log('Incoming request URL:', req.url);
+                console.log('Parsed URL:', parsedUrl);
+                // Handle auth callback
+                if (parsedUrl.pathname === '/auth/callback') {
+                    // Get the full URL including hash fragment
+                    const fullUrl = req.url || '';
+                    console.log('Auth callback received. Full URL:', fullUrl);
+                    // Send a simple HTML page that will pass the token back to the main window
+                    const html = `
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <style>
+                  body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                    background-color: #f5f5f5;
+                  }
+                  .message {
+                    text-align: center;
+                    padding: 20px;
+                    background: white;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                  }
+                </style>
+              </head>
+              <body>
+                <div class="message">
+                  <h3>Authentication successful!</h3>
+                  <p>Redirecting back to app...</p>
+                </div>
+                <script>
+                  function init() {
+                    console.log('Auth callback init');
+                    // Function to parse URL parameters including hash
+                    function parseUrlParams() {
+                      const params = new URLSearchParams(window.location.search);
+                      const hash = window.location.hash;
+                      console.log('URL Search:', window.location.search);
+                      console.log('URL Hash:', hash);
+                      
+                      // Try to get token from hash first (remove the leading #)
+                      if (hash) {
+                        const hashParams = new URLSearchParams(hash.substring(1));
+                        const accessToken = hashParams.get('access_token');
+                        const refreshToken = hashParams.get('refresh_token');
+                        if (accessToken) {
+                          return hash.substring(1); // Return the entire hash content without the #
+                        }
+                      }
+                      
+                      // Fallback to search params
+                      const accessToken = params.get('access_token');
+                      const refreshToken = params.get('refresh_token');
+                      if (accessToken) {
+                        return \`access_token=\${accessToken}\${refreshToken ? '&refresh_token=' + refreshToken : ''}\`;
+                      }
+                      
+                      return null;
+                    }
+                    
+                    // Get the auth data
+                    const authData = parseUrlParams();
+                    console.log('Auth data found:', authData ? 'yes' : 'no');
+                    
+                    if (authData) {
+                      // Construct the redirect URL based on environment
+                      const baseUrl = ${electron_1.app.isPackaged
+                        ? `'file://' + path.join(__dirname, 'index.html')`
+                        : "'http://localhost:9300'"};
+                      // Pass the entire auth data as hash to preserve all parameters
+                      const redirectUrl = baseUrl + '/#/auth?' + authData;
+                      console.log('Redirecting to:', redirectUrl);
+                      window.location.href = redirectUrl;
+                    }
+                  }
+
+                  // Run init when the page loads
+                  if (document.readyState === 'complete') {
+                    init();
+                  } else {
+                    window.addEventListener('load', init);
+                  }
+                </script>
+              </body>
+            </html>
+          `;
+                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                    res.end(html);
+                    // Focus the main window
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        if (mainWindow.isMinimized()) {
+                            mainWindow.restore();
+                        }
+                        mainWindow.focus();
+                    }
+                }
+                else {
+                    res.writeHead(404);
+                    res.end();
+                }
+            });
+            server.listen(port, 'localhost', () => {
+                console.log(`Auth callback server listening on port ${port}`);
+            });
+            // Handle server errors
+            server.on('error', (err) => {
+                console.error('Auth server error:', err);
+                //@ts-ignore
+                if (err.code === 'EADDRINUSE') {
+                    console.log('Port in use, trying another port...');
+                    server?.close();
+                    startServer(); // Try again with next port
+                }
+            });
+        }
+        catch (error) {
+            console.error('Failed to start auth server:', error);
+        }
+    }
+    // Start the server
+    startServer();
+    // Return an object with cleanup method
+    return {
+        close: () => {
+            if (server) {
+                server.close();
+                server = null;
+            }
+        },
+    };
+}
+// Update createMainWindow to remove auth window references
 async function createMainWindow() {
     exports.mainWindow = new electron_1.BrowserWindow({
         width: electron_1.screen.getPrimaryDisplay().workAreaSize.width,
@@ -592,80 +767,29 @@ async function createMainWindow() {
             ],
         },
     });
-    // Enable Chrome APIs for the main window
-    exports.mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
-        callback(true);
+    // Add temporary logging for navigation events
+    exports.mainWindow.webContents.on('did-start-navigation', (event, url) => {
+        console.log('Main window - Navigation started:', {
+            url,
+            currentURL: exports.mainWindow.webContents.getURL(),
+        });
     });
-    exports.mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
-        return true;
+    exports.mainWindow.webContents.on('did-navigate', (event, url) => {
+        console.log('Main window - Navigation completed:', {
+            url,
+            currentURL: exports.mainWindow.webContents.getURL(),
+        });
     });
-    // Add keyboard shortcuts for extension management with proper type annotations
-    exports.mainWindow.webContents.on('before-input-event', (event, input) => {
-        // Ctrl+Shift+E (or Cmd+Shift+E on macOS) to open extension status
-        if ((input.control || input.meta) &&
-            input.shift &&
-            input.key.toLowerCase() === 'e') {
-            createExtensionStatusWindow();
-        }
-    });
-    // Load extensions before loading the URL
-    const extensionsLoaded = await loadExtensions(exports.mainWindow);
-    // Initialize extension APIs
-    exports.mainWindow.webContents.on('did-finish-load', () => {
-        exports.mainWindow.webContents.executeJavaScript(`
-      if (typeof chrome === 'undefined') {
-        window.chrome = {};
-      }
-
-      // Initialize runtime API
-      if (!chrome.runtime) {
-        chrome.runtime = {
-          id: 'main-window',
-          getManifest: () => ({}),
-          getURL: (path) => path,
-          connect: () => ({
-            onMessage: { addListener: () => {} },
-            postMessage: () => {},
-            disconnect: () => {}
-          }),
-          sendMessage: () => {},
-          onMessage: {
-            addListener: () => {},
-            removeListener: () => {},
-            hasListener: () => false
-          }
-        };
-      }
-
-      // Initialize management API
-      if (!chrome.management) {
-        chrome.management = {
-          getAll: function(callback) {
-            window.postMessage({ type: 'GET_EXTENSIONS' }, '*');
-            window.addEventListener('message', function(event) {
-              if (event.data.type === 'EXTENSIONS_LIST') {
-                callback(event.data.extensions);
-              }
-            });
-          }
-        };
-      }
-    `);
-    });
-    exports.mainWindow.webContents.session.clearCache().then(() => {
-        (0, logger_1.logger)('Cache cleared successfully.');
-    });
+    // Load the app
     const mainURL = electron_1.app.isPackaged
         ? `file://${path_1.default.join(__dirname, 'index.html')}`
         : 'http://localhost:9300';
+    console.log('Loading main URL:', mainURL);
     await exports.mainWindow.loadURL(mainURL);
-    // Verify extensions after page load
-    exports.mainWindow.webContents.on('did-finish-load', async () => {
-        // Wait a bit to ensure extensions are fully initialized
-        setTimeout(async () => {
-            await verifyLoadedExtensions(exports.mainWindow);
-        }, 2000);
-    });
+    // Show dev tools in development
+    if (!electron_1.app.isPackaged) {
+        exports.mainWindow.webContents.openDevTools();
+    }
     try {
         (0, websocket_1.setWindowCallback)(exports.openWindow);
     }
@@ -673,33 +797,38 @@ async function createMainWindow() {
         console.error('Failed to set window callback:', error);
     }
 }
+// Keep the protocol handler as is since it's working
 electron_1.app.whenReady().then(() => {
-    if (process.platform === 'win32') {
-        // Protocol setup
-        const execPath = process.execPath;
-        const escapedExecPath = execPath
-            .replace(/\\/g, '\\\\')
-            .replace(/"/g, '\\"');
-        const command = `"${escapedExecPath}" "%1"`;
-    }
-    if (electron_1.app.isPackaged) {
-        // Define the Supabase redirect URI
-        const redirectUri = 'http://localhost/auth/callback';
-        const filter = { urls: [`${redirectUri}*`] };
-    }
-    // Register chrome-extension protocol without interfering with Supabase
-    electron_1.protocol.handle('chrome-extension', (request) => {
-        const url = request.url.substring('chrome-extension://'.length);
-        const extensionParts = url.split('/');
-        const extensionId = extensionParts[0];
-        const extensionPath = electron_1.app.isPackaged
-            ? path_1.default.join(process.resourcesPath, 'extensions', extensionId)
-            : path_1.default.join(__dirname, '..', 'extensions', extensionId);
-        const filePath = path_1.default.join(extensionPath, ...extensionParts.slice(1));
-        return electron_1.net.fetch(`file://${filePath}`);
+    electron_1.protocol.handle('infinityinstaller', (request) => {
+        console.log('Custom protocol URL:', request.url);
+        try {
+            // Parse the URL and handle encoding
+            const parsedUrl = new URL(request.url);
+            console.log('Parsed protocol URL:', parsedUrl);
+            // Handle auth callback
+            if (parsedUrl.pathname.includes('/auth/callback')) {
+                // Get the hash or search params from the URL
+                const authData = parsedUrl.hash || parsedUrl.search;
+                console.log('Auth data from protocol:', authData);
+                // Construct the app URL with the auth data
+                const appUrl = electron_1.app.isPackaged
+                    ? `file://${path_1.default.join(__dirname, 'index.html')}#/auth${authData}`
+                    : `http://localhost:9300/#/auth${authData}`;
+                console.log('Redirecting to app URL:', appUrl);
+                if (exports.mainWindow) {
+                    exports.mainWindow.loadURL(appUrl);
+                    if (exports.mainWindow.isMinimized()) {
+                        exports.mainWindow.restore();
+                    }
+                    exports.mainWindow.focus();
+                }
+            }
+        }
+        catch (error) {
+            console.error('Error handling protocol URL:', error);
+        }
+        return new Response();
     });
-    // Setup extension IPC handlers
-    setupExtensionIPC();
     createMainWindow();
     (0, ipcHandlers_1.initializeIpcHandlers)(exports.mainWindow);
     (0, autoUpdate_1.initializeAutoUpdater)(exports.mainWindow);

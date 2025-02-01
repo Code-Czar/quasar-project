@@ -72,7 +72,7 @@ const mobileURLScheme = 'opportunities://auth';
 const definePostLoginRedirection = (enableAppRedirect = false) => {
   // In development, use localhost
   if (process.env.DEV) {
-    return 'http://localhost:9300/auth/callback';
+    return 'http://localhost:9300/#/auth/callback';
   }
   
   // In production electron app
