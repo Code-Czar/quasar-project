@@ -31,7 +31,8 @@ const tryGetToken = () => {
     console.log('Found hash:', window.location.hash);
     
     // Remove the leading # and any /auth prefix
-    const hashContent = window.location.hash.substring(1).replace(/^\/auth\/callback\??/, '').replace('#', '');
+    let hashContent = window.location.hash.substring(1).replace(/^\/auth\/callback\??/, '').replace('#', '');
+     hashContent = hashContent.replace(/^\/auth\??/, '');
     console.log('Hash content:', hashContent);
     
     const hashParams = new URLSearchParams(hashContent);

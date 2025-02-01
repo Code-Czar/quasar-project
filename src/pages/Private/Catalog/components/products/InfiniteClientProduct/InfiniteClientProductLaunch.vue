@@ -19,6 +19,8 @@
 
 <script setup lang="ts">
 import { ref, defineProps, onMounted, onUnmounted, watch } from 'vue';
+import { useUserStore } from 'src/stores/userStore';
+
 import { Platform } from 'quasar';
 import axios from 'axios';
 
@@ -41,6 +43,7 @@ const updateProgress = ref<number | null>(null);
 const updateMessage = ref<string | null>(null);
 const isUpdating = ref<bool>(true);
 const isLaunching = ref<bool>(false);
+const userStore = useUserStore();
 
 const openApp = () => {
   const url = 'http://127.0.0.1:3000/api/groups/api';
@@ -56,6 +59,15 @@ const openApp = () => {
       if (groups.length) {
         console.log('✅ Connection successful! Redirecting to:', url);
         isLaunching.value = false;
+         // Get user from store
+         const userStore = useUserStore();
+        const user = userStore.user;
+        
+        // Stringify and encode user object
+        const userString = encodeURIComponent(JSON.stringify(user));
+
+        // Append user data to the mainPageURL
+        const redirectURL = `${mainPageURL}?user=${userString}`;
         setTimeout(
           () => (window.location.href = mainPageURL),
           2 * retryInterval,
