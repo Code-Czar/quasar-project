@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-center" style="min-height: 100vh;">
+  <div class="flex flex-center" style="min-height: 100vh">
     <div class="column items-center">
       <q-spinner-dots size="40" v-if="loading" />
       <div v-if="error" class="text-negative q-mt-md">{{ error }}</div>
@@ -11,7 +11,7 @@
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { createClient } from '@supabase/supabase-js';
-import { useUserStore } from '../../stores/userStore';
+import { useUserStore } from 'src/stores/userStore';
 
 const SUPABASE_URL = 'https://yhotbknfiebbflhovpws.supabase.co';
 const SUPABASE_ANON_KEY =
@@ -25,33 +25,39 @@ const error = ref<string | null>(null);
 
 const tryGetToken = () => {
   console.log('Trying to get token from URL:', window.location.href);
-  
+
   // For hash-based routing (#/auth?access_token=... or #access_token=...)
   if (window.location.hash) {
     console.log('Found hash:', window.location.hash);
-    
+
     // Remove the leading # and any /auth prefix
-    let hashContent = window.location.hash.substring(1).replace(/^\/auth\/callback\??/, '').replace('#', '');
-     hashContent = hashContent.replace(/^\/auth\??/, '');
+    let hashContent = window.location.hash
+      .substring(1)
+      .replace(/^\/auth\/callback\??/, '')
+      .replace('#', '');
+    hashContent = hashContent.replace(/^\/auth\??/, '');
     console.log('Hash content:', hashContent);
-    
+
     const hashParams = new URLSearchParams(hashContent);
     const accessToken = hashParams.get('access_token');
     const refreshToken = hashParams.get('refresh_token');
-    
-    console.log('Tokens from hash:', { hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
+
+    console.log('Tokens from hash:', {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+    });
     if (accessToken) {
       return { accessToken, refreshToken };
     }
   }
 
   // Fallback to regular search params
-  const searchParams = new URLSearchParams(window.location.search);
-  const accessToken = searchParams.get('access_token');
-  const refreshToken = searchParams.get('refresh_token');
-  console.log('Tokens from search params:', { hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
-  
-  return { accessToken, refreshToken };
+  // const searchParams = new URLSearchParams(window.location.search);
+  // const accessToken = searchParams.get('access_token');
+  // const refreshToken = searchParams.get('refresh_token');
+  // console.log('Tokens from search params:', { hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
+
+  // return { accessToken, refreshToken };
 };
 
 onMounted(async () => {
@@ -60,16 +66,17 @@ onMounted(async () => {
     console.log('Current URL:', window.location.href);
     console.log('Search params:', window.location.search);
     console.log('Hash:', window.location.hash);
-    
+
     // Check if we're on the callback route (for hash-based routing)
-    const isCallback = window.location.pathname.includes('/auth/callback') || 
-                      window.location.hash.includes('/auth/callback');
-    
+    const isCallback =
+      window.location.pathname.includes('/auth/callback') ||
+      window.location.hash.includes('/auth/callback');
+
     if (isCallback && !process.env.DEV) {
       console.log('On callback route, waiting for redirect...');
       return; // Let the callback server handle the redirect
     }
-    
+
     const { accessToken, refreshToken } = tryGetToken();
     console.log('Access token found:', !!accessToken);
 
@@ -80,9 +87,12 @@ onMounted(async () => {
 
     // Set the session in Supabase
     console.log('Setting Supabase session...');
-    const { data: { session }, error: sessionError } = await supabase.auth.setSession({
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.setSession({
       access_token: accessToken,
-      refresh_token: refreshToken || ''
+      refresh_token: refreshToken || '',
     });
 
     if (sessionError) {
@@ -97,19 +107,34 @@ onMounted(async () => {
     }
 
     console.log('Session established, user:', session.user.email);
-    
+
     // Update store and redirect
-    await store.setUserCredentials({
-      id: session.user.id,
-      email: session.user.email,
-      user_metadata: session.user.user_metadata
-    }, accessToken);
-    console.log('Store updated, redirecting to catalog...');
+    await store.setUserCredentials(
+      {
+        id: session.user.id,
+        email: session.user.email,
+        user_metadata: session.user.user_metadata,
+      },
+      accessToken,
+    );
+    console.log('Store updated, pushing to backend...');
+
+    supabase.auth.getUser(accessToken).then(async ({ data: { user } }) => {
+      if (user) {
+        // await store.setUserCredentials(user, accessToken);
+        await store.pushUserToBackend(user);
+
+        console.log(
+          '🚀 ~ file: CallbackComponent.vue:58 ~ store:',
+          user,
+          store.user,
+        );
+
+        router.push({ name: 'catalog' });
+      }
+    });
+
     loading.value = false;
-    
-    router.push({ name: 'catalog' });
-
-
   } catch (err: any) {
     console.error('Auth callback error:', err);
     error.value = err.message || 'Authentication failed';
@@ -140,7 +165,7 @@ onMounted(async () => {
 }
 
 .text-negative {
-  color: #C10015;
+  color: #c10015;
 }
 
 .q-mt-md {

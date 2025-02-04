@@ -68,6 +68,7 @@ const openApp = () => {
 
         // Append user data to the mainPageURL
         const redirectURL = `${mainPageURL}?user=${userString}`;
+        
         setTimeout(
           () => (window.location.href = mainPageURL),
           2 * retryInterval,
