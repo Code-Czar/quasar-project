@@ -8,4 +8,3 @@ export * from './images';
 export * from './headers';
 export * from './cards';
 export * from './publicPages';
-export * from './loaders';
