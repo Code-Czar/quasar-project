@@ -364,7 +364,6 @@ export const openWindow = async (windowTitle: string, url = null) => {
 
   console.log('🚀 ~ openWindow ~ url:', url);
   console.log('🚀 ~ openWindow ~ windowTitle:', windowTitle);
-  newWindow.loadURL(url || 'http://tiktok.com');
 
   // Listen for the page title change event and override it
   newWindow.webContents.on('page-title-updated', (event) => {
@@ -378,6 +377,7 @@ export const openWindow = async (windowTitle: string, url = null) => {
         console.error('🚀 ~ Error setting page title:', error);
       });
   });
+  newWindow.loadURL(url || 'http://google.com');
 };
 
 // Update createMainWindow to remove auth window references
